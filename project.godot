@@ -1,0 +1,29 @@
+﻿; Engine configuration file — Treinamento Hashira (Pasqualotti Studio)
+config_version=5
+
+[application]
+
+config/name="Treinamento Hashira"
+config/description="Fan game 2D Demon Slayer — uso pessoal. Pasqualotti Studio."
+config/version="0.1.0"
+run/main_scene="res://scenes/boot/splash_studio.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.svg"
+
+[autoload]
+
+Game="*res://scripts/autoload/game.gd"
+SceneRouter="*res://scripts/autoload/scene_router.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=0
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+renderer/rendering_method="mobile"

@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Treinamento Hashira — Checklist Mestre</title>
+  <style>
+    :root {
+      --bg: #0f1218;
+      --bg2: #171c26;
+      --card: #1c2330;
+      --border: #2a3344;
+      --text: #e8ecf4;
+      --muted: #9aa6bc;
+      --accent: #c43c3c;
+      --accent2: #e8b84a;
+      --ok: #3dba7a;
+      --phase: #5b8def;
+      --warn: #e0a04a;
+      --radius: 12px;
+      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .hero {
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 0%, rgba(196,60,60,.25), transparent 50%),
+        radial-gradient(ellipse 60% 50% at 90% 20%, rgba(232,184,74,.12), transparent 45%),
+        linear-gradient(180deg, #151a24 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 2.5rem 1.25rem 2rem;
+    }
+    .hero-inner { max-width: 980px; margin: 0 auto; }
+    .badge {
+      display: inline-block;
+      font-size: .75rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      border: 1px solid rgba(232,184,74,.35);
+      padding: .25rem .6rem;
+      border-radius: 999px;
+      margin-bottom: .75rem;
+    }
+    h1 { margin: 0 0 .5rem; font-size: clamp(1.6rem, 4vw, 2.15rem); font-weight: 750; }
+    .subtitle { color: var(--muted); max-width: 62ch; margin: 0 0 1.25rem; }
+    .progress-wrap {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+    }
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: .5rem;
+      font-size: .9rem;
+    }
+    .progress-meta strong { color: var(--accent2); font-size: 1.15rem; }
+    .bar {
+      height: 10px;
+      background: #0a0d12;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .bar > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .25s ease;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-top: .85rem;
+    }
+    button, .btn {
+      font: inherit;
+      cursor: pointer;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      padding: .45rem .75rem;
+      font-size: .85rem;
+    }
+    button:hover, .btn:hover { border-color: var(--muted); }
+    button.danger { border-color: rgba(196,60,60,.5); color: #f0a0a0; }
+    button.primary {
+      background: linear-gradient(180deg, #d44a4a, #a82828);
+      border-color: #8f2222;
+      color: #fff;
+    }
+
+    .layout {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 4rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    nav.toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+    }
+    nav.toc h2 { margin: 0 0 .65rem; font-size: 1rem; color: var(--accent2); }
+    nav.toc ol {
+      margin: 0;
+      padding-left: 1.2rem;
+      columns: 1;
+    }
+    @media (min-width: 700px) {
+      nav.toc ol { columns: 2; }
+    }
+    nav.toc a {
+      color: var(--text);
+      text-decoration: none;
+      font-size: .92rem;
+    }
+    nav.toc a:hover { color: var(--accent2); }
+    nav.toc li { margin: .3rem 0; break-inside: avoid; }
+
+    section.block {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.15rem 1.2rem 1.25rem;
+      scroll-margin-top: 1rem;
+    }
+    section.block > h2 {
+      margin: 0 0 .35rem;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      flex-wrap: wrap;
+    }
+    .phase-tag {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      background: rgba(91,141,239,.15);
+      color: var(--phase);
+      border: 1px solid rgba(91,141,239,.35);
+      padding: .15rem .45rem;
+      border-radius: 6px;
+    }
+    .phase-tag.prod { color: #e8b84a; background: rgba(232,184,74,.12); border-color: rgba(232,184,74,.35); }
+    .phase-tag.tech { color: #7dcea0; background: rgba(61,186,122,.1); border-color: rgba(61,186,122,.35); }
+    .phase-tag.art { color: #d7a0e8; background: rgba(180,100,220,.12); border-color: rgba(180,100,220,.35); }
+    .phase-tag.crit { color: #f0a0a0; background: rgba(196,60,60,.12); border-color: rgba(196,60,60,.4); }
+
+    .lead { color: var(--muted); margin: 0 0 1rem; font-size: .95rem; }
+
+    .callout {
+      background: var(--bg2);
+      border-left: 3px solid var(--accent2);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: .75rem 1rem;
+      margin: 0 0 1rem;
+      font-size: .92rem;
+    }
+    .callout.warn { border-left-color: var(--warn); }
+    .callout.crit { border-left-color: var(--accent); }
+    .callout strong { color: var(--text); }
+
+    h3 {
+      margin: 1.15rem 0 .5rem;
+      font-size: 1rem;
+      color: var(--accent2);
+    }
+    h3:first-of-type { margin-top: .25rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      margin: .5rem 0 1rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: .45rem .55rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--bg2); color: var(--accent2); font-weight: 600; }
+    tr:nth-child(even) td { background: rgba(0,0,0,.15); }
+
+    ul.check {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    ul.check li {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: .55rem .65rem;
+      align-items: start;
+      padding: .45rem .5rem;
+      border-radius: 8px;
+      margin-bottom: .2rem;
+    }
+    ul.check li:hover { background: rgba(255,255,255,.03); }
+    ul.check li.done label { color: var(--muted); text-decoration: line-through; }
+    ul.check input[type="checkbox"] {
+      width: 1.05rem;
+      height: 1.05rem;
+      margin-top: .2rem;
+      accent-color: var(--ok);
+      cursor: pointer;
+    }
+    ul.check label {
+      cursor: pointer;
+      font-size: .92rem;
+    }
+    ul.check .hint {
+      grid-column: 2;
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: -.25rem;
+    }
+    code, .mono {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: .85em;
+      background: #0a0d12;
+      padding: .1em .35em;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .grid-2 {
+      display: grid;
+      gap: .75rem;
+    }
+    @media (min-width: 720px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .mini-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .75rem .9rem;
+      font-size: .88rem;
+    }
+    .mini-card h4 { margin: 0 0 .4rem; font-size: .9rem; color: var(--text); }
+    .mini-card p { margin: 0; color: var(--muted); }
+    footer {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 1.25rem 2.5rem;
+      color: var(--muted);
+      font-size: .8rem;
+    }
+    .sec-progress {
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="badge">Pasqualotti Studios · Fan project pessoal</div>
+      <h1>Demon Slayer — Treinamento Hashira</h1>
+      <p class="subtitle">
+        Documento mestre com passo a passo, decisões de produto, mecânicas, arquitetura técnica e
+        <strong>checklist</strong> pra ir marcando. Progresso salva neste navegador (localStorage).
+      </p>
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <span>Progresso geral</span>
+          <strong id="pct">0%</strong>
+        </div>
+        <div class="bar"><i id="bar"></i></div>
+        <div class="toolbar">
+          <button type="button" class="primary" onclick="window.print()">Imprimir / PDF</button>
+          <button type="button" onclick="exportProgress()">Exportar progresso JSON</button>
+          <button type="button" onclick="document.getElementById('importFile').click()">Importar progresso</button>
+          <input type="file" id="importFile" accept="application/json" hidden />
+          <button type="button" class="danger" onclick="resetProgress()">Zerar checklists</button>
+        </div>
+        <p style="margin:.65rem 0 0;font-size:.8rem;color:var(--muted)">
+          Arquivo: <span class="mono">docs/CHECKLIST-MESTRE.html</span> · Abra no Chrome/Edge · Marque as caixas
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Índice">
+      <h2>Índice</h2>
+      <ol>
+        <li><a href="#ordem">0. Ordem correta (design vs código vs arte)</a></li>
+        <li><a href="#visao">1. Visão do produto</a></li>
+        <li><a href="#decisoes">2. Decisões a fechar (workshop)</a></li>
+        <li><a href="#mecanicas">3. Mecânicas — especificação</a></li>
+        <li><a href="#conteudo">4. Conteúdo: personagens, mundos, chefes</a></li>
+        <li><a href="#arquitetura">5. Arquitetura técnica (Godot)</a></li>
+        <li><a href="#instalacao">6. Instalação &amp; ambiente</a></li>
+        <li><a href="#fases-dev">7. Fases de desenvolvimento (roadmap)</a></li>
+        <li><a href="#arte">8. Arte pixel &amp; pipeline Imagine</a></li>
+        <li><a href="#audio">9. Áudio</a></li>
+        <li><a href="#balance">10. Economia &amp; balance</a></li>
+        <li><a href="#qa">11. QA, build Android, distribuição</a></li>
+        <li><a href="#mvp">12. MVP vs depois</a></li>
+        <li><a href="#riscos">13. Riscos &amp; escopo</a></li>
+        <li><a href="#refs">14. Referências de estudo</a></li>
+      </ol>
+    </nav>
+
+    <!-- 0 -->
+    <section class="block" id="ordem">
+      <h2><span class="phase-tag crit">Essencial</span> 0. Ordem correta — o que vem antes?</h2>
+      <p class="lead">Regra do projeto: <strong>produto leve → setup → protótipo feio jogável → arte/polish → conteúdo</strong>.</p>
+      <div class="callout">
+        <strong>Design de jogo (regras, loop, controles)</strong> vem <em>antes</em> de implementar de verdade.
+        <strong>Design visual final</strong> (pixel art polida de todos os Hashiras) vem <em>depois</em> do vertical slice.
+        Se gerarem 14 personagens lindos antes de existir 1 fase jogável, o projeto trava.
+      </div>
+      <table>
+        <thead>
+          <tr><th>Camada</th><th>Quando</th><th>Entrega</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Produto / GDD curto</td><td>Agora (Fase A)</td><td>Loop, combos, respiração, moedas, 1º mundo</td></tr>
+          <tr><td>Setup técnico</td><td>Logo após GDD mínimo</td><td>Godot + Git + Hello APK</td></tr>
+          <tr><td>Vertical slice</td><td>2–3 semanas</td><td>Tanjiro, 3 ataques, respiração, 1 fase, 1 loja, 1 boss stub</td></tr>
+          <tr><td>Arte &amp; áudio</td><td>Em cima do slice</td><td>Pixel, UI, SFX</td></tr>
+          <tr><td>Conteúdo em escala</td><td>Depois do slice divertido</td><td>Mundos, elenco, chefes</td></tr>
+        </tbody>
+      </table>
+      <ul class="check" data-section="ordem">
+        <li><input type="checkbox" id="o1" /><label for="o1">Li e aceitei a ordem: GDD leve → setup → slice → arte → conteúdo</label></li>
+        <li><input type="checkbox" id="o2" /><label for="o2">Combinamos com o sobrinho: playtest semanal no celular, mesmo feio</label></li>
+        <li><input type="checkbox" id="o3" /><label for="o3">Congelamos mentalmente: MVP ≠ lista inteira de personagens no dia 1</label></li>
+      </ul>
+    </section>
+
+    <!-- 1 -->
+    <section class="block" id="visao">
+      <h2><span class="phase-tag prod">Produto</span> 1. Visão do produto</h2>
+      <p class="lead">Jogo 2D pixelado de fases (side-view / run de estágios), tema Demon Slayer, Android, uso pessoal (família e amigos).</p>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>Pitch (1 frase)</h4>
+          <p>Avance por fases matando onis, encha a respiração pro especial, junte moedas, melhore o caçador e enfrente o chefão do mundo — desbloqueando Hashiras pelo caminho.</p>
+        </div>
+        <div class="mini-card">
+          <h4>Pilares</h4>
+          <p>① Combate de espada legível (3 ataques + especial)<br />② Progressão por moedas/upgrades<br />③ Mundos com chefão<br />④ Elenco reconhecível (pixel)</p>
+        </div>
+      </div>
+      <h3>Loop principal (core loop)</h3>
+      <table>
+        <thead><tr><th>Passo</th><th>O que o jogador faz</th><th>Recompensa</th></tr></thead>
+        <tbody>
+          <tr><td>1. Hub / Mapa do mundo</td><td>Escolhe fase ou loja</td><td>—</td></tr>
+          <tr><td>2. Fase</td><td>Anda, ataca onis, evita dano</td><td>Moedas (+10 por oni fraco)</td></tr>
+          <tr><td>3. Fim da fase</td><td>Chega no portal / mata o último</td><td>Desbloqueia próxima fase</td></tr>
+          <tr><td>4. Loja</td><td>Gasta moedas</td><td>Mais HP, dano, etc.</td></tr>
+          <tr><td>5. Chefão do mundo</td><td>Última fase do mundo</td><td>Avança mundo + (opcional) personagem</td></tr>
+        </tbody>
+      </table>
+      <ul class="check" data-section="visao">
+        <li><input type="checkbox" id="v1" /><label for="v1">Pitch e pilares combinados entre Matheus e sobrinho</label></li>
+        <li><input type="checkbox" id="v2" /><label for="v2">Loop acima validado (ou anotamos mudanças neste doc)</label></li>
+        <li><input type="checkbox" id="v3" /><label for="v3">Orientação de tela definida: portrait ou landscape</label>
+          <span class="hint">Recomendação inicial: <strong>landscape</strong> para fases pixel side-scroll; portrait se preferirem one-hand. Decidir antes do TileMap.</span>
+        </li>
+        <li><input type="checkbox" id="v4" /><label for="v4">Resolução de design fixada (ex.: 640×360 interno escalado, ou 1280×720)</label>
+          <span class="hint">Pixel art ama resolução base baixa + stretch integer no Godot.</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 2 -->
+    <section class="block" id="decisoes">
+      <h2><span class="phase-tag crit">Workshop</span> 2. Decisões a fechar antes de codar pesado</h2>
+      <p class="lead">Sessão de 1–2h com o sobrinho. Marque quando estiver decidido (anote a escolha no papel ou edite o HTML).</p>
+      <div class="callout warn">
+        <strong>Não pule esta seção.</strong> “Várias fases num mundo” + 14 personagens + upgrades pode virar 2 anos de jogo. O workshop define o <em>primeiro mundo jogável</em>.
+      </div>
+
+      <h3>2.1 Câmera e gênero 2D</h3>
+      <ul class="check" data-section="dec">
+        <li><input type="checkbox" id="d1" /><label for="d1">Gênero confirmado: side-scroller de fases (andar esquerda→direita) — ou outro?</label>
+          <span class="hint">Alternativa: beat'em up 2.5 eixos, ou arena. Default sugerido: side-scroller linear por fase.</span>
+        </li>
+        <li><input type="checkbox" id="d2" /><label for="d2">Pulo existe? (sim/não) e quantos (1 / double jump)</label></li>
+        <li><input type="checkbox" id="d3" /><label for="d3">Controles touch (fechado 2026-08-03): esq. joystick + Avançar + Pulo; dir. atk básico + 2 skills + ultimate (+ pause)</label>
+          <span class="hint">Fonte: <code>docs/GDD-DECISOES.md</code>. Antigo “3 ataques + 1 especial” foi substituído.</span>
+        </li>
+      </ul>
+
+      <h3>2.2 Combate</h3>
+      <ul class="check" data-section="dec">
+        <li><input type="checkbox" id="d4" /><label for="d4">Os 3 ataques são: leve / pesado / arco (ou outra trinca)? Nomes internos definidos</label>
+          <span class="hint">Sugestão: <code>slash</code> (rápido), <code>heavy</code> (lento + dano), <code>thrust</code> (alcance / anti-ar).</span>
+        </li>
+        <li><input type="checkbox" id="d5" /><label for="d5">Combo: soltos (3 botões independentes) ou sequência direcional?</label></li>
+        <li><input type="checkbox" id="d6" /><label for="d6">Respiração: enche com hits acertados? tempo? receber dano esvazia?</label></li>
+        <li><input type="checkbox" id="d7" /><label for="d7">Especial: invencível? multi-hit? custo = barra inteira?</label></li>
+        <li><input type="checkbox" id="d8" /><label for="d8">I-frames na esquiva? Existe esquiva no MVP?</label></li>
+      </ul>
+
+      <h3>2.3 Economia</h3>
+      <ul class="check" data-section="dec">
+        <li><input type="checkbox" id="d9" /><label for="d9">Oni fraco = 10 moedas (confirmado)</label></li>
+        <li><input type="checkbox" id="d10" /><label for="d10">Chefe / oni elite dão mais? (ex.: 50 / 100)</label></li>
+        <li><input type="checkbox" id="d11" /><label for="d11">Lista de upgrades da loja v1 (HP, dano leve, dano pesado, dano especial, regeneração de respiração…)</label></li>
+        <li><input type="checkbox" id="d12" /><label for="d12">Moedas persistem entre mortes e sessões? (recomendado: sim, com save)</label></li>
+        <li><input type="checkbox" id="d13" /><label for="d13">Morte na fase: perde progresso da fase, mantém moedas já banked no fim da fase — ou drop na hora?</label>
+          <span class="hint">Sugestão segura: moedas creditadas ao <strong>completar</strong> a fase (anti-farm infinito morrendo). Ou creditar na hora mas custo de “continuar”.</span>
+        </li>
+      </ul>
+
+      <h3>2.4 Progressão de personagens</h3>
+      <ul class="check" data-section="dec">
+        <li><input type="checkbox" id="d14" /><label for="d14">Como desbloqueia cada personagem? (chefe de mundo / loja / história)</label></li>
+        <li><input type="checkbox" id="d15" /><label for="d15">Upgrades são globais ou por personagem?</label>
+          <span class="hint">Global = mais simples. Por personagem = mais grind, mais conteúdo.</span>
+        </li>
+        <li><input type="checkbox" id="d16" /><label for="d16">Ordem de desbloqueio do elenco (ver seção 4)</label></li>
+      </ul>
+
+      <h3>2.5 Escopo do primeiro entregável</h3>
+      <ul class="check" data-section="dec">
+        <li><input type="checkbox" id="d17" /><label for="d17">MVP = 1 mundo, 3 fases + 1 boss, só Tanjiro, loja com 4 upgrades, 2 tipos de oni</label></li>
+        <li><input type="checkbox" id="d18" /><label for="d18">Data-alvo informal da “noite dos amigos v0.1” (opcional)</label></li>
+      </ul>
+    </section>
+
+    <!-- 3 -->
+    <section class="block" id="mecanicas">
+      <h2><span class="phase-tag prod">Produto</span> 3. Mecânicas — especificação de trabalho</h2>
+      <p class="lead">Texto base pra implementar. Ajustem números no balance (seção 10). Itens marcados = “já implementado e testado”.</p>
+
+      <h3>3.1 Movimento</h3>
+      <ul class="check" data-section="mec">
+        <li><input type="checkbox" id="m1" /><label for="m1">Andar esquerda/direita (CharacterBody2D + move_and_slide)</label></li>
+        <li><input type="checkbox" id="m2" /><label for="m2">Pulo (se decidido) com coyote time leve</label></li>
+        <li><input type="checkbox" id="m3" /><label for="m3">Gravidade e velocidade em constantes / Resource de stats</label></li>
+        <li><input type="checkbox" id="m4" /><label for="m4">Colisão com chão e paredes (TileMap layers)</label></li>
+      </ul>
+
+      <h3>3.2 Três ataques de espada</h3>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Nome sugerido</th><th>Feel</th><th>Dano base*</th><th>Startup / active / recover*</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>atk_light</code></td><td>Corte rápido</td><td>Spam controlado, hitbox curta</td><td>8</td><td>4 / 6 / 10 frames</td></tr>
+          <tr><td><code>atk_heavy</code></td><td>Corte pesado</td><td>Commit, knockback maior</td><td>18</td><td>10 / 8 / 18</td></tr>
+          <tr><td><code>atk_thrust</code></td><td>Estocada</td><td>Mais alcance, bom vs oni que pula</td><td>12</td><td>8 / 7 / 14</td></tr>
+        </tbody>
+      </table>
+      <p class="lead">*Números placeholder — só pra ter ordem de grandeza no código.</p>
+      <ul class="check" data-section="mec">
+        <li><input type="checkbox" id="m5" /><label for="m5">State machine do player: idle / run / jump / attack_* / special / hurt / dead</label></li>
+        <li><input type="checkbox" id="m6" /><label for="m6">Hitbox Area2D por ataque (enable só em frames active)</label></li>
+        <li><input type="checkbox" id="m7" /><label for="m7">Hurtbox do player e dos onis separados</label></li>
+        <li><input type="checkbox" id="m8" /><label for="m8">Hitstun / knockback básico nos onis</label></li>
+        <li><input type="checkbox" id="m9" /><label for="m9">Não permitir spam que cancela recover (ou janela de cancel consciente)</label></li>
+        <li><input type="checkbox" id="m10" /><label for="m10">Feedback: flash branco / particles / SFX por hit</label></li>
+      </ul>
+
+      <h3>3.3 Respiração (medidor → especial)</h3>
+      <div class="callout">
+        <strong>Proposta default (mudar no workshop se quiser):</strong>
+        Barra 0–100. Cada hit em oni: +8 (leve), +12 (pesado), +10 (estocada).
+        Especial consome 100 e causa dano alto em área à frente.
+        Levar dano: −15. Ficar sem atacar 3s: −5/s (opcional).
+      </div>
+      <ul class="check" data-section="mec">
+        <li><input type="checkbox" id="m11" /><label for="m11">Resource/componente <code>BreathMeter</code> (valor, max, signals: changed, full)</label></li>
+        <li><input type="checkbox" id="m12" /><label for="m12">HUD: barra de respiração (vazia → cheia com glow)</label></li>
+        <li><input type="checkbox" id="m13" /><label for="m13">Botão especial desabilitado visualmente até full</label></li>
+        <li><input type="checkbox" id="m14" /><label for="m14">Estado <code>special</code>: animação, hitbox, i-frames curtos, consome barra</label></li>
+        <li><input type="checkbox" id="m15" /><label for="m15">Especial por personagem diferente (fase 2 — no MVP todos usam o do Tanjiro)</label></li>
+      </ul>
+
+      <h3>3.4 Onis e combate inimigo</h3>
+      <ul class="check" data-section="mec">
+        <li><input type="checkbox" id="m16" /><label for="m16">Oni fraco: patrulha / chase curto / ataque telegraphed</label></li>
+        <li><input type="checkbox" id="m17" /><label for="m17">Morte do oni fraco → +10 moedas (evento) + VFX</label></li>
+        <li><input type="checkbox" id="m18" /><label for="m18">Oni elite (fase 2): mais HP, 2 padrões</label></li>
+        <li><input type="checkbox" id="m19" /><label for="m19">Boss: multiphase simples (HP thresholds) no fim do mundo</label></li>
+        <li><input type="checkbox" id="m20" /><label for="m20">Player HP / game over / restart fase</label></li>
+      </ul>
+
+      <h3>3.5 Fases, mundos, mapa</h3>
+      <ul class="check" data-section="mec">
+        <li><input type="checkbox" id="m21" /><label for="m21">Modelo de dados: World → lista de Stage IDs → Boss Stage</label></li>
+        <li><input type="checkbox" id="m22" /><label for="m22">Cena de fase: TileMap + spawns + checkpoint + goal</label></li>
+        <li><input type="checkbox" id="m23" /><label for="m23">Tela de mapa do mundo (nós de fase locked/unlocked/cleared)</label></li>
+        <li><input type="checkbox" id="m24" /><label for="m24">Transição de fim de fase → mapa (com moedas ganhadas)</label></li>
+        <li><input type="checkbox" id="m25" /><label for="m25">Bloquear boss até fases obrigatórias cleared</label></li>
+      </ul>
+
+      <h3>3.6 Loja e upgrades</h3>
+      <ul class="check" data-section="mec">
+        <li><input type="checkbox" id="m26" /><label for="m26">Tela de loja acessível do mapa</label></li>
+        <li><input type="checkbox" id="m27" /><label for="m27">Catálogo de upgrades em Resource/JSON (id, nome, custo, nível max, efeito)</label></li>
+        <li><input type="checkbox" id="m28" /><label for="m28">Compra gasta moedas, sobe nível, aplica em PlayerStats</label></li>
+        <li><input type="checkbox" id="m29" /><label for="m29">Persistência: moedas + níveis de upgrade no save</label></li>
+      </ul>
+
+      <h3>3.7 Seleção de personagem</h3>
+      <ul class="check" data-section="mec">
+        <li><input type="checkbox" id="m30" /><label for="m30">Tela select: só desbloqueados clicáveis</label></li>
+        <li><input type="checkbox" id="m31" /><label for="m31">Cada personagem = scene + stats resource + anim set (mesmo framework de combate)</label></li>
+        <li><input type="checkbox" id="m32" /><label for="m32">Tanjiro sempre unlocked no new game</label></li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="block" id="conteudo">
+      <h2><span class="phase-tag prod">Conteúdo</span> 4. Personagens, mundos e chefes</h2>
+
+      <h3>4.1 Elenco (lista de vocês + grafia usual)</h3>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Nome (pedido)</th><th>Grafia / nota</th><th>Papel sugerido</th><th>Prioridade</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Tanjiro</td><td>Kamado Tanjiro</td><td>Starter</td><td>MVP</td></tr>
+          <tr><td>2</td><td>Zenitsu</td><td>Agatsuma Zenitsu</td><td>Playable</td><td>Mundo 1–2</td></tr>
+          <tr><td>3</td><td>Inosuke</td><td>Hashibira Inosuke</td><td>Playable</td><td>Mundo 1–2</td></tr>
+          <tr><td>4</td><td>Kanao</td><td>Tsuyuri Kanao</td><td>Playable</td><td>Mid</td></tr>
+          <tr><td>5</td><td>Shinobu</td><td>Kochou Shinobu</td><td>Playable / Hashira</td><td>Mid</td></tr>
+          <tr><td>6</td><td>Obanai</td><td>Iguro Obanai</td><td>Hashira</td><td>Late</td></tr>
+          <tr><td>7</td><td>Uzui</td><td>Uzui Tengen</td><td>Hashira</td><td>Mid–Late</td></tr>
+          <tr><td>8</td><td>Tokito</td><td>Tokitou Muichiro</td><td>Hashira</td><td>Late</td></tr>
+          <tr><td>9</td><td>Rengoku</td><td>Rengoku Kyojurou</td><td>Hashira / destaque</td><td>Mundo 2–3</td></tr>
+          <tr><td>10</td><td>Tomioka</td><td>Tomioka Giyuu (“tomioka 2” = Giyuu)</td><td>Hashira</td><td>Mid</td></tr>
+          <tr><td>11</td><td>Sanemi</td><td>Shinazugawa Sanemi</td><td>Hashira</td><td>Late</td></tr>
+          <tr><td>12</td><td>Gyomen</td><td><strong>Gyomei</strong> Himejima</td><td>Hashira</td><td>Late</td></tr>
+          <tr><td>13</td><td>Muzan</td><td>Kibutsuji Muzan</td><td>Boss final / unlock secreto?</td><td>Endgame</td></tr>
+          <tr><td>14</td><td>Yorochi</td><td>Provável <strong>Yoriichi</strong> Tsugikuni</td><td>Unlock lendário</td><td>Endgame</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        Confirmar se “Yorochi” é Yoriichi. Se for outra personagem, corrigir aqui.
+        Muzan como jogável é decisão de produto (vilão playable costuma ser pós-crédito).
+      </div>
+      <ul class="check" data-section="conteudo">
+        <li><input type="checkbox" id="c1" /><label for="c1">Lista de nomes corrigida e aprovada</label></li>
+        <li><input type="checkbox" id="c2" /><label for="c2">Ordem de desbloqueio escrita (1 personagem por mundo no começo)</label></li>
+        <li><input type="checkbox" id="c3" /><label for="c3">Para cada playable: 1 frase do “feel” (Zenitsu = burst elétrico, Inosuke = agressivo…)</label></li>
+        <li><input type="checkbox" id="c4" /><label for="c4">Planilha/tabela de stats base por personagem (HP, speed, multiplicadores de atk)</label></li>
+      </ul>
+
+      <h3>4.2 Estrutura de mundos (proposta inicial)</h3>
+      <table>
+        <thead>
+          <tr><th>Mundo</th><th>Tema visual</th><th>Fases normais</th><th>Chefe (exemplo)</th><th>Unlock playable</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>W1 — Montanha / vilarejo</td><td>Noite, árvores, lanternas</td><td>3</td><td>Oni do templo (original ou “estilo Lua inferior”)</td><td>Zenitsu</td></tr>
+          <tr><td>W2 — Trem / cidade</td><td>Madeira, vapor, farol</td><td>3–4</td><td>Chefão fogo</td><td>Rengoku ou Inosuke</td></tr>
+          <tr><td>W3 — Distrito / ruas</td><td>Neon lanternas, telhados</td><td>4</td><td>Chefão dual</td><td>Uzui / Kanao</td></tr>
+          <tr><td>W4 — Castelo infinito</td><td>Salas distorcidas</td><td>4–5</td><td>Lua superior</td><td>Hashiras mid</td></tr>
+          <tr><td>W5 — Confronto final</td><td>Céu vermelho</td><td>3 + final</td><td>Muzan</td><td>Yoriichi / Muzan</td></tr>
+        </tbody>
+      </table>
+      <ul class="check" data-section="conteudo">
+        <li><input type="checkbox" id="c5" /><label for="c5">Número de mundos do jogo completo decidido (pode ser 3 no v1, 5 no sonho)</label></li>
+        <li><input type="checkbox" id="c6" /><label for="c6">W1 detalhado: nomes das 3 fases + layout sketch (papel)</label></li>
+        <li><input type="checkbox" id="c7" /><label for="c7">Boss W1: padrões de ataque listados (2–3 moves)</label></li>
+        <li><input type="checkbox" id="c8" /><label for="c8">Paleta de cores por mundo (pra pixel art coerente)</label></li>
+      </ul>
+    </section>
+
+    <!-- 5 -->
+    <section class="block" id="arquitetura">
+      <h2><span class="phase-tag tech">Técnico</span> 5. Arquitetura técnica (Godot 4 + GDScript)</h2>
+      <p class="lead">Stack recomendada: Godot 4 Standard, GDScript, export Android APK, pixel com viewport stretch.</p>
+
+      <h3>5.1 Árvore de pastas alvo</h3>
+      <pre class="mini-card" style="overflow:auto;font-size:.8rem;line-height:1.4"><code>res://
+  project.godot
+  assets/
+    characters/   # sprites / spriteframes
+    enemies/
+    worlds/       # tilesets por mundo
+    ui/
+    audio/{sfx,bgm}
+  scenes/
+    boot/
+    menus/        # title, character_select
+    map/          # world map
+    stages/       # stage_w1_01.tscn …
+    combat/       # player, enemies, hitboxes
+    ui/           # hud, shop, pause
+    bosses/
+  scripts/
+    autoload/     # Game, Save, Audio, Economy, Progress
+    player/
+    enemies/
+    combat/
+    systems/
+  resources/
+    characters/   # tanjiro_stats.tres
+    upgrades/
+    stages/       # stage_def.tres
+  data/           # opcional JSON
+</code></pre>
+
+      <h3>5.2 Autoloads</h3>
+      <table>
+        <thead><tr><th>Singleton</th><th>Responsabilidade</th></tr></thead>
+        <tbody>
+          <tr><td><code>Game</code></td><td>Estado da run, personagem atual, flags de debug</td></tr>
+          <tr><td><code>Progress</code></td><td>Fases cleared, personagens unlocked, mundo atual</td></tr>
+          <tr><td><code>Economy</code></td><td>Moedas, API add/spend, signals</td></tr>
+          <tr><td><code>Upgrades</code></td><td>Níveis comprados, aplicação em stats</td></tr>
+          <tr><td><code>Save</code></td><td>Load/save <code>user://save.json</code></td></tr>
+          <tr><td><code>Audio</code></td><td>BGM/SFX + volumes</td></tr>
+          <tr><td><code>SceneRouter</code></td><td>Troca de cena com fade</td></tr>
+        </tbody>
+      </table>
+
+      <h3>5.3 Sistemas-chave</h3>
+      <ul class="check" data-section="arch">
+        <li><input type="checkbox" id="a1" /><label for="a1">Player com state machine (script limpo, sem Godot Object spaghetti)</label></li>
+        <li><input type="checkbox" id="a2" /><label for="a2">Hurtbox/Hitbox genéricos reutilizáveis (signal <code>hurt(hit_data)</code>)</label></li>
+        <li><input type="checkbox" id="a3" /><label for="a3"><code>StageDef</code> resource: id, world_id, scene_path, coin_bonus, next_ids</label></li>
+        <li><input type="checkbox" id="a4" /><label for="a4"><code>CharacterDef</code>: scene, display_name, unlocked_default, breath_skill_id</label></li>
+        <li><input type="checkbox" id="a5" /><label for="a5"><code>UpgradeDef</code>: id, max_level, costs[], stat_key, amount_per_level</label></li>
+        <li><input type="checkbox" id="a6" /><label for="a6">InputMap: move_left/right, jump, atk_light, atk_heavy, atk_thrust, special, pause</label></li>
+        <li><input type="checkbox" id="a7" /><label for="a7">Touch UI espelha as mesmas actions (não hardcode só teclado)</label></li>
+        <li><input type="checkbox" id="a8" /><label for="a8">Camera2D com limites da fase + deadzone leve</label></li>
+        <li><input type="checkbox" id="a9" /><label for="a9">Groups: <code>player</code>, <code>enemy</code>, <code>coin_drop</code></label></li>
+        <li><input type="checkbox" id="a10" /><label for="a10">Sem magic numbers de combate soltos: tudo em stats/resources</label></li>
+      </ul>
+
+      <h3>5.4 Pixel art no Godot (config)</h3>
+      <ul class="check" data-section="arch">
+        <li><input type="checkbox" id="a11" /><label for="a11">Viewport / window stretch mode adequado a pixel (canvas_items + integer scale se possível)</label></li>
+        <li><input type="checkbox" id="a12" /><label for="a12">Import de texturas: Filter Off, Mipmaps Off</label></li>
+        <li><input type="checkbox" id="a13" /><label for="a13">TileSet com colisão; layers: ground, decoration, hazards</label></li>
+        <li><input type="checkbox" id="a14" /><label for="a14">Renderer Mobile ou Compatibility testado no celular fraco</label></li>
+      </ul>
+
+      <h3>5.5 Save (campos mínimos)</h3>
+      <pre class="mini-card" style="overflow:auto;font-size:.8rem"><code>{
+  "version": 1,
+  "coins": 0,
+  "upgrades": { "hp": 0, "atk_light": 0, "atk_heavy": 0, "atk_thrust": 0, "breath_gain": 0 },
+  "unlocked_characters": ["tanjiro"],
+  "selected_character": "tanjiro",
+  "cleared_stages": [],
+  "settings": { "bgm": 0.8, "sfx": 1.0 }
+}</code></pre>
+      <ul class="check" data-section="arch">
+        <li><input type="checkbox" id="a15" /><label for="a15">Save/Load implementado e testado (matar app e reabrir)</label></li>
+        <li><input type="checkbox" id="a16" /><label for="a16">Migração de version se o schema mudar</label></li>
+      </ul>
+    </section>
+
+    <!-- 6 -->
+    <section class="block" id="instalacao">
+      <h2><span class="phase-tag tech">Setup</span> 6. Instalação &amp; ambiente (Windows)</h2>
+      <p class="lead">Estado no planejamento inicial: Godot, JDK e Android SDK ainda não estavam no PATH. Marque conforme instalar.</p>
+
+      <h3>6.1 Ferramentas obrigatórias</h3>
+      <ul class="check" data-section="inst">
+        <li><input type="checkbox" id="i1" /><label for="i1">Git instalado</label></li>
+        <li><input type="checkbox" id="i2" /><label for="i2">Godot 4.x Standard baixado e pasta estável (ex. Tools\Godot)</label>
+          <span class="hint">https://godotengine.org/download/windows/</span>
+        </li>
+        <li><input type="checkbox" id="i3" /><label for="i3">Projeto Godot criado nesta pasta do repositório</label></li>
+        <li><input type="checkbox" id="i4" /><label for="i4"><code>.gitignore</code> oficial Godot adicionado + primeiro commit</label></li>
+        <li><input type="checkbox" id="i5" /><label for="i5">OpenJDK 17 (Temurin) instalado</label>
+          <span class="hint">https://adoptium.net/</span>
+        </li>
+        <li><input type="checkbox" id="i6" /><label for="i6">Android Studio instalado; SDK em %LOCALAPPDATA%\Android\Sdk</label></li>
+        <li><input type="checkbox" id="i7" /><label for="i7">SDK packages: platform-tools, build-tools, platform API, cmdline-tools, NDK, CMake</label>
+          <span class="hint">Versões: seguir doc atual Godot “Exporting for Android”.</span>
+        </li>
+        <li><input type="checkbox" id="i8" /><label for="i8">Godot Editor Settings: Java SDK Path + Android SDK Path</label></li>
+        <li><input type="checkbox" id="i9" /><label for="i9">Export preset Android + templates baixados</label></li>
+        <li><input type="checkbox" id="i10" /><label for="i10">Hello APK instalado no celular (label na tela)</label></li>
+        <li><input type="checkbox" id="i11" /><label for="i11">USB debugging ou sideload funcionando no telefone do sobrinho também</label></li>
+      </ul>
+
+      <h3>6.2 Ferramentas de arte / áudio</h3>
+      <ul class="check" data-section="inst">
+        <li><input type="checkbox" id="i12" /><label for="i12">Aseprite ou LibreSprite (pixel / sheets)</label></li>
+        <li><input type="checkbox" id="i13" /><label for="i13">Grok Imagine (nesta conversa) ok para bases e conceitos</label></li>
+        <li><input type="checkbox" id="i14" /><label for="i14">Audacity (opcional) para cortar SFX</label></li>
+      </ul>
+
+      <h3>6.3 Aprendizado mínimo antes do “jogo de verdade”</h3>
+      <ul class="check" data-section="inst">
+        <li><input type="checkbox" id="i15" /><label for="i15">Tutorial oficial Godot 4 — Your first 2D game</label></li>
+        <li><input type="checkbox" id="i16" /><label for="i16">Entendi scenes, signals, CharacterBody2D</label></li>
+        <li><input type="checkbox" id="i17" /><label for="i17">Li doc de export Android uma vez</label></li>
+      </ul>
+    </section>
+
+    <!-- 7 -->
+    <section class="block" id="fases-dev">
+      <h2><span class="phase-tag tech">Roadmap</span> 7. Fases de desenvolvimento (checklist de entrega)</h2>
+
+      <h3>Fase A — Fundação produto + repo</h3>
+      <ul class="check" data-section="fase">
+        <li><input type="checkbox" id="f1" /><label for="f1">Workshop da seção 2 feito</label></li>
+        <li><input type="checkbox" id="f2" /><label for="f2">Este HTML usado como fonte de verdade de tarefas</label></li>
+        <li><input type="checkbox" id="f3" /><label for="f3">Git init + projeto Godot + pastas base criadas</label></li>
+      </ul>
+
+      <h3>Fase B — Hello + input + pixel config</h3>
+      <ul class="check" data-section="fase">
+        <li><input type="checkbox" id="f4" /><label for="f4">Cena boot → main menu stub</label></li>
+        <li><input type="checkbox" id="f5" /><label for="f5">InputMap + touch buttons em canvas</label></li>
+        <li><input type="checkbox" id="f6" /><label for="f6">Config pixel (filter off, stretch)</label></li>
+        <li><input type="checkbox" id="f7" /><label for="f7">APK de menu no telefone</label></li>
+      </ul>
+
+      <h3>Fase C — Vertical slice combate (placeholders)</h3>
+      <ul class="check" data-section="fase">
+        <li><input type="checkbox" id="f8" /><label for="f8">Player move + 3 ataques + breath + special</label></li>
+        <li><input type="checkbox" id="f9" /><label for="f9">1 oni fraco + 10 coins on death</label></li>
+        <li><input type="checkbox" id="f10" /><label for="f10">HUD: HP, breath, coins</label></li>
+        <li><input type="checkbox" id="f11" /><label for="f11">1 fase tilemap curta com goal</label></li>
+        <li><input type="checkbox" id="f12" /><label for="f12">Playtest sobrinho: “dá pra entender sem tutorial?”</label></li>
+      </ul>
+
+      <h3>Fase D — Meta (mapa, loja, save)</h3>
+      <ul class="check" data-section="fase">
+        <li><input type="checkbox" id="f13" /><label for="f13">World map W1 com 3 nós + boss lock</label></li>
+        <li><input type="checkbox" id="f14" /><label for="f14">Loja com ≥4 upgrades</label></li>
+        <li><input type="checkbox" id="f15" /><label for="f15">Save/load completo</label></li>
+        <li><input type="checkbox" id="f16" /><label for="f16">Boss W1 v1 (mesmo que tosco)</label></li>
+      </ul>
+
+      <h3>Fase E — Arte &amp; feel</h3>
+      <ul class="check" data-section="fase">
+        <li><input type="checkbox" id="f17" /><label for="f17">Tanjiro pixel + animações mínimas (idle, run, 3 atk, special, hurt)</label></li>
+        <li><input type="checkbox" id="f18" /><label for="f18">Tileset W1 + 2 onis</label></li>
+        <li><input type="checkbox" id="f19" /><label for="f19">UI HUD pixel</label></li>
+        <li><input type="checkbox" id="f20" /><label for="f20">SFX essenciais + 1 BGM loop</label></li>
+      </ul>
+
+      <h3>Fase F — Conteúdo em escala</h3>
+      <ul class="check" data-section="fase">
+        <li><input type="checkbox" id="f21" /><label for="f21">Zenitsu + Inosuke (framework reusado)</label></li>
+        <li><input type="checkbox" id="f22" /><label for="f22">W2 completo</label></li>
+        <li><input type="checkbox" id="f23" /><label for="f23">Próximos personagens por ordem de desbloqueio</label></li>
+        <li><input type="checkbox" id="f24" /><label for="f24">W3…W5 conforme energia e diversão</label></li>
+        <li><input type="checkbox" id="f25" /><label for="f25">Muzan / Yoriichi como endgame</label></li>
+      </ul>
+
+      <h3>Fase G — “Noite dos amigos”</h3>
+      <ul class="check" data-section="fase">
+        <li><input type="checkbox" id="f26" /><label for="f26">APK release assinado (keystore backup!)</label></li>
+        <li><input type="checkbox" id="f27" /><label for="f27">Versão semita (1.0.0) e changelog curto</label></li>
+        <li><input type="checkbox" id="f28" /><label for="f28">Instalado em ≥3 celulares sem crash no W1</label></li>
+      </ul>
+    </section>
+
+    <!-- 8 -->
+    <section class="block" id="arte">
+      <h2><span class="phase-tag art">Arte</span> 8. Arte pixel &amp; pipeline</h2>
+      <div class="callout">
+        Estilo: <strong>2D pixelado de fases</strong>. Imagine pode gerar referências / bases; para pixel limpo no jogo,
+        muitas vezes vale <strong>pixelar no Aseprite</strong> ou gerar em resolução baixa e limpar.
+      </div>
+      <h3>Style bible (preencher)</h3>
+      <ul class="check" data-section="arte">
+        <li><input type="checkbox" id="r1" /><label for="r1">Tamanho do personagem em tiles (ex.: 32×32 ou 48×48)</label></li>
+        <li><input type="checkbox" id="r2" /><label for="r2">Outline: sim/não; espessura 1px</label></li>
+        <li><input type="checkbox" id="r3" /><label for="r3">Paleta global limitada (ou por mundo)</label></li>
+        <li><input type="checkbox" id="r4" /><label for="r4">Proporção cabeça/corpo (chibi vs semi-real)</label></li>
+      </ul>
+      <h3>Pipeline por personagem</h3>
+      <ul class="check" data-section="arte">
+        <li><input type="checkbox" id="r5" /><label for="r5">Idle sheet</label></li>
+        <li><input type="checkbox" id="r6" /><label for="r6">Run sheet</label></li>
+        <li><input type="checkbox" id="r7" /><label for="r7">3 attacks + special + hurt + death</label></li>
+        <li><input type="checkbox" id="r8" /><label for="r8">Import SpriteFrames no Godot</label></li>
+        <li><input type="checkbox" id="r9" /><label for="r9">Hitboxes ajustadas por animação</label></li>
+      </ul>
+      <h3>Mundo / UI</h3>
+      <ul class="check" data-section="arte">
+        <li><input type="checkbox" id="r10" /><label for="r10">Tileset W1 (chão, plataforma, decor, hazard)</label></li>
+        <li><input type="checkbox" id="r11" /><label for="r11">Parallax background W1</label></li>
+        <li><input type="checkbox" id="r12" /><label for="r12">Ícones de moeda, HP, respiração</label></li>
+        <li><input type="checkbox" id="r13" /><label for="r13">Botões touch 3 atks + special (estados normal/pressed/disabled)</label></li>
+        <li><input type="checkbox" id="r14" /><label for="r14">Telas: title, mapa, loja, game over, vitória de boss</label></li>
+      </ul>
+    </section>
+
+    <!-- 9 -->
+    <section class="block" id="audio">
+      <h2><span class="phase-tag art">Áudio</span> 9. Áudio</h2>
+      <ul class="check" data-section="audio">
+        <li><input type="checkbox" id="s1" /><label for="s1">Bus layout: Master / BGM / SFX</label></li>
+        <li><input type="checkbox" id="s2" /><label for="s2">SFX: slash light/heavy/thrust, hit, hurt, coin, ui_click, breath_full, special</label></li>
+        <li><input type="checkbox" id="s3" /><label for="s3">BGM: menu, fase W1, boss</label></li>
+        <li><input type="checkbox" id="s4" /><label for="s4">Licenças ok (original, CC0, ou composição de vocês) — sem rip de OST comercial no pacote</label></li>
+        <li><input type="checkbox" id="s5" /><label for="s5">Volume persistido no save</label></li>
+      </ul>
+    </section>
+
+    <!-- 10 -->
+    <section class="block" id="balance">
+      <h2><span class="phase-tag prod">Balance</span> 10. Economia &amp; números (v0)</h2>
+      <table>
+        <thead><tr><th>Item</th><th>Valor inicial sugerido</th><th>Notas</th></tr></thead>
+        <tbody>
+          <tr><td>Moeda por oni fraco</td><td>10</td><td>Pedido de vocês — fixo</td></tr>
+          <tr><td>HP player base</td><td>100</td><td>+20 por nível de upgrade HP</td></tr>
+          <tr><td>Dano oni fraco</td><td>10</td><td>Telegraph 0.4s</td></tr>
+          <tr><td>HP oni fraco</td><td>30</td><td>~3 heavies ou 4–5 lights</td></tr>
+          <tr><td>Upgrade HP custo Nv1–3</td><td>30 / 60 / 120</td><td>Curva ×2</td></tr>
+          <tr><td>Upgrade atk custo</td><td>40 / 80 / 160</td><td></td></tr>
+          <tr><td>Fases W1 onis</td><td>~8 / 12 / 15</td><td>Renda ~80–150 por fase se matar todos</td></tr>
+          <tr><td>Boss HP</td><td>300</td><td>3 padrões</td></tr>
+        </tbody>
+      </table>
+      <ul class="check" data-section="bal">
+        <li><input type="checkbox" id="b1" /><label for="b1">Tabela de upgrades v1 escrita em resource</label></li>
+        <li><input type="checkbox" id="b2" /><label for="b2">Playtest: W1 completável sem upgrade e com upgrade (duas curvas)</label></li>
+        <li><input type="checkbox" id="b3" /><label for="b3">Sem softlock (moedas insuficientes se morrer forever) — design ok</label></li>
+      </ul>
+    </section>
+
+    <!-- 11 -->
+    <section class="block" id="qa">
+      <h2><span class="phase-tag tech">QA</span> 11. QA, Android, distribuição</h2>
+      <ul class="check" data-section="qa">
+        <li><input type="checkbox" id="q1" /><label for="q1">Checklist touch: todos botões alcançáveis com polegares</label></li>
+        <li><input type="checkbox" id="q2" /><label for="q2">Sem crash ao trocar de cena 20×</label></li>
+        <li><input type="checkbox" id="q3" /><label for="q3">Save corrompe? (forçar kill mid-save)</label></li>
+        <li><input type="checkbox" id="q4" /><label for="q4">FPS ≥ 30 em aparelho fraco na fase com mais onis</label></li>
+        <li><input type="checkbox" id="q5" /><label for="q5">Package name estável: <code>studio.pasqualotti.hashira</code> (ou outro fixo)</label></li>
+        <li><input type="checkbox" id="q6" /><label for="q6">Keystore de release criado + backup em local seguro (NÃO no git público)</label></li>
+        <li><input type="checkbox" id="q7" /><label for="q7">APK só no círculo (WhatsApp/Drive família) — sem Play Store com IP de terceiros</label></li>
+        <li><input type="checkbox" id="q8" /><label for="q8">Tela de créditos: “fan game não oficial, uso pessoal”</label></li>
+      </ul>
+    </section>
+
+    <!-- 12 -->
+    <section class="block" id="mvp">
+      <h2><span class="phase-tag prod">Escopo</span> 12. MVP vs “jogo dos sonhos”</h2>
+      <div class="grid-2">
+        <div class="mini-card">
+          <h4>MVP (obrigatório pra “jogo existe”)</h4>
+          <p>
+            Tanjiro · 3 ataques · respiração+especial · oni fraco +10 coins · 1 mundo (3 fases+boss) ·
+            mapa · loja 4 upgrades · save · APK Android · pixel mínimo legível
+          </p>
+        </div>
+        <div class="mini-card">
+          <h4>Sonho (só depois do MVP divertido)</h4>
+          <p>
+            14 playables · 5 mundos · todos Hashiras · Muzan · Yoriichi · múltiplos especiais únicos ·
+            história · cutscenes · balance fino · mais elite enemies
+          </p>
+        </div>
+      </div>
+      <ul class="check" data-section="mvp">
+        <li><input type="checkbox" id="mv1" /><label for="mv1">MVP definido e colado no fridge mental do time</label></li>
+        <li><input type="checkbox" id="mv2" /><label for="mv2">Qualquer ideia nova vai pra lista “depois do MVP” sem entrar no slice</label></li>
+      </ul>
+    </section>
+
+    <!-- 13 -->
+    <section class="block" id="riscos">
+      <h2><span class="phase-tag crit">Riscos</span> 13. Riscos &amp; como não morrer no meio</h2>
+      <table>
+        <thead><tr><th>Risco</th><th>Mitigação</th></tr></thead>
+        <tbody>
+          <tr><td>14 personagens cedo</td><td>1 framework de combate; arte só do atual</td></tr>
+          <tr><td>Scope creep de história</td><td>Fases falam pelo gameplay; lore em 2 frases no mapa</td></tr>
+          <tr><td>Arte trava o código</td><td>Placeholders até Fase C ok</td></tr>
+          <tr><td>Combate “bonito mas confuso”</td><td>Playtest com criança sem explicar</td></tr>
+          <tr><td>IP / distribuição</td><td>Só círculo privado; créditos fan game</td></tr>
+          <tr><td>Perder keystore / save</td><td>Backup keystore; versionar schema de save</td></tr>
+          <tr><td>Dois editores sem git</td><td>Git desde o dia 1; commits pequenos</td></tr>
+        </tbody>
+      </table>
+      <ul class="check" data-section="risk">
+        <li><input type="checkbox" id="k1" /><label for="k1">Riscos lidos em voz alta com o sobrinho (5 min)</label></li>
+      </ul>
+    </section>
+
+    <!-- 14 -->
+    <section class="block" id="refs">
+      <h2><span class="phase-tag">Refs</span> 14. Referências de estudo</h2>
+      <ul class="check" data-section="refs">
+        <li><input type="checkbox" id="e1" /><label for="e1">Godot 4 — Your first 2D game (docs oficiais)</label></li>
+        <li><input type="checkbox" id="e2" /><label for="e2">Godot — Exporting for Android</label></li>
+        <li><input type="checkbox" id="e3" /><label for="e3">Tutorial state machine GDScript (GDQuest / similar)</label></li>
+        <li><input type="checkbox" id="e4" /><label for="e4">TileMap / TileSet Godot 4</label></li>
+        <li><input type="checkbox" id="e5" /><label for="e5">Docs internos: <code>docs/PLANEJAMENTO-TECNICO.md</code></label></li>
+      </ul>
+      <div class="callout">
+        <strong>Próxima ação recomendada agora:</strong> marcar juntos a seção 2 (workshop de decisões),
+        depois seção 6 (instalar Godot + Git). Só então abrir o editor e começar a Fase B/C.
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    Pasqualotti Studios — Treinamento Hashira · Checklist mestre · Fan game não oficial para uso pessoal ·
+    Progresso: localStorage chave <span class="mono">hashira-checklist-v1</span>
+  </footer>
+
+  <script>
+    const STORAGE_KEY = "hashira-checklist-v1";
+
+    function allBoxes() {
+      return Array.from(document.querySelectorAll('ul.check input[type="checkbox"]'));
+    }
+
+    function updateItemState(cb) {
+      const li = cb.closest("li");
+      if (li) li.classList.toggle("done", cb.checked);
+    }
+
+    function updateSectionProgress() {
+      document.querySelectorAll("section.block").forEach((sec) => {
+        const boxes = sec.querySelectorAll('ul.check input[type="checkbox"]');
+        if (!boxes.length) return;
+        let h2 = sec.querySelector("h2");
+        if (!h2) return;
+        let span = h2.querySelector(".sec-progress");
+        if (!span) {
+          span = document.createElement("span");
+          span.className = "sec-progress";
+          h2.appendChild(span);
+        }
+        const done = Array.from(boxes).filter((b) => b.checked).length;
+        span.textContent = done + "/" + boxes.length;
+      });
+    }
+
+    function updateProgress() {
+      const boxes = allBoxes();
+      const total = boxes.length;
+      const done = boxes.filter((b) => b.checked).length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      document.getElementById("pct").textContent = pct + "% (" + done + "/" + total + ")";
+      document.getElementById("bar").style.width = pct + "%";
+      updateSectionProgress();
+    }
+
+    function saveProgress() {
+      const data = {};
+      allBoxes().forEach((b) => { data[b.id] = b.checked; });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        allBoxes().forEach((b) => {
+          if (Object.prototype.hasOwnProperty.call(data, b.id)) {
+            b.checked = !!data[b.id];
+            updateItemState(b);
+          }
+        });
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    function resetProgress() {
+      if (!confirm("Zerar todas as checklists deste documento neste navegador?")) return;
+      allBoxes().forEach((b) => {
+        b.checked = false;
+        updateItemState(b);
+      });
+      localStorage.removeItem(STORAGE_KEY);
+      updateProgress();
+    }
+
+    function exportProgress() {
+      const data = {};
+      allBoxes().forEach((b) => { data[b.id] = b.checked; });
+      const blob = new Blob([JSON.stringify({ key: STORAGE_KEY, data, exportedAt: new Date().toISOString() }, null, 2)], {
+        type: "application/json",
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "hashira-checklist-progress.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    document.getElementById("importFile").addEventListener("change", (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          const data = parsed.data || parsed;
+          allBoxes().forEach((b) => {
+            if (Object.prototype.hasOwnProperty.call(data, b.id)) {
+              b.checked = !!data[b.id];
+              updateItemState(b);
+            }
+          });
+          saveProgress();
+          updateProgress();
+          alert("Progresso importado.");
+        } catch (e) {
+          alert("JSON inválido.");
+        }
+      };
+      reader.readAsText(file);
+      ev.target.value = "";
+    });
+
+    allBoxes().forEach((b) => {
+      b.addEventListener("change", () => {
+        updateItemState(b);
+        saveProgress();
+        updateProgress();
+      });
+    });
+
+    loadProgress();
+    updateProgress();
+  </script>
+</body>
+</html>
