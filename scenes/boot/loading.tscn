@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/boot/loading.gd" id="1_load"]
+[ext_resource type="Texture2D" path="res://assets/ui/loading/keyart_w1.png" id="2_keyart"]
 
 [node name="Loading" type="Control"]
 layout_mode = 3
@@ -28,9 +29,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+texture = ExtResource("2_keyart")
 expand_mode = 1
 stretch_mode = 6
-modulate = Color(1, 1, 1, 0.92)
+modulate = Color(1, 1, 1, 1)
 
 [node name="Dim" type="ColorRect" parent="."]
 layout_mode = 1

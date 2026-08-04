@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5fjqhhi02sl0"
-path="res://.godot/imported/tanjiro_idle_front_base.jpg-431ee934ccba09082664b89b1f77b83b.ctex"
+uid="uid://dqh1j6wty0at"
+path="res://.godot/imported/03_ground_path.png-b16f42ace6e44a5286460d218f8720f6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/player/tanjiro_idle_front_base.jpg"
-dest_files=["res://.godot/imported/tanjiro_idle_front_base.jpg-431ee934ccba09082664b89b1f77b83b.ctex"]
+source_file="res://assets/pack_v01/03_ground_path.png"
+dest_files=["res://.godot/imported/03_ground_path.png-b16f42ace6e44a5286460d218f8720f6.ctex"]
 
 [params]
 

@@ -41,3 +41,12 @@ assets/ui/loading/keyart_w1.png
 
 Exemplos: “Tanjiro mais pixel”, “oni menos fofo”, “key art sem silhueta”, “moeda sem símbolo de yen”.  
 Re-geramos com `image_edit` a partir da base que você gostar.
+
+## Fix katana (2026-08-03)
+
+- `01_tanjiro_idle_side.png` no disco = versao **corrigida** (hash igual ao fix).
+- Explorer pode mostrar **thumbnail antigo** em cache.
+- Arquivos extras pra review sem cache:
+  - `01_tanjiro_idle_side_FIXED.png`
+  - `01b_tanjiro_side_katana_fixed.jpg`
+- No Explorer: View ? Options ? or delete thumbcache; or open the FIXED file.

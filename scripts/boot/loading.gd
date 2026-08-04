@@ -11,11 +11,14 @@ const KEYART_PATH := "res://assets/ui/loading/keyart_w1.png"
 
 
 func _ready() -> void:
-	if keyart and ResourceLoader.exists(KEYART_PATH):
-		keyart.texture = load(KEYART_PATH) as Texture2D
+	# Textura já vem no .tscn; reforça em runtime se sumir
+	if keyart:
+		if keyart.texture == null and ResourceLoader.exists(KEYART_PATH):
+			keyart.texture = load(KEYART_PATH) as Texture2D
+		if keyart.texture == null:
+			push_warning("Loading: keyart não carregou (%s)" % KEYART_PATH)
 	bar.value = 0.0
 	status_label.text = "Carregando…"
-	# Simula carga real + piso mínimo de tempo (não piscar a tela).
 	await _run_load()
 	SceneRouter.to_hub()
 
