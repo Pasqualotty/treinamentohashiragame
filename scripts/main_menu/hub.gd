@@ -14,8 +14,8 @@ const HUB_IDLE_DIR := "res://assets/characters/player/hub_idle"
 const BG_DIR := "res://assets/ui/hub"
 const BTN_DIR := "res://assets/ui/buttons"
 
-const FRAME_DURATIONS := [0.55, 0.45, 0.55, 0.12, 0.14, 0.50]
-const BG_FRAME_TIME := 1.35
+const FRAME_DURATIONS: Array[float] = [0.55, 0.45, 0.55, 0.12, 0.14, 0.50]
+const BG_FRAME_TIME: float = 1.35
 
 var _frames: Array[Texture2D] = []
 var _frame_i: int = 0
@@ -50,7 +50,7 @@ func _tick_character(delta: float) -> void:
 	if _frames.size() < 2:
 		return
 	_timer += delta
-	var dur := FRAME_DURATIONS[_frame_i % FRAME_DURATIONS.size()]
+	var dur: float = FRAME_DURATIONS[_frame_i % FRAME_DURATIONS.size()]
 	if _timer >= dur:
 		_timer = 0.0
 		_frame_i = (_frame_i + 1) % _frames.size()

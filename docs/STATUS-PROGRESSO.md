@@ -1,7 +1,8 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-08-03 (pós-playtest boot no PC)  
-**Fonte de produto:** `GDD-DECISOES.md` · **Roadmap:** `CHECKLIST-MESTRE.html` §7 · **Setup:** `SETUP-AMBIENTE.md`
+**Atualizado:** 2026-08-03 (skills design/arte + handbook engine)  
+**Fonte de produto:** `GDD-DECISOES.md` · **Roadmap:** `CHECKLIST-MESTRE.html` §7 · **Setup:** `SETUP-AMBIENTE.md`  
+**Engine:** `docs/engine/README.md` · **Skills:** `/pasqualotti-game-design` · `/grok-imagine-game-assets`
 
 ---
 
