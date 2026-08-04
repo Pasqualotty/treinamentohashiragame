@@ -20,7 +20,7 @@
 | **B** | Hello + input + pixel | 🟡 parcial | Boot/hub ok; stretch + filter off no project; **InputMap + touch UI** faltam; **APK no celular** falta (SDK ok) |
 | **C** | Vertical slice combate | ⬜ próximo | Player, ataques, breath, oni, HUD, fase curta |
 | **D** | Meta (mapa visual, loja, save) | ⬜ | Mapa hoje = botões stub; save base no autoload Game |
-| **E** | Arte & feel | ⬜ | Placeholders; logo marca ok |
+| **E** | Arte & feel | 🟡 pack v0.1 | Imagine: Tanjiro L/R, oni, chão, moeda, touch row, keyart — ver `assets/pack_v01/` |
 | **F** | Conteúdo em escala | ⬜ | |
 | **G** | Noite dos amigos (APK) | ⬜ | |
 

@@ -3,11 +3,16 @@ extends Control
 
 @onready var bar: ProgressBar = %ProgressBar
 @onready var status_label: Label = %StatusLabel
+@onready var keyart: TextureRect = get_node_or_null("%KeyArt") as TextureRect
 
 var _progress: float = 0.0
 
+const KEYART_PATH := "res://assets/ui/loading/keyart_w1.png"
+
 
 func _ready() -> void:
+	if keyart and ResourceLoader.exists(KEYART_PATH):
+		keyart.texture = load(KEYART_PATH) as Texture2D
 	bar.value = 0.0
 	status_label.text = "Carregando…"
 	# Simula carga real + piso mínimo de tempo (não piscar a tela).

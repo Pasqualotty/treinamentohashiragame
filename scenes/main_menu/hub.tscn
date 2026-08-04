@@ -86,10 +86,19 @@ theme_override_constants/separation = 12
 alignment = 1
 
 [node name="CharacterPlaceholder" type="ColorRect" parent="CenterShowcase"]
+visible = false
 custom_minimum_size = Vector2(160, 200)
 layout_mode = 2
 size_flags_horizontal = 4
 color = Color(0.75, 0.35, 0.25, 1)
+
+[node name="CharacterArt" type="TextureRect" parent="CenterShowcase"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 260)
+layout_mode = 2
+size_flags_horizontal = 4
+expand_mode = 1
+stretch_mode = 5
 
 [node name="CharacterName" type="Label" parent="CenterShowcase"]
 unique_name_in_owner = true
@@ -102,7 +111,7 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.7, 0.8, 1)
 theme_override_font_sizes/font_size = 14
-text = "(placeholder — pixel art depois)"
+text = "Pack arte v0.1 — diga o que ajustar"
 horizontal_alignment = 1
 
 [node name="BottomBar" type="HBoxContainer" parent="."]
