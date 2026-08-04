@@ -2,10 +2,11 @@
 
 **Projeto:** Pasqualotti Studios · Demon Slayer fan game (uso pessoal / família e amigos)  
 **Tipo:** 2D mobile Android  
-**Status:** workshop produto em andamento (GDD-DECISOES.md) · Godot ainda não criado  
+**Status:** Fase A ✅ · Fase B parcial · boot validado no PC · combate ainda não  
 **Data:** 2026-08-03  
 
-**Decisões de produto:** ver [`docs/GDD-DECISOES.md`](./GDD-DECISOES.md) (fonte viva do workshop).
+**Decisões de produto:** [`docs/GDD-DECISOES.md`](./GDD-DECISOES.md)  
+**Progresso vivo:** [`docs/STATUS-PROGRESSO.md`](./STATUS-PROGRESSO.md)
 
 ---
 

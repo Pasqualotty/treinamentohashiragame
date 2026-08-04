@@ -2,7 +2,7 @@
 
 **Projeto:** Treinamento Hashira (2D · Android · fan / uso pessoal)  
 **Estúdio:** Pasqualotti Studio  
-**Atualizado:** 2026-08-03 (workshop Matheus — rodada 3 · refs Brawl Stars)
+**Atualizado:** 2026-08-03 (progresso: boot validado no PC — ver `STATUS-PROGRESSO.md`)
 
 ---
 
@@ -11,7 +11,7 @@
 | Decisão | Valor | Status |
 |---------|-------|--------|
 | Orientação | **Paisagem** (celular deitado) | ✅ |
-| Resolução de design | Proposta: **1280×720** (ou 640×360 pixel + scale) | ⏳ na 1ª cena Godot |
+| Resolução de design | **1280×720** (project.godot) | ✅ em uso no Play |
 | Gênero / câmera nas fases | **Side-scroller** (perfil, avança a fase) | ✅ |
 | Mapa do mundo | Existe (escolher fase / loja / progresso) | ✅ |
 | Hub / estado padrão | Estilo *Brawl Stars home* (ver §2) | ✅ |
@@ -288,3 +288,4 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 | 2026-08-03 | Rodada 2: splash marca + hub; dash c/ cooldown; respiração por hit; moedas no chão + contador topo; 1 pulo; sobrinho tester; logo em `assets/branding/` |
 | 2026-08-03 | Rodada 3: boot = splash estúdio → loading (barra) → hub Brawl-like; refs em `docs/references/ui/`; social online fora do MVP |
 | 2026-08-03 | Rodada 3b: JOGAR no hub → **mapa do mundo** (não pula fase direto) |
+| 2026-08-03 | Playtest PC: splash → loading → hub → mapa stub OK; combate ainda não; ver STATUS-PROGRESSO |

@@ -721,24 +721,32 @@
     <section class="block" id="fases-dev">
       <h2><span class="phase-tag tech">Roadmap</span> 7. Fases de desenvolvimento (checklist de entrega)</h2>
 
+      <p class="lead">Status vivo em <code>docs/STATUS-PROGRESSO.md</code> (2026-08-03: boot validado no PC; combate ainda não).</p>
+
       <h3>Fase A — Fundação produto + repo</h3>
       <ul class="check" data-section="fase">
-        <li><input type="checkbox" id="f1" /><label for="f1">Workshop da seção 2 feito</label></li>
-        <li><input type="checkbox" id="f2" /><label for="f2">Este HTML usado como fonte de verdade de tarefas</label></li>
-        <li><input type="checkbox" id="f3" /><label for="f3">Git init + projeto Godot + pastas base criadas</label></li>
+        <li><input type="checkbox" id="f1" checked /><label for="f1">Workshop da seção 2 feito</label></li>
+        <li><input type="checkbox" id="f2" checked /><label for="f2">Este HTML usado como fonte de verdade de tarefas</label></li>
+        <li><input type="checkbox" id="f3" checked /><label for="f3">Git init + projeto Godot + pastas base criadas</label></li>
       </ul>
 
       <h3>Fase B — Hello + input + pixel config</h3>
       <ul class="check" data-section="fase">
-        <li><input type="checkbox" id="f4" /><label for="f4">Cena boot → main menu stub</label></li>
+        <li><input type="checkbox" id="f4" checked /><label for="f4">Cena boot → main menu stub</label>
+          <span class="hint">Splash + loading + hub + mapa stub validados no Play (PC).</span>
+        </li>
         <li><input type="checkbox" id="f5" /><label for="f5">InputMap + touch buttons em canvas</label></li>
-        <li><input type="checkbox" id="f6" /><label for="f6">Config pixel (filter off, stretch)</label></li>
-        <li><input type="checkbox" id="f7" /><label for="f7">APK de menu no telefone</label></li>
+        <li><input type="checkbox" id="f6" checked /><label for="f6">Config pixel (filter off, stretch)</label></li>
+        <li><input type="checkbox" id="f7" /><label for="f7">APK de menu no telefone</label>
+          <span class="hint">SDK Android já instalado; falta export preset + templates no Godot.</span>
+        </li>
       </ul>
 
       <h3>Fase C — Vertical slice combate (placeholders)</h3>
       <ul class="check" data-section="fase">
-        <li><input type="checkbox" id="f8" /><label for="f8">Player move + 3 ataques + breath + special</label></li>
+        <li><input type="checkbox" id="f8" /><label for="f8">Player move + atk básico + 2 skills + breath/ultimate</label>
+          <span class="hint">GDD: 1 básico + 2 skills + ultimate (não mais “3 ataques soltos”).</span>
+        </li>
         <li><input type="checkbox" id="f9" /><label for="f9">1 oni fraco + 10 coins on death</label></li>
         <li><input type="checkbox" id="f10" /><label for="f10">HUD: HP, breath, coins</label></li>
         <li><input type="checkbox" id="f11" /><label for="f11">1 fase tilemap curta com goal</label></li>

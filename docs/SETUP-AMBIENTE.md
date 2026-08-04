@@ -6,22 +6,22 @@
 
 | Ferramenta | Status | Notas |
 |------------|--------|-------|
-| **Godot 4.7.1** (Standard) | ✅ winget `GodotEngine.GodotEngine` | `Godot_v4.7.1-stable_win64.exe` via WinGet Packages |
-| **OpenJDK 17** (Microsoft) | ✅ winget `Microsoft.OpenJDK.17` | Precisa para export Android |
-| **Git** | ✅ | já estava |
-| **Projeto Godot** | ✅ nesta pasta | `project.godot` + cenas boot/hub/mapa |
-| **Android Studio / SDK** | ⏳ instalar em paralelo | necessário só para APK no celular |
+| **Godot 4.7.1** (Standard) | ✅ winget | `Godot_v4.7.1-stable_win64.exe` |
+| **OpenJDK 17** (Microsoft) | ✅ | `C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot` |
+| **Git** | ✅ | |
+| **Projeto Godot** | ✅ nesta pasta | splash → loading → hub → mapa |
+| **Android Studio** | ✅ | `C:\Program Files\Android\Android Studio` |
+| **Android SDK** | ✅ cmdline-tools | `%LOCALAPPDATA%\Android\Sdk` |
+| **Licenças SDK** | ✅ aceitas | `sdkmanager --licenses` |
+| **Debug keystore** | ✅ | `%APPDATA%\Godot\keystores\debug.keystore` |
 
 ### Abrir o projeto
 
-No Explorer: duplo clique em `project.godot`  
-Ou no terminal (path do WinGet):
+Duplo clique em `project.godot`, ou:
 
 ```powershell
 & "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64.exe" --path "C:\Users\mathe\Documents\Pasqualotti Studios - Demon Slayer - Treinamento hashira" --editor
 ```
-
-Atalho opcional: `C:\Users\mathe\Tools\Godot\Godot.exe` (se o link foi criado).
 
 ### Fluxo já ligado no código
 
@@ -32,21 +32,45 @@ splash_studio → loading → hub → [JOGAR] → world_map
 Main scene: `res://scenes/boot/splash_studio.tscn`  
 Autoloads: `Game`, `SceneRouter`
 
-### Depois do Android Studio
+---
 
-1. Abrir Android Studio uma vez → instalar SDK padrão  
-2. SDK Manager: platform-tools, build-tools, Platform API, NDK, CMake  
-3. Godot → Editor Settings → Export → Android: paths do JDK + SDK  
-4. Project → Export → Android → templates  
+## Paths Android (Godot Export)
 
-Ver checklist mestre §6 e `PLANEJAMENTO-TECNICO.md`.
+| Setting | Path |
+|---------|------|
+| **Java SDK (JDK 17)** | `C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot` |
+| **Android SDK** | `C:\Users\mathe\AppData\Local\Android\Sdk` |
+| **Debug keystore** | `C:\Users\mathe\AppData\Roaming\Godot\keystores\debug.keystore` |
+| | alias `androiddebugkey` · password `android` |
 
-### Controles PC (dev) — configurar no Editor
+### Pacotes SDK (docs Godot 4.x)
 
-Project → Project Settings → Input Map (criar se faltar):
+- platform-tools  
+- build-tools;35.0.1  
+- platforms;android-35  
+- cmake;3.10.2.4988404  
+- ndk;28.1.13356709  
+- cmdline-tools (latest)  
 
-| Action | Tecla sugerida |
-|--------|----------------|
+Variáveis de usuário: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `JAVA_HOME`.
+
+### No Godot (uma vez, se ainda não tiver)
+
+**Editor → Editor Settings → Export → Android**
+
+1. Java SDK Path = pasta do JDK 17  
+2. Android SDK Path = pasta Sdk  
+3. **Project → Export → Add → Android** quando for gerar APK  
+4. Baixar **Export Templates** se o Godot pedir  
+
+> O SDK **já está instalado por linha de comando** — o wizard do Android Studio é opcional para o export Godot.
+
+### Controles PC (dev)
+
+Project → Project Settings → Input Map:
+
+| Action | Tecla |
+|--------|--------|
 | move_left / move_right | A/D ou setas |
 | jump | Espaço |
 | advance (dash) | F / Shift |
