@@ -14,8 +14,8 @@ const HUB_IDLE_DIR := "res://assets/characters/player/hub_idle"
 const BG_DIR := "res://assets/ui/hub"
 const BTN_DIR := "res://assets/ui/buttons"
 
-# open, breathe, open, blink, open, attack1, attack2  (v3 + golpes)
-const FRAME_DURATIONS: Array[float] = [0.65, 0.40, 0.50, 0.11, 0.45, 0.28, 0.32, 0.40]
+# 00 open, 01 breathe, 02 open, 03 blink, 04 open, 05 open, 06 slash, 07 overhead
+const FRAME_DURATIONS: Array[float] = [0.70, 0.40, 0.55, 0.12, 0.45, 0.35, 0.30, 0.35]
 const BG_FRAME_TIME: float = 1.35
 
 var _frames: Array[Texture2D] = []
