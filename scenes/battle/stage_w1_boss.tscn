@@ -1,7 +1,7 @@
-[gd_scene load_steps=10 format=3]
+﻿[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
-[ext_resource type="PackedScene" path="res://scenes/combat/player_sandbox.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/combat/dummy.tscn" id="3_dummy"]
 [ext_resource type="Script" path="res://scripts/battle/stage_goal.gd" id="4_goal"]
 
@@ -134,7 +134,7 @@ offset_right = 56.0
 offset_bottom = -96.0
 theme_override_colors/font_color = Color(1, 0.9, 0.75, 1)
 theme_override_font_sizes/font_size = 14
-text = "VITÓRIA"
+text = "VITÃ“RIA"
 horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="."]
@@ -144,4 +144,4 @@ offset_right = 700.0
 offset_bottom = 48.0
 theme_override_colors/font_color = Color(1, 0.85, 0.8, 1)
 theme_override_font_sizes/font_size = 16
-text = "W1 BOSS — arena · derrote o oni e saia pelo portal"
+text = "W1 BOSS â€” arena Â· derrote o oni e saia pelo portal"

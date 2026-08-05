@@ -1,7 +1,14 @@
 extends Control
 ## Mapa do mundo W1 — caminho visual com nós de fase (cleared / locked / boss).
 
-const STAGE_IDS: Array[String] = ["w1_s1", "w1_s2", "w1_s3", "w1_boss"]
+## IDs canônicos (save / StageController).
+const STAGE_IDS: Array[String] = ["w1_01", "w1_02", "w1_03", "w1_boss"]
+const STAGE_SCENES: Array[String] = [
+	"res://scenes/battle/stage_w1_01.tscn",
+	"res://scenes/battle/stage_w1_02.tscn",
+	"res://scenes/battle/stage_w1_03.tscn",
+	"res://scenes/battle/stage_w1_boss.tscn",
+]
 const STAGE_LABELS: Array[String] = ["Fase 1", "Fase 2", "Fase 3", "Boss"]
 ## Posições dos nós no mapa (design 1280×720, área do canvas ~560h).
 const NODE_POSITIONS: Array[Vector2] = [
@@ -214,7 +221,7 @@ func _select_stage(index: int) -> void:
 			status_label.text = "%s bloqueada — complete a fase anterior" % STAGE_LABELS[index]
 		return
 	var stage_id: String = STAGE_IDS[index]
-	if index == 3:
-		status_label.text = "Boss — (cena de combate em breve) · id=%s" % stage_id
-	else:
-		status_label.text = "%s — (cena de combate em breve) · id=%s" % [STAGE_LABELS[index], stage_id]
+	var scene_path: String = STAGE_SCENES[index]
+	Game.pending_stage_id = stage_id
+	status_label.text = "Entrando em %s…" % STAGE_LABELS[index]
+	SceneRouter.go_to(scene_path)

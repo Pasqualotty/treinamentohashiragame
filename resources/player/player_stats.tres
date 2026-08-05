@@ -4,8 +4,6 @@
 
 [resource]
 script = ExtResource("1_stats")
-max_hp = 100.0
-attack_damage = 5
 move_speed = 220.0
 jump_velocity = -420.0
 gravity = 1400.0

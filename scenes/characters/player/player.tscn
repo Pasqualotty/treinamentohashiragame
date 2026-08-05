@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://xhd3i5ia7th1"]
+﻿[gd_scene load_steps=7 format=3 uid="uid://xhd3i5ia7th1"]
 
 [ext_resource type="Script" path="res://scripts/characters/player.gd" id="1_player"]
 [ext_resource type="Texture2D" path="res://assets/characters/player/tanjiro_idle_side.png" id="2_tex"]
