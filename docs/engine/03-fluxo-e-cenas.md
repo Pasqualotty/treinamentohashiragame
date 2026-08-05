@@ -45,5 +45,8 @@ Responsabilidades atuais:
 - `breath` / ultimate ready  
 - `stages_cleared`, `upgrades`  
 - `save_game` / `load_game` em `user://save.json`  
+- Sinais: `coins_changed` (legado/hub), **`run_coins_changed`** (fase/HUD), `breath_changed`  
 
 Não colocar lógica de hitbox/frame data no `Game`.
+
+HUD de combate reutilizável: ver [11-combat-hud.md](./11-combat-hud.md) (`scenes/ui/combat_hud.tscn`).

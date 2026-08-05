@@ -1,0 +1,157 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/combat_hud.gd" id="1_hud"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/coin.png" id="2_coin"]
+
+[node name="CombatHud" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopSafe" type="MarginContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 96.0
+grow_horizontal = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 8
+mouse_filter = 2
+
+[node name="TopRow" type="HBoxContainer" parent="Root/TopSafe"]
+layout_mode = 2
+theme_override_constants/separation = 20
+mouse_filter = 2
+
+[node name="HpBlock" type="VBoxContainer" parent="Root/TopSafe/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="HpHeader" type="HBoxContainer" parent="Root/TopSafe/TopRow/HpBlock"]
+layout_mode = 2
+theme_override_constants/separation = 8
+mouse_filter = 2
+
+[node name="HpIcon" type="ColorRect" parent="Root/TopSafe/TopRow/HpBlock/HpHeader"]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.85, 0.18, 0.22, 1)
+mouse_filter = 2
+
+[node name="HpTitle" type="Label" parent="Root/TopSafe/TopRow/HpBlock/HpHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.9, 0.88, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 18
+text = "HP"
+
+[node name="HpLabel" type="Label" parent="Root/TopSafe/TopRow/HpBlock/HpHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.92, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 20
+text = "100 / 100"
+
+[node name="HpBar" type="ProgressBar" parent="Root/TopSafe/TopRow/HpBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="BreathBlock" type="VBoxContainer" parent="Root/TopSafe/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="BreathHeader" type="HBoxContainer" parent="Root/TopSafe/TopRow/BreathBlock"]
+layout_mode = 2
+theme_override_constants/separation = 8
+mouse_filter = 2
+
+[node name="BreathIcon" type="ColorRect" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.357, 0.553, 0.937, 1)
+mouse_filter = 2
+
+[node name="BreathTitle" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 18
+text = "Respiração"
+
+[node name="BreathLabel" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_alignment = 2
+theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 20
+text = "0%"
+
+[node name="BreathBar" type="ProgressBar" parent="Root/TopSafe/TopRow/BreathBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+max_value = 100.0
+value = 0.0
+show_percentage = false
+
+[node name="CoinsBlock" type="HBoxContainer" parent="Root/TopSafe/TopRow"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 8
+alignment = 2
+mouse_filter = 2
+
+[node name="CoinsIcon" type="TextureRect" parent="Root/TopSafe/TopRow/CoinsBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 36)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("2_coin")
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="CoinsLabel" type="Label" parent="Root/TopSafe/TopRow/CoinsBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 28
+text = "0"

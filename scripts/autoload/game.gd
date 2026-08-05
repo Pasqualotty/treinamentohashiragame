@@ -5,7 +5,11 @@ extends Node
 const SAVE_PATH := "user://save.json"
 const SAVE_VERSION := 1
 
+## Emite o total banked (hub) OU o valor da run dependendo do caller.
+## Hub ignora o payload e relê `coins_banked`. HUD de combate usa `run_coins_changed`.
 signal coins_changed(total: int)
+## Moedas da run atual (fase). Preferir este sinal no combate.
+signal run_coins_changed(run_total: int)
 signal breath_changed(value: float, max_value: float)
 
 var coins_banked: int = 0
@@ -25,18 +29,22 @@ func _ready() -> void:
 
 func add_run_coins(amount: int) -> void:
 	coins_run += amount
+	run_coins_changed.emit(coins_run)
+	# Mantém API legada; hub relê banked no handler e não quebra.
 	coins_changed.emit(coins_run)
 
 
 func bank_run_coins() -> void:
 	coins_banked += coins_run
 	coins_run = 0
+	run_coins_changed.emit(coins_run)
 	coins_changed.emit(coins_banked)
 	save_game()
 
 
 func lose_run_coins() -> void:
 	coins_run = 0
+	run_coins_changed.emit(coins_run)
 	coins_changed.emit(coins_run)
 
 
