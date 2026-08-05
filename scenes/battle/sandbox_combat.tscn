@@ -1,10 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat/sandbox_combat.gd" id="1_sandbox"]
-[ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/combat/player_sandbox.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/combat/dummy.tscn" id="3_dummy"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_forest.png" id="4_stage_bg"]
-[ext_resource type="Texture2D" path="res://assets/tiles/w1/ground_platform_strip.png" id="5_ground"]
+[ext_resource type="PackedScene" path="res://scenes/characters/enemies/oni_weak.tscn" id="4_oni"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
 size = Vector2(1600, 48)
@@ -15,11 +14,12 @@ size = Vector2(40, 720)
 [node name="SandboxCombat" type="Node2D"]
 script = ExtResource("1_sandbox")
 
-[node name="Background" type="Sprite2D" parent="."]
-z_index = -10
-position = Vector2(640, 360)
-texture = ExtResource("4_stage_bg")
-
+[node name="Background" type="ColorRect" parent="."]
+offset_left = -200.0
+offset_top = -200.0
+offset_right = 1480.0
+offset_bottom = 920.0
+color = Color(0.08, 0.1, 0.14, 1)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(640, 360)
@@ -32,11 +32,12 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
 shape = SubResource("RectangleShape2D_ground")
 
-[node name="GroundVisual" type="Sprite2D" parent="Ground"]
-position = Vector2(0, 0)
-scale = Vector2(4.2, 0.45)
-texture = ExtResource("5_ground")
-
+[node name="GroundVisual" type="ColorRect" parent="Ground"]
+offset_left = -800.0
+offset_top = -24.0
+offset_right = 800.0
+offset_bottom = 24.0
+color = Color(0.22, 0.28, 0.2, 1)
 
 [node name="WallLeft" type="StaticBody2D" parent="."]
 position = Vector2(-20, 360)
@@ -58,15 +59,17 @@ shape = SubResource("RectangleShape2D_wall")
 position = Vector2(360, 500)
 
 [node name="Dummy" parent="." instance=ExtResource("3_dummy")]
-position = Vector2(720, 500)
+position = Vector2(920, 500)
+
+[node name="OniWeak" parent="." instance=ExtResource("4_oni")]
+position = Vector2(640, 500)
 
 [node name="Hint" type="Label" parent="."]
 offset_left = 24.0
 offset_top = 16.0
-offset_right = 980.0
-offset_bottom = 100.0
+offset_right = 900.0
+offset_bottom = 88.0
 theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
-theme_override_font_sizes/font_size = 16
-text = "Sandbox combate (player unificado)
-A/D mover · Espaço pulo · Shift/F dash · Z/J atk · X/K Corte em Arco · C/L Investida · V/I ultimate (barra full)
-Hit acerta dummy → breath. R reinicia se morrer."
+theme_override_font_sizes/font_size = 17
+text = "Sandbox combate — A/D mover · Espaço pular · J/Z atacar
+Oni fraco (centro): chase + telegraph ~0.4s. Morte → coin no chão (crédito no pickup). Dummy à direita."
