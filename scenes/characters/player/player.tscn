@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3 uid="uid://cplayerhashira01"]
+
+[ext_resource type="Script" path="res://scripts/characters/player.gd" id="1_player"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/tanjiro_idle_side.png" id="2_tex"]
+[ext_resource type="Resource" path="res://resources/player/player_stats.tres" id="3_stats"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(40, 72)
+
+[node name="Player" type="CharacterBody2D" groups=["player"]]
+collision_layer = 1
+collision_mask = 1
+floor_stop_on_slope = true
+script = ExtResource("1_player")
+stats = ExtResource("3_stats")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(0, -36)
+scale = Vector2(0.14, 0.14)
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(0, -36)
+shape = SubResource("RectangleShape2D_body")
