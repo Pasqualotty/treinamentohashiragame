@@ -5,6 +5,7 @@ const SPLASH := "res://scenes/boot/splash_studio.tscn"
 const LOADING := "res://scenes/boot/loading.tscn"
 const HUB := "res://scenes/main_menu/hub.tscn"
 const WORLD_MAP := "res://scenes/world/world_map.tscn"
+const SHOP := "res://scenes/ui/shop.tscn"
 
 
 func go_to(path: String) -> void:
@@ -27,3 +28,7 @@ func to_hub() -> void:
 
 func to_world_map() -> void:
 	go_to(WORLD_MAP)
+
+
+func to_shop() -> void:
+	go_to(SHOP)

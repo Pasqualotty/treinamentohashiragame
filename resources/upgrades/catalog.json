@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "upgrades": [
+    {
+      "id": "max_hp",
+      "display_name": "Vida Máxima",
+      "description": "+10 de HP máximo por nível.",
+      "max_level": 3,
+      "costs": [30, 60, 120],
+      "stat_key": "max_hp",
+      "value_per_level": 10
+    },
+    {
+      "id": "attack",
+      "display_name": "Dano",
+      "description": "+2 de dano no golpe básico por nível.",
+      "max_level": 3,
+      "costs": [30, 60, 120],
+      "stat_key": "attack_damage",
+      "value_per_level": 2
+    },
+    {
+      "id": "speed",
+      "display_name": "Velocidade",
+      "description": "+20 de velocidade de movimento por nível.",
+      "max_level": 3,
+      "costs": [30, 60, 120],
+      "stat_key": "move_speed",
+      "value_per_level": 20
+    },
+    {
+      "id": "dash_cd",
+      "display_name": "Dash Rápido",
+      "description": "−0,12 s no cooldown do dash por nível.",
+      "max_level": 3,
+      "costs": [30, 60, 120],
+      "stat_key": "dash_cooldown",
+      "value_per_level": -0.12
+    }
+  ]
+}
