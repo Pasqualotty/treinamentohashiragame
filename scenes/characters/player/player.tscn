@@ -1,14 +1,22 @@
-[gd_scene format=3 uid="uid://xhd3i5ia7th1"]
+[gd_scene load_steps=7 format=3 uid="uid://xhd3i5ia7th1"]
 
 [ext_resource type="Script" path="res://scripts/characters/player.gd" id="1_player"]
 [ext_resource type="Texture2D" path="res://assets/characters/player/tanjiro_idle_side.png" id="2_tex"]
 [ext_resource type="Resource" path="res://resources/player/player_stats.tres" id="3_stats"]
+[ext_resource type="Script" path="res://scripts/combat/hitbox.gd" id="4_hitbox"]
+[ext_resource type="Script" path="res://scripts/combat/hurtbox.gd" id="5_hurtbox"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(40, 72)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hit"]
+size = Vector2(40, 30)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
+size = Vector2(36, 60)
+
 [node name="Player" type="CharacterBody2D" groups=["player"]]
-collision_layer = 1
+collision_layer = 2
 collision_mask = 1
 floor_stop_on_slope = true
 script = ExtResource("1_player")
@@ -24,3 +32,32 @@ texture = ExtResource("2_tex")
 unique_name_in_owner = true
 position = Vector2(0, -36)
 shape = SubResource("RectangleShape2D_body")
+
+[node name="Hitbox" type="Area2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(28, -28)
+collision_layer = 8
+collision_mask = 16
+monitoring = false
+monitorable = false
+script = ExtResource("4_hitbox")
+damage = 5
+knockback = Vector2(180, -70)
+team = &"player"
+
+[node name="HitboxShape" type="CollisionShape2D" parent="Hitbox"]
+unique_name_in_owner = true
+shape = SubResource("RectangleShape2D_hit")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(0, -36)
+collision_layer = 16
+collision_mask = 0
+monitoring = false
+monitorable = true
+script = ExtResource("5_hurtbox")
+team = &"player"
+
+[node name="HurtShape" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("RectangleShape2D_hurt")

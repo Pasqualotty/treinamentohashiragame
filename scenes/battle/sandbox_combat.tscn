@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat/sandbox_combat.gd" id="1_sandbox"]
-[ext_resource type="PackedScene" path="res://scenes/combat/player_sandbox.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/combat/dummy.tscn" id="3_dummy"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_forest.png" id="4_stage_bg"]
 [ext_resource type="Texture2D" path="res://assets/tiles/w1/ground_platform_strip.png" id="5_ground"]
@@ -23,7 +23,6 @@ texture = ExtResource("4_stage_bg")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(640, 360)
-
 
 [node name="Ground" type="StaticBody2D" parent="."]
 position = Vector2(640, 560)
@@ -64,9 +63,10 @@ position = Vector2(720, 500)
 [node name="Hint" type="Label" parent="."]
 offset_left = 24.0
 offset_top = 16.0
-offset_right = 700.0
-offset_bottom = 72.0
+offset_right = 980.0
+offset_bottom = 100.0
 theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
-theme_override_font_sizes/font_size = 18
-text = "Sandbox combate — A/D mover · Espaço pular · J ou Z atacar
-Hitbox só nos frames active. Dummy flash + knock + HP."
+theme_override_font_sizes/font_size = 16
+text = "Sandbox combate (player unificado)
+A/D mover · Espaço pulo · Shift/F dash · Z/J atk · X/K Corte em Arco · C/L Investida · V/I ultimate (barra full)
+Hit acerta dummy → breath. R reinicia se morrer."
