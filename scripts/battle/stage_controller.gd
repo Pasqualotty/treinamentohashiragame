@@ -1,10 +1,10 @@
 extends Node2D
-## Controller comum das fases W1: run coins, goal → bank+clear, morte → lose+reload.
+## Controller comum das fases W1: touch + HUD + goal/inimigos → clear, morte → reload.
 
 const COMBAT_HUD_SCENE := preload("res://scenes/ui/combat_hud.tscn")
+const TOUCH_SCENE := preload("res://scenes/ui/combat_touch_controls.tscn")
 
-## IDs canônicos (documentados no done.json / world_map).
-## w1_01 | w1_02 | w1_03 | w1_boss
+## IDs canônicos: w1_01 | w1_02 | w1_03 | w1_boss
 @export var stage_id: String = "w1_01"
 @export var reset_run_coins_on_start: bool = true
 @export var reset_breath_on_start: bool = true
@@ -12,13 +12,17 @@ const COMBAT_HUD_SCENE := preload("res://scenes/ui/combat_hud.tscn")
 @export var reload_on_death: bool = true
 @export var fall_death_y: float = 900.0
 @export var spawn_combat_hud: bool = true
+@export var spawn_touch_controls: bool = true
 @export var player_max_hp: int = 100
+## Se true, matar todos do group enemy também completa (além do portal).
+@export var clear_when_enemies_dead: bool = true
 
 var _completed: bool = false
 var _dead: bool = false
 var _player: Node2D
 var _goal: Area2D
 var _hud: CanvasLayer
+var _returning: bool = false
 
 
 func _ready() -> void:
@@ -37,13 +41,28 @@ func _ready() -> void:
 		elif not _goal.body_entered.is_connected(_on_goal_body_entered):
 			_goal.body_entered.connect(_on_goal_body_entered)
 
+	_wire_enemies()
+	_wire_player_hits()
+
 	if spawn_combat_hud:
 		_hud = COMBAT_HUD_SCENE.instantiate() as CanvasLayer
 		add_child(_hud)
 		if _hud.has_method("set_hp"):
 			_hud.call("set_hp", player_max_hp, player_max_hp)
 
-	print("[StageController] stage_id=%s ready" % stage_id)
+	if spawn_touch_controls:
+		add_child(TOUCH_SCENE.instantiate())
+
+	_build_back_button()
+	print("[StageController] stage_id=%s ready (touch+hud)" % stage_id)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _completed or _dead or _returning:
+		return
+	if event.is_action_pressed("pause"):
+		_return_to_map(false)
+		get_viewport().set_input_as_handled()
 
 
 func _physics_process(_delta: float) -> void:
@@ -79,6 +98,15 @@ func _on_goal_body_entered(body: Node2D) -> void:
 		_complete_stage()
 
 
+func _on_enemy_defeated() -> void:
+	if not clear_when_enemies_dead or _completed or _dead:
+		return
+	# Aguarda um frame para o inimigo sair do group se o script remover.
+	await get_tree().process_frame
+	if _all_enemies_defeated():
+		_complete_stage()
+
+
 func _complete_stage() -> void:
 	if _completed or _dead:
 		return
@@ -86,7 +114,63 @@ func _complete_stage() -> void:
 	Game.bank_run_coins()
 	Game.mark_stage_cleared(stage_id)
 	print("[StageController] CLEAR %s → bank + world_map" % stage_id)
+	await get_tree().create_timer(0.9).timeout
 	SceneRouter.to_world_map()
+
+
+func _return_to_map(count_as_victory: bool) -> void:
+	if _returning:
+		return
+	_returning = true
+	if not count_as_victory and not _completed:
+		Game.lose_run_coins()
+	SceneRouter.to_world_map()
+
+
+func _build_back_button() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "StageChrome"
+	layer.layer = 50
+	add_child(layer)
+	var back := Button.new()
+	back.name = "BackToMap"
+	back.text = "← Mapa"
+	back.position = Vector2(24, 640)
+	back.size = Vector2(140, 52)
+	back.focus_mode = Control.FOCUS_NONE
+	back.pressed.connect(func() -> void: _return_to_map(false))
+	layer.add_child(back)
+
+
+func _wire_enemies() -> void:
+	for n: Node in get_tree().get_nodes_in_group("enemy"):
+		if n.has_signal("defeated") and not n.is_connected("defeated", _on_enemy_defeated):
+			n.connect("defeated", _on_enemy_defeated)
+
+
+func _wire_player_hits() -> void:
+	if _player == null:
+		return
+	var hitbox: Node = _player.get_node_or_null("%Hitbox")
+	if hitbox == null:
+		hitbox = _player.find_child("Hitbox", true, false)
+	if hitbox != null and hitbox.has_signal("hit"):
+		if not hitbox.is_connected("hit", _on_player_hitbox_hit):
+			hitbox.connect("hit", _on_player_hitbox_hit)
+
+
+func _on_player_hitbox_hit(_hurtbox: Variant, _hit_data: Variant) -> void:
+	Game.add_breath_from_hit(10.0)
+
+
+func _all_enemies_defeated() -> bool:
+	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemy")
+	if enemies.is_empty():
+		return false
+	for n: Node in enemies:
+		if n.get("hp") != null and int(n.get("hp")) > 0:
+			return false
+	return true
 
 
 func _find_player() -> Node2D:

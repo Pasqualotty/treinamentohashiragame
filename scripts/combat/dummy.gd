@@ -1,6 +1,8 @@
 extends CharacterBody2D
 ## Dummy estático de teste: Hurtbox + HP + flash + knockback leve.
 
+signal defeated
+
 const FLASH_COLOR: Color = Color(1.4, 0.4, 0.4, 1.0)
 const FLASH_TIME: float = 0.12
 const KNOCK_FRICTION: float = 900.0
@@ -15,6 +17,7 @@ var hp: int = 30
 var _flash_left: float = 0.0
 var _base_modulate: Color = Color.WHITE
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity") as float
+var _defeated: bool = false
 
 
 func _ready() -> void:
@@ -70,9 +73,13 @@ func _refresh_label() -> void:
 
 
 func _on_defeated() -> void:
+	if _defeated:
+		return
+	_defeated = true
 	if hurtbox:
 		hurtbox.invulnerable = true
 	if sprite:
 		sprite.modulate = Color(0.45, 0.45, 0.5, 0.85)
 	if hp_label:
 		hp_label.text = "HP 0/%d — KO" % max_hp
+	defeated.emit()

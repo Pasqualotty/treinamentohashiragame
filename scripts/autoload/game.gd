@@ -21,6 +21,8 @@ var upgrades: Dictionary = {}  # id -> level
 var coins_run: int = 0
 var breath: float = 0.0
 var breath_max: float = 100.0
+## Stage id opcional (mapa / debug) antes de trocar de cena.
+var pending_stage_id: String = "w1_01"
 
 
 func _ready() -> void:
