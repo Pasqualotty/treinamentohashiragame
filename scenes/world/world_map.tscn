@@ -1,6 +1,10 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/world_map.gd" id="1_map"]
+[ext_resource type="Texture2D" path="res://assets/ui/map/world_map_w1.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/map/node_stage.png" id="3_node"]
+[ext_resource type="Texture2D" path="res://assets/ui/map/node_boss_lock.png" id="4_boss"]
+[ext_resource type="Texture2D" path="res://assets/ui/map/node_cleared.png" id="5_cleared"]
 
 [node name="WorldMap" type="Control"]
 layout_mode = 3
@@ -11,14 +15,26 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_map")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.1, 0.14, 0.12, 1)
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.06, 0.1, 0.35)
+mouse_filter = 2
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 1
@@ -31,6 +47,7 @@ offset_right = 200.0
 offset_bottom = 64.0
 grow_horizontal = 2
 theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.95, 0.92, 0.85, 1)
 text = "Mapa — Mundo 1"
 horizontal_alignment = 1
 
@@ -45,7 +62,7 @@ offset_top = 72.0
 offset_right = 300.0
 offset_bottom = 104.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(0.8, 0.85, 0.7, 1)
+theme_override_colors/font_color = Color(0.85, 0.9, 0.75, 1)
 text = "Escolha uma fase"
 horizontal_alignment = 1
 
@@ -66,24 +83,32 @@ theme_override_constants/separation = 16
 alignment = 1
 
 [node name="Stage1" type="Button" parent="Stages"]
-custom_minimum_size = Vector2(140, 80)
+custom_minimum_size = Vector2(140, 100)
 layout_mode = 2
 text = "Fase 1"
+icon = ExtResource("3_node")
+expand_icon = true
 
 [node name="Stage2" type="Button" parent="Stages"]
-custom_minimum_size = Vector2(140, 80)
+custom_minimum_size = Vector2(140, 100)
 layout_mode = 2
 text = "Fase 2"
+icon = ExtResource("3_node")
+expand_icon = true
 
 [node name="Stage3" type="Button" parent="Stages"]
-custom_minimum_size = Vector2(140, 80)
+custom_minimum_size = Vector2(140, 100)
 layout_mode = 2
 text = "Fase 3"
+icon = ExtResource("5_cleared")
+expand_icon = true
 
 [node name="Boss" type="Button" parent="Stages"]
-custom_minimum_size = Vector2(140, 80)
+custom_minimum_size = Vector2(140, 100)
 layout_mode = 2
 text = "Boss"
+icon = ExtResource("4_boss")
+expand_icon = true
 
 [node name="BackButton" type="Button" parent="."]
 layout_mode = 1
