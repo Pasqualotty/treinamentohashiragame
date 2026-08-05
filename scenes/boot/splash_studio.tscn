@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://vo3kutla2f5h"]
 
-[ext_resource type="Script" path="res://scripts/boot/splash_studio.gd" id="1_splash"]
+[ext_resource type="Script" uid="uid://fulg5pvvelw4" path="res://scripts/boot/splash_studio.gd" id="1_splash"]
 
-[node name="SplashStudio" type="Control"]
+[node name="SplashStudio" type="Control" unique_id=689781735]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_splash")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=34758350]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,7 +20,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 1)
 
-[node name="Logo" type="TextureRect" parent="."]
+[node name="Logo" type="TextureRect" parent="." unique_id=1526707509]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
@@ -37,17 +37,17 @@ grow_vertical = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="StudioLabel" type="Label" parent="."]
+[node name="StudioLabel" type="Label" parent="." unique_id=888240529]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -200.0
-offset_top = -80.0
-offset_right = 200.0
-offset_bottom = -40.0
+offset_left = -182.0
+offset_top = -185.0
+offset_right = 218.0
+offset_bottom = -145.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.9, 0.9, 0.95, 1)

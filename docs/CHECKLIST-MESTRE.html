@@ -278,11 +278,12 @@
 <body>
   <header class="hero">
     <div class="hero-inner">
-      <div class="badge">Pasqualotti Studios · Fan project pessoal</div>
+      <div class="badge">Pasqualotti Studios · Fan project pessoal · Snapshot 2026-08-05</div>
       <h1>Demon Slayer — Treinamento Hashira</h1>
       <p class="subtitle">
         Documento mestre com passo a passo, decisões de produto, mecânicas, arquitetura técnica e
         <strong>checklist</strong> pra ir marcando. Progresso salva neste navegador (localStorage).
+        Estado vivo também em <span class="mono">docs/STATUS-PROGRESSO.md</span> e <span class="mono">docs/GDD-DECISOES.md</span>.
       </p>
       <div class="progress-wrap">
         <div class="progress-meta">
@@ -298,7 +299,8 @@
           <button type="button" class="danger" onclick="resetProgress()">Zerar checklists</button>
         </div>
         <p style="margin:.65rem 0 0;font-size:.8rem;color:var(--muted)">
-          Arquivo: <span class="mono">docs/CHECKLIST-MESTRE.html</span> · Abra no Chrome/Edge · Marque as caixas
+          Arquivo: <span class="mono">docs/CHECKLIST-MESTRE.html</span> · Abra no Chrome/Edge · Marque as caixas ·
+          Chave: <span class="mono">hashira-checklist-v2</span>
         </p>
       </div>
     </div>
@@ -331,26 +333,39 @@
       <h2><span class="phase-tag crit">Essencial</span> 0. Ordem correta — o que vem antes?</h2>
       <p class="lead">Regra do projeto: <strong>produto leve → setup → protótipo feio jogável → arte/polish → conteúdo</strong>.</p>
       <div class="callout">
+        <strong>Onde estamos (2026-08-05):</strong>
+        GDD mínimo ✅ · Godot 4.7 + JDK + Android SDK ✅ · fluxo
+        <strong>splash → loading → hub (arte viva) → mapa stub</strong> validado no PC ✅ ·
+        pack de arte v0.1 + hub Tanjiro v3 ✅ ·
+        <strong>ainda não existe fase de combate jogável</strong> · APK no telefone ainda não.
+        <br /><strong>Próximo foco:</strong> residual Fase B (InputMap + touch + export) → Fase C (vertical slice).
+      </div>
+      <div class="callout warn">
         <strong>Design de jogo (regras, loop, controles)</strong> vem <em>antes</em> de implementar de verdade.
-        <strong>Design visual final</strong> (pixel art polida de todos os Hashiras) vem <em>depois</em> do vertical slice.
-        Se gerarem 14 personagens lindos antes de existir 1 fase jogável, o projeto trava.
+        <strong>Design visual final</strong> (todos os Hashiras) vem <em>depois</em> do vertical slice.
+        Hub bonito ≠ jogo jogável — não travar no polish do menu.
       </div>
       <table>
         <thead>
-          <tr><th>Camada</th><th>Quando</th><th>Entrega</th></tr>
+          <tr><th>Camada</th><th>Quando</th><th>Entrega</th><th>Status</th></tr>
         </thead>
         <tbody>
-          <tr><td>Produto / GDD curto</td><td>Agora (Fase A)</td><td>Loop, combos, respiração, moedas, 1º mundo</td></tr>
-          <tr><td>Setup técnico</td><td>Logo após GDD mínimo</td><td>Godot + Git + Hello APK</td></tr>
-          <tr><td>Vertical slice</td><td>2–3 semanas</td><td>Tanjiro, 3 ataques, respiração, 1 fase, 1 loja, 1 boss stub</td></tr>
-          <tr><td>Arte &amp; áudio</td><td>Em cima do slice</td><td>Pixel, UI, SFX</td></tr>
-          <tr><td>Conteúdo em escala</td><td>Depois do slice divertido</td><td>Mundos, elenco, chefes</td></tr>
+          <tr><td>Produto / GDD curto</td><td>Fase A</td><td>Loop, controles, respiração, moedas, MVP</td><td>✅ feito</td></tr>
+          <tr><td>Setup técnico</td><td>Fase A/B</td><td>Godot + Git + pastas + SDK</td><td>✅ (falta Hello APK)</td></tr>
+          <tr><td>Meta / boot / hub</td><td>Fase B+</td><td>Splash, loading, hub, mapa stub</td><td>✅ PC</td></tr>
+          <tr><td>Vertical slice</td><td><strong>agora</strong></td><td>Tanjiro combate, breath, 1 fase, oni, HUD</td><td>⬜ próximo</td></tr>
+          <tr><td>Arte &amp; áudio de combate</td><td>Em cima do slice</td><td>Run/atk sheets, SFX, BGM</td><td>🟡 hub/pack</td></tr>
+          <tr><td>Conteúdo em escala</td><td>Depois do slice divertido</td><td>Mundos, elenco, chefes</td><td>⬜</td></tr>
         </tbody>
       </table>
       <ul class="check" data-section="ordem">
-        <li><input type="checkbox" id="o1" /><label for="o1">Li e aceitei a ordem: GDD leve → setup → slice → arte → conteúdo</label></li>
-        <li><input type="checkbox" id="o2" /><label for="o2">Combinamos com o sobrinho: playtest semanal no celular, mesmo feio</label></li>
-        <li><input type="checkbox" id="o3" /><label for="o3">Congelamos mentalmente: MVP ≠ lista inteira de personagens no dia 1</label></li>
+        <li><input type="checkbox" id="o1" checked /><label for="o1">Li e aceitei a ordem: GDD leve → setup → slice → arte → conteúdo</label></li>
+        <li><input type="checkbox" id="o2" checked /><label for="o2">Combinamos com o sobrinho: playtest semanal no celular, mesmo feio</label>
+          <span class="hint">GDD §8 — confirmado. Playtest PC do boot já rolou; celular = após APK.</span>
+        </li>
+        <li><input type="checkbox" id="o3" checked /><label for="o3">Congelamos mentalmente: MVP ≠ lista inteira de personagens no dia 1</label>
+          <span class="hint">MVP = 1 mundo, Tanjiro only, 3 fases + boss, loja 4 upgrades, 2 onis.</span>
+        </li>
       </ul>
     </section>
 
@@ -380,13 +395,15 @@
         </tbody>
       </table>
       <ul class="check" data-section="visao">
-        <li><input type="checkbox" id="v1" /><label for="v1">Pitch e pilares combinados entre Matheus e sobrinho</label></li>
-        <li><input type="checkbox" id="v2" /><label for="v2">Loop acima validado (ou anotamos mudanças neste doc)</label></li>
-        <li><input type="checkbox" id="v3" /><label for="v3">Orientação de tela definida: portrait ou landscape</label>
-          <span class="hint">Recomendação inicial: <strong>landscape</strong> para fases pixel side-scroll; portrait se preferirem one-hand. Decidir antes do TileMap.</span>
+        <li><input type="checkbox" id="v1" checked /><label for="v1">Pitch e pilares combinados entre Matheus e sobrinho</label></li>
+        <li><input type="checkbox" id="v2" checked /><label for="v2">Loop acima validado (ou anotamos mudanças neste doc)</label>
+          <span class="hint">Hub → mapa → fase → moedas → loja. JOGAR abre o mapa (não a fase direto).</span>
         </li>
-        <li><input type="checkbox" id="v4" /><label for="v4">Resolução de design fixada (ex.: 640×360 interno escalado, ou 1280×720)</label>
-          <span class="hint">Pixel art ama resolução base baixa + stretch integer no Godot.</span>
+        <li><input type="checkbox" id="v3" checked /><label for="v3">Orientação de tela definida: portrait ou landscape</label>
+          <span class="hint"><strong>Paisagem</strong> (celular deitado) — GDD §1.</span>
+        </li>
+        <li><input type="checkbox" id="v4" checked /><label for="v4">Resolução de design fixada (ex.: 640×360 interno escalado, ou 1280×720)</label>
+          <span class="hint"><strong>1280×720</strong> em <code>project.godot</code> · stretch <code>canvas_items</code> · filter off.</span>
         </li>
       </ul>
     </section>
@@ -394,56 +411,74 @@
     <!-- 2 -->
     <section class="block" id="decisoes">
       <h2><span class="phase-tag crit">Workshop</span> 2. Decisões a fechar antes de codar pesado</h2>
-      <p class="lead">Sessão de 1–2h com o sobrinho. Marque quando estiver decidido (anote a escolha no papel ou edite o HTML).</p>
-      <div class="callout warn">
-        <strong>Não pule esta seção.</strong> “Várias fases num mundo” + 14 personagens + upgrades pode virar 2 anos de jogo. O workshop define o <em>primeiro mundo jogável</em>.
+      <p class="lead">Fonte canônica: <code>docs/GDD-DECISOES.md</code>. Itens abertos ainda bloqueiam pouco o slice — podem fechar no playtest.</p>
+      <div class="callout">
+        <strong>Workshop base fechado (2026-08-03).</strong> Restam só nomes de skills, lista exata dos 4 upgrades, rewards de elite/boss e regra fina de moeda na morte.
       </div>
 
       <h3>2.1 Câmera e gênero 2D</h3>
       <ul class="check" data-section="dec">
-        <li><input type="checkbox" id="d1" /><label for="d1">Gênero confirmado: side-scroller de fases (andar esquerda→direita) — ou outro?</label>
-          <span class="hint">Alternativa: beat'em up 2.5 eixos, ou arena. Default sugerido: side-scroller linear por fase.</span>
+        <li><input type="checkbox" id="d1" checked /><label for="d1">Gênero confirmado: side-scroller de fases (andar esquerda→direita) — ou outro?</label>
+          <span class="hint"><strong>Side-scroller linear por fase</strong> — GDD §1.</span>
         </li>
-        <li><input type="checkbox" id="d2" /><label for="d2">Pulo existe? (sim/não) e quantos (1 / double jump)</label></li>
-        <li><input type="checkbox" id="d3" /><label for="d3">Controles touch (fechado 2026-08-03): esq. joystick + Avançar + Pulo; dir. atk básico + 2 skills + ultimate (+ pause)</label>
-          <span class="hint">Fonte: <code>docs/GDD-DECISOES.md</code>. Antigo “3 ataques + 1 especial” foi substituído.</span>
+        <li><input type="checkbox" id="d2" checked /><label for="d2">Pulo existe? (sim/não) e quantos (1 / double jump)</label>
+          <span class="hint"><strong>Sim, 1 pulo</strong> (sem double jump no MVP). + <strong>Dash</strong> com cooldown (botão Avançar).</span>
+        </li>
+        <li><input type="checkbox" id="d3" checked /><label for="d3">Controles touch (fechado 2026-08-03): esq. joystick + Avançar + Pulo; dir. atk básico + 2 skills + ultimate (+ pause)</label>
+          <span class="hint">Fonte: <code>docs/GDD-DECISOES.md</code> §4. InputMap alvo: <code>move_*</code>, <code>advance</code>, <code>jump</code>, <code>attack_basic</code>, <code>skill_1</code>, <code>skill_2</code>, <code>ultimate</code>, <code>pause</code>.</span>
         </li>
       </ul>
 
       <h3>2.2 Combate</h3>
       <ul class="check" data-section="dec">
-        <li><input type="checkbox" id="d4" /><label for="d4">Os 3 ataques são: leve / pesado / arco (ou outra trinca)? Nomes internos definidos</label>
-          <span class="hint">Sugestão: <code>slash</code> (rápido), <code>heavy</code> (lento + dano), <code>thrust</code> (alcance / anti-ar).</span>
+        <li><input type="checkbox" id="d4" /><label for="d4">Nomes das 2 skills do Tanjiro + feel do ataque básico</label>
+          <span class="hint">Modelo fechado: <strong>1 atk básico</strong> (combo curto) + <strong>skill_1</strong> + <strong>skill_2</strong> + <strong>ultimate</strong> (não é mais trinca leve/pesado/estocada). Nomes ainda abertos no GDD §9.</span>
         </li>
-        <li><input type="checkbox" id="d5" /><label for="d5">Combo: soltos (3 botões independentes) ou sequência direcional?</label></li>
-        <li><input type="checkbox" id="d6" /><label for="d6">Respiração: enche com hits acertados? tempo? receber dano esvazia?</label></li>
-        <li><input type="checkbox" id="d7" /><label for="d7">Especial: invencível? multi-hit? custo = barra inteira?</label></li>
-        <li><input type="checkbox" id="d8" /><label for="d8">I-frames na esquiva? Existe esquiva no MVP?</label></li>
+        <li><input type="checkbox" id="d5" checked /><label for="d5">Modelo de botões de combate no MVP</label>
+          <span class="hint">Botões <strong>independentes</strong> (básico / H1 / H2 / ultimate). Básico pode ter combo curto interno; skills e ultimate não são “3 ataques soltos”.</span>
+        </li>
+        <li><input type="checkbox" id="d6" checked /><label for="d6">Respiração: enche com hits acertados? tempo? receber dano esvazia?</label>
+          <span class="hint">Enche com <strong>hits</strong>. Tempo sozinho não enche. Dano esvaziar = opcional depois (default MVP: não).</span>
+        </li>
+        <li><input type="checkbox" id="d7" checked /><label for="d7">Ultimate: custo = barra inteira; i-frames / multi-hit</label>
+          <span class="hint">Consome barra (zera). Multi-hit/i-frames = balance no slice. Botão só habilitado com barra full.</span>
+        </li>
+        <li><input type="checkbox" id="d8" checked /><label for="d8">I-frames na esquiva? Existe esquiva no MVP?</label>
+          <span class="hint">MVP: <strong>dash sem i-frames</strong> (pode virar upgrade). Não há “esquiva” separada do dash.</span>
+        </li>
       </ul>
 
       <h3>2.3 Economia</h3>
       <ul class="check" data-section="dec">
-        <li><input type="checkbox" id="d9" /><label for="d9">Oni fraco = 10 moedas (confirmado)</label></li>
+        <li><input type="checkbox" id="d9" checked /><label for="d9">Oni fraco = 10 moedas (confirmado)</label></li>
         <li><input type="checkbox" id="d10" /><label for="d10">Chefe / oni elite dão mais? (ex.: 50 / 100)</label></li>
-        <li><input type="checkbox" id="d11" /><label for="d11">Lista de upgrades da loja v1 (HP, dano leve, dano pesado, dano especial, regeneração de respiração…)</label></li>
-        <li><input type="checkbox" id="d12" /><label for="d12">Moedas persistem entre mortes e sessões? (recomendado: sim, com save)</label></li>
-        <li><input type="checkbox" id="d13" /><label for="d13">Morte na fase: perde progresso da fase, mantém moedas já banked no fim da fase — ou drop na hora?</label>
-          <span class="hint">Sugestão segura: moedas creditadas ao <strong>completar</strong> a fase (anti-farm infinito morrendo). Ou creditar na hora mas custo de “continuar”.</span>
+        <li><input type="checkbox" id="d11" /><label for="d11">Lista de upgrades da loja v1 (quais 4 exatos)</label>
+          <span class="hint">Sugestão: HP · dano básico · ganho de respiração · cooldown do dash. Ainda aberto no GDD §9.</span>
+        </li>
+        <li><input type="checkbox" id="d12" checked /><label for="d12">Moedas persistem entre sessões? (recomendado: sim, com save)</label>
+          <span class="hint">Autoload <code>Game</code> já grava <code>coins_banked</code> em <code>user://save.json</code>.</span>
+        </li>
+        <li><input type="checkbox" id="d13" /><label for="d13">Morte na fase: perde moedas da run ou banka o que coletou?</label>
+          <span class="hint">Default técnico: moedas da fase no contador run; <strong>bank ao completar</strong>; morte → perde só a run. Código já tem <code>bank_run_coins</code> / <code>lose_run_coins</code>. Confirmar no playtest.</span>
         </li>
       </ul>
 
       <h3>2.4 Progressão de personagens</h3>
       <ul class="check" data-section="dec">
-        <li><input type="checkbox" id="d14" /><label for="d14">Como desbloqueia cada personagem? (chefe de mundo / loja / história)</label></li>
+        <li><input type="checkbox" id="d14" /><label for="d14">Como desbloqueia cada personagem? (chefe de mundo / loja / história)</label>
+          <span class="hint">MVP: só Tanjiro. Proposta W1 → Zenitsu etc. na seção 4.</span>
+        </li>
         <li><input type="checkbox" id="d15" /><label for="d15">Upgrades são globais ou por personagem?</label>
-          <span class="hint">Global = mais simples. Por personagem = mais grind, mais conteúdo.</span>
+          <span class="hint">Sugestão GDD: <strong>globais</strong> no MVP.</span>
         </li>
         <li><input type="checkbox" id="d16" /><label for="d16">Ordem de desbloqueio do elenco (ver seção 4)</label></li>
       </ul>
 
       <h3>2.5 Escopo do primeiro entregável</h3>
       <ul class="check" data-section="dec">
-        <li><input type="checkbox" id="d17" /><label for="d17">MVP = 1 mundo, 3 fases + 1 boss, só Tanjiro, loja com 4 upgrades, 2 tipos de oni</label></li>
+        <li><input type="checkbox" id="d17" checked /><label for="d17">MVP = 1 mundo, 3 fases + 1 boss, só Tanjiro, loja com 4 upgrades, 2 tipos de oni</label>
+          <span class="hint">GDD §7 — congelado. Combate = atk básico + 2 skills + ultimate + dash + pulo.</span>
+        </li>
         <li><input type="checkbox" id="d18" /><label for="d18">Data-alvo informal da “noite dos amigos v0.1” (opcional)</label></li>
       </ul>
     </section>
@@ -451,30 +486,34 @@
     <!-- 3 -->
     <section class="block" id="mecanicas">
       <h2><span class="phase-tag prod">Produto</span> 3. Mecânicas — especificação de trabalho</h2>
-      <p class="lead">Texto base pra implementar. Ajustem números no balance (seção 10). Itens marcados = “já implementado e testado”.</p>
+      <p class="lead">Texto base pra implementar. Itens marcados = “já implementado e testado”. <strong>Combate ainda 0%</strong> — só infra de breath/moedas no autoload <code>Game</code>.</p>
 
       <h3>3.1 Movimento</h3>
       <ul class="check" data-section="mec">
         <li><input type="checkbox" id="m1" /><label for="m1">Andar esquerda/direita (CharacterBody2D + move_and_slide)</label></li>
-        <li><input type="checkbox" id="m2" /><label for="m2">Pulo (se decidido) com coyote time leve</label></li>
+        <li><input type="checkbox" id="m2" /><label for="m2">Pulo com coyote time leve</label></li>
+        <li><input type="checkbox" id="m2b" /><label for="m2b">Dash / advance com cooldown (sem i-frames no MVP)</label>
+          <span class="hint">Input <code>advance</code>; 1 dash aéreo até pousar (default GDD).</span>
+        </li>
         <li><input type="checkbox" id="m3" /><label for="m3">Gravidade e velocidade em constantes / Resource de stats</label></li>
         <li><input type="checkbox" id="m4" /><label for="m4">Colisão com chão e paredes (TileMap layers)</label></li>
       </ul>
 
-      <h3>3.2 Três ataques de espada</h3>
+      <h3>3.2 Combate Tanjiro (modelo GDD)</h3>
       <table>
         <thead>
-          <tr><th>ID</th><th>Nome sugerido</th><th>Feel</th><th>Dano base*</th><th>Startup / active / recover*</th></tr>
+          <tr><th>Input</th><th>ID</th><th>Feel</th><th>Dano base*</th><th>Notas</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>atk_light</code></td><td>Corte rápido</td><td>Spam controlado, hitbox curta</td><td>8</td><td>4 / 6 / 10 frames</td></tr>
-          <tr><td><code>atk_heavy</code></td><td>Corte pesado</td><td>Commit, knockback maior</td><td>18</td><td>10 / 8 / 18</td></tr>
-          <tr><td><code>atk_thrust</code></td><td>Estocada</td><td>Mais alcance, bom vs oni que pula</td><td>12</td><td>8 / 7 / 14</td></tr>
+          <tr><td>Ataque básico</td><td><code>attack_basic</code></td><td>Combo curto / corte rápido</td><td>8–12</td><td>Spam controlado + recover</td></tr>
+          <tr><td>Habilidade 1</td><td><code>skill_1</code></td><td>Skill única Tanjiro</td><td>TBD</td><td>Nome ainda aberto</td></tr>
+          <tr><td>Habilidade 2</td><td><code>skill_2</code></td><td>2ª skill única</td><td>TBD</td><td>Nome ainda aberto</td></tr>
+          <tr><td>Ultimate</td><td><code>ultimate</code></td><td>Golpe de respiração full bar</td><td>Alto / área</td><td>Só com barra 100</td></tr>
         </tbody>
       </table>
-      <p class="lead">*Números placeholder — só pra ter ordem de grandeza no código.</p>
+      <p class="lead">*Números placeholder. Legacy “leve/pesado/estocada” foi aposentado pelo GDD — use a tabela acima.</p>
       <ul class="check" data-section="mec">
-        <li><input type="checkbox" id="m5" /><label for="m5">State machine do player: idle / run / jump / attack_* / special / hurt / dead</label></li>
+        <li><input type="checkbox" id="m5" /><label for="m5">State machine do player: idle / run / jump / dash / attack_basic / skill_* / ultimate / hurt / dead</label></li>
         <li><input type="checkbox" id="m6" /><label for="m6">Hitbox Area2D por ataque (enable só em frames active)</label></li>
         <li><input type="checkbox" id="m7" /><label for="m7">Hurtbox do player e dos onis separados</label></li>
         <li><input type="checkbox" id="m8" /><label for="m8">Hitstun / knockback básico nos onis</label></li>
@@ -482,19 +521,21 @@
         <li><input type="checkbox" id="m10" /><label for="m10">Feedback: flash branco / particles / SFX por hit</label></li>
       </ul>
 
-      <h3>3.3 Respiração (medidor → especial)</h3>
+      <h3>3.3 Respiração (medidor → ultimate)</h3>
       <div class="callout">
-        <strong>Proposta default (mudar no workshop se quiser):</strong>
-        Barra 0–100. Cada hit em oni: +8 (leve), +12 (pesado), +10 (estocada).
-        Especial consome 100 e causa dano alto em área à frente.
-        Levar dano: −15. Ficar sem atacar 3s: −5/s (opcional).
+        <strong>Default GDD (implementar no slice):</strong>
+        Barra 0–100. Cada hit em oni soma (ex. +8 a +12). Ultimate consome 100 e causa dano alto à frente.
+        Tempo sozinho <em>não</em> enche. Dano esvaziar = opcional depois.
+        Infra no autoload: <code>Game.add_breath_from_hit</code> / <code>is_ultimate_ready</code> / <code>consume_ultimate</code> + signal <code>breath_changed</code>.
       </div>
       <ul class="check" data-section="mec">
-        <li><input type="checkbox" id="m11" /><label for="m11">Resource/componente <code>BreathMeter</code> (valor, max, signals: changed, full)</label></li>
+        <li><input type="checkbox" id="m11" checked /><label for="m11">API de respiração no autoload <code>Game</code> (valor, max, signals)</label>
+          <span class="hint">Feito em <code>scripts/autoload/game.gd</code>. Ainda falta HUD e wiring no player de combate.</span>
+        </li>
         <li><input type="checkbox" id="m12" /><label for="m12">HUD: barra de respiração (vazia → cheia com glow)</label></li>
-        <li><input type="checkbox" id="m13" /><label for="m13">Botão especial desabilitado visualmente até full</label></li>
-        <li><input type="checkbox" id="m14" /><label for="m14">Estado <code>special</code>: animação, hitbox, i-frames curtos, consome barra</label></li>
-        <li><input type="checkbox" id="m15" /><label for="m15">Especial por personagem diferente (fase 2 — no MVP todos usam o do Tanjiro)</label></li>
+        <li><input type="checkbox" id="m13" /><label for="m13">Botão ultimate desabilitado visualmente até full</label></li>
+        <li><input type="checkbox" id="m14" /><label for="m14">Estado <code>ultimate</code>: animação, hitbox, i-frames curtos, consome barra</label></li>
+        <li><input type="checkbox" id="m15" /><label for="m15">Ultimate por personagem diferente (fase 2 — no MVP só Tanjiro)</label></li>
       </ul>
 
       <h3>3.4 Onis e combate inimigo</h3>
@@ -509,25 +550,52 @@
       <h3>3.5 Fases, mundos, mapa</h3>
       <ul class="check" data-section="mec">
         <li><input type="checkbox" id="m21" /><label for="m21">Modelo de dados: World → lista de Stage IDs → Boss Stage</label></li>
-        <li><input type="checkbox" id="m22" /><label for="m22">Cena de fase: TileMap + spawns + checkpoint + goal</label></li>
-        <li><input type="checkbox" id="m23" /><label for="m23">Tela de mapa do mundo (nós de fase locked/unlocked/cleared)</label></li>
-        <li><input type="checkbox" id="m24" /><label for="m24">Transição de fim de fase → mapa (com moedas ganhadas)</label></li>
-        <li><input type="checkbox" id="m25" /><label for="m25">Bloquear boss até fases obrigatórias cleared</label></li>
+        <li><input type="checkbox" id="m22" /><label for="m22">Cena de fase: TileMap + spawns + checkpoint + goal</label>
+          <span class="hint"><code>scenes/battle/</code> ainda vazia. Mapa só imprime “em breve”.</span>
+        </li>
+        <li><input type="checkbox" id="m23" checked /><label for="m23">Tela de mapa do mundo (stub de botões de fase)</label>
+          <span class="hint"><code>scenes/world/world_map.tscn</code> + script — 3 fases + boss (texto stub). Falta mapa visual com nós/caminho.</span>
+        </li>
+        <li><input type="checkbox" id="m24" /><label for="m24">Transição de fim de fase → mapa (com moedas ganhadas / bank)</label></li>
+        <li><input type="checkbox" id="m25" /><label for="m25">Bloquear boss até fases obrigatórias cleared</label>
+          <span class="hint">Texto no stub; lógica com <code>Game.stages_cleared</code> ainda não liga UI.</span>
+        </li>
       </ul>
 
       <h3>3.6 Loja e upgrades</h3>
       <ul class="check" data-section="mec">
-        <li><input type="checkbox" id="m26" /><label for="m26">Tela de loja acessível do mapa</label></li>
+        <li><input type="checkbox" id="m26" /><label for="m26">Tela de loja acessível do hub/mapa</label>
+          <span class="hint">Botão LOJA no hub existe (stub de mensagem).</span>
+        </li>
         <li><input type="checkbox" id="m27" /><label for="m27">Catálogo de upgrades em Resource/JSON (id, nome, custo, nível max, efeito)</label></li>
         <li><input type="checkbox" id="m28" /><label for="m28">Compra gasta moedas, sobe nível, aplica em PlayerStats</label></li>
-        <li><input type="checkbox" id="m29" /><label for="m29">Persistência: moedas + níveis de upgrade no save</label></li>
+        <li><input type="checkbox" id="m29" checked /><label for="m29">Persistência base: moedas banked + dict upgrades no save</label>
+          <span class="hint"><code>Game.save_game</code> / <code>load_game</code> — schema v1. Falta UI de compra e stats aplicados.</span>
+        </li>
       </ul>
 
       <h3>3.7 Seleção de personagem</h3>
       <ul class="check" data-section="mec">
-        <li><input type="checkbox" id="m30" /><label for="m30">Tela select: só desbloqueados clicáveis</label></li>
+        <li><input type="checkbox" id="m30" /><label for="m30">Tela select: só desbloqueados clicáveis</label>
+          <span class="hint">Botão PERSONAGENS no hub = stub.</span>
+        </li>
         <li><input type="checkbox" id="m31" /><label for="m31">Cada personagem = scene + stats resource + anim set (mesmo framework de combate)</label></li>
-        <li><input type="checkbox" id="m32" /><label for="m32">Tanjiro sempre unlocked no new game</label></li>
+        <li><input type="checkbox" id="m32" checked /><label for="m32">Tanjiro sempre unlocked no new game</label>
+          <span class="hint"><code>current_character_id = "tanjiro"</code> default no Game.</span>
+        </li>
+      </ul>
+
+      <h3>3.8 Boot &amp; hub (meta UI) — já no ar</h3>
+      <ul class="check" data-section="mec">
+        <li><input type="checkbox" id="m33" checked /><label for="m33">Splash Pasqualotti → loading (barra + key art) → hub</label>
+          <span class="hint">Main scene = <code>splash_studio.tscn</code>. Validado no Play (PC).</span>
+        </li>
+        <li><input type="checkbox" id="m34" checked /><label for="m34">Hub: Tanjiro showcase (idle + blink + flourish), fundo animado, botões temáticos, moedas, JOGAR → mapa</label>
+          <span class="hint"><code>hub.gd</code> + frames em <code>assets/characters/player/hub_idle/</code> + UI em <code>assets/ui/</code>.</span>
+        </li>
+        <li><input type="checkbox" id="m35" checked /><label for="m35">SceneRouter (troca de cenas boot/hub/mapa)</label>
+          <span class="hint"><code>scripts/autoload/scene_router.gd</code>.</span>
+        </li>
       </ul>
     </section>
 
@@ -592,49 +660,42 @@
     <!-- 5 -->
     <section class="block" id="arquitetura">
       <h2><span class="phase-tag tech">Técnico</span> 5. Arquitetura técnica (Godot 4 + GDScript)</h2>
-      <p class="lead">Stack recomendada: Godot 4 Standard, GDScript, export Android APK, pixel com viewport stretch.</p>
+      <p class="lead">Stack em uso: <strong>Godot 4.7.1</strong> Standard, GDScript, renderer <strong>Mobile</strong>, export Android (preset ainda não). Handbook: <code>docs/engine/</code>.</p>
 
-      <h3>5.1 Árvore de pastas alvo</h3>
+      <h3>5.1 Árvore real (hoje) + alvos de combate</h3>
       <pre class="mini-card" style="overflow:auto;font-size:.8rem;line-height:1.4"><code>res://
-  project.godot
+  project.godot          # main = splash_studio; autoloads Game + SceneRouter
   assets/
-    characters/   # sprites / spriteframes
-    enemies/
-    worlds/       # tilesets por mundo
-    ui/
-    audio/{sfx,bgm}
+    branding/            # logo Pasqualotti
+    characters/player/   # hub_idle/, side, bases
+    characters/enemies/  # oni_weak_side
+    tiles/w1/            # ground_path
+    ui/{buttons,hub,icons,loading,touch}
+    audio/{sfx,bgm}      # pastas vazias
+    pack_v01/ · pack_review_hub_tanjiro/
   scenes/
-    boot/
-    menus/        # title, character_select
-    map/          # world map
-    stages/       # stage_w1_01.tscn …
-    combat/       # player, enemies, hitboxes
-    ui/           # hud, shop, pause
-    bosses/
+    boot/                # splash_studio, loading ✅
+    main_menu/           # hub ✅
+    world/               # world_map ✅ stub
+    battle/              # ⬜ stage_w1_01 …
+    characters/player/   # ⬜ player combat scene
+    ui/                  # ⬜ hud, shop, pause
   scripts/
-    autoload/     # Game, Save, Audio, Economy, Progress
-    player/
-    enemies/
-    combat/
-    systems/
-  resources/
-    characters/   # tanjiro_stats.tres
-    upgrades/
-    stages/       # stage_def.tres
-  data/           # opcional JSON
+    autoload/            # game.gd, scene_router.gd ✅
+    boot/ · main_menu/ · world/
+    combat/ · characters/ · ui/   # ⬜
+  resources/ · data/ · export/
+  docs/                  # GDD, STATUS, engine handbook, STYLE-BIBLE, checklist
 </code></pre>
 
       <h3>5.2 Autoloads</h3>
       <table>
-        <thead><tr><th>Singleton</th><th>Responsabilidade</th></tr></thead>
+        <thead><tr><th>Singleton</th><th>Status</th><th>Responsabilidade</th></tr></thead>
         <tbody>
-          <tr><td><code>Game</code></td><td>Estado da run, personagem atual, flags de debug</td></tr>
-          <tr><td><code>Progress</code></td><td>Fases cleared, personagens unlocked, mundo atual</td></tr>
-          <tr><td><code>Economy</code></td><td>Moedas, API add/spend, signals</td></tr>
-          <tr><td><code>Upgrades</code></td><td>Níveis comprados, aplicação em stats</td></tr>
-          <tr><td><code>Save</code></td><td>Load/save <code>user://save.json</code></td></tr>
-          <tr><td><code>Audio</code></td><td>BGM/SFX + volumes</td></tr>
-          <tr><td><code>SceneRouter</code></td><td>Troca de cena com fade</td></tr>
+          <tr><td><code>Game</code></td><td>✅</td><td>Moedas run/banked, breath, stages_cleared, upgrades dict, save/load, char atual</td></tr>
+          <tr><td><code>SceneRouter</code></td><td>✅</td><td>Troca splash / loading / hub / world_map (+ go_to genérico)</td></tr>
+          <tr><td><code>Audio</code></td><td>⬜</td><td>BGM/SFX + volumes (criar quando houver assets)</td></tr>
+          <tr><td>Progress / Economy / Save separados</td><td>adiado</td><td>Por enquanto tudo no <code>Game</code> — extrair se engordar</td></tr>
         </tbody>
       </table>
 
@@ -645,33 +706,42 @@
         <li><input type="checkbox" id="a3" /><label for="a3"><code>StageDef</code> resource: id, world_id, scene_path, coin_bonus, next_ids</label></li>
         <li><input type="checkbox" id="a4" /><label for="a4"><code>CharacterDef</code>: scene, display_name, unlocked_default, breath_skill_id</label></li>
         <li><input type="checkbox" id="a5" /><label for="a5"><code>UpgradeDef</code>: id, max_level, costs[], stat_key, amount_per_level</label></li>
-        <li><input type="checkbox" id="a6" /><label for="a6">InputMap: move_left/right, jump, atk_light, atk_heavy, atk_thrust, special, pause</label></li>
+        <li><input type="checkbox" id="a6" /><label for="a6">InputMap: move_*, jump, advance, attack_basic, skill_1, skill_2, ultimate, pause</label>
+          <span class="hint">Ainda não está no <code>project.godot</code> — prioridade Fase B residual.</span>
+        </li>
         <li><input type="checkbox" id="a7" /><label for="a7">Touch UI espelha as mesmas actions (não hardcode só teclado)</label></li>
         <li><input type="checkbox" id="a8" /><label for="a8">Camera2D com limites da fase + deadzone leve</label></li>
         <li><input type="checkbox" id="a9" /><label for="a9">Groups: <code>player</code>, <code>enemy</code>, <code>coin_drop</code></label></li>
         <li><input type="checkbox" id="a10" /><label for="a10">Sem magic numbers de combate soltos: tudo em stats/resources</label></li>
       </ul>
 
-      <h3>5.4 Pixel art no Godot (config)</h3>
+      <h3>5.4 Pixel / 2D no Godot (config)</h3>
       <ul class="check" data-section="arch">
-        <li><input type="checkbox" id="a11" /><label for="a11">Viewport / window stretch mode adequado a pixel (canvas_items + integer scale se possível)</label></li>
-        <li><input type="checkbox" id="a12" /><label for="a12">Import de texturas: Filter Off, Mipmaps Off</label></li>
-        <li><input type="checkbox" id="a13" /><label for="a13">TileSet com colisão; layers: ground, decoration, hazards</label></li>
-        <li><input type="checkbox" id="a14" /><label for="a14">Renderer Mobile ou Compatibility testado no celular fraco</label></li>
+        <li><input type="checkbox" id="a11" checked /><label for="a11">Viewport stretch adequado (<code>canvas_items</code> + aspect expand)</label>
+          <span class="hint">1280×720 no project.</span>
+        </li>
+        <li><input type="checkbox" id="a12" checked /><label for="a12">Default texture filter Off (project + import sprites)</label></li>
+        <li><input type="checkbox" id="a13" /><label for="a13">TileSet com colisão; layers: ground, decoration, hazards</label>
+          <span class="hint">Só tile de chão em asset; sem TileSet montado na fase.</span>
+        </li>
+        <li><input type="checkbox" id="a14" checked /><label for="a14">Renderer Mobile no project</label>
+          <span class="hint">Ainda não testado em aparelho fraco (falta APK).</span>
+        </li>
       </ul>
 
-      <h3>5.5 Save (campos mínimos)</h3>
+      <h3>5.5 Save (schema atual em código)</h3>
       <pre class="mini-card" style="overflow:auto;font-size:.8rem"><code>{
   "version": 1,
-  "coins": 0,
-  "upgrades": { "hp": 0, "atk_light": 0, "atk_heavy": 0, "atk_thrust": 0, "breath_gain": 0 },
-  "unlocked_characters": ["tanjiro"],
-  "selected_character": "tanjiro",
-  "cleared_stages": [],
-  "settings": { "bgm": 0.8, "sfx": 1.0 }
-}</code></pre>
+  "coins_banked": 0,
+  "current_character_id": "tanjiro",
+  "stages_cleared": [],
+  "upgrades": {}
+}
+// alvo depois: settings { bgm, sfx }, unlocked_characters[]</code></pre>
       <ul class="check" data-section="arch">
-        <li><input type="checkbox" id="a15" /><label for="a15">Save/Load implementado e testado (matar app e reabrir)</label></li>
+        <li><input type="checkbox" id="a15" checked /><label for="a15">Save/Load implementado no <code>Game</code></label>
+          <span class="hint">Testar de verdade: matar app e reabrir com moedas banked — checklist de QA.</span>
+        </li>
         <li><input type="checkbox" id="a16" /><label for="a16">Migração de version se o schema mudar</label></li>
       </ul>
     </section>
@@ -679,41 +749,51 @@
     <!-- 6 -->
     <section class="block" id="instalacao">
       <h2><span class="phase-tag tech">Setup</span> 6. Instalação &amp; ambiente (Windows)</h2>
-      <p class="lead">Estado no planejamento inicial: Godot, JDK e Android SDK ainda não estavam no PATH. Marque conforme instalar.</p>
+      <p class="lead">Detalhes e paths: <code>docs/SETUP-AMBIENTE.md</code> + <code>docs/android-paths.txt</code>. Quase tudo instalado; falta export APK no telefone.</p>
 
       <h3>6.1 Ferramentas obrigatórias</h3>
       <ul class="check" data-section="inst">
-        <li><input type="checkbox" id="i1" /><label for="i1">Git instalado</label></li>
-        <li><input type="checkbox" id="i2" /><label for="i2">Godot 4.x Standard baixado e pasta estável (ex. Tools\Godot)</label>
-          <span class="hint">https://godotengine.org/download/windows/</span>
+        <li><input type="checkbox" id="i1" checked /><label for="i1">Git instalado</label></li>
+        <li><input type="checkbox" id="i2" checked /><label for="i2">Godot 4.x Standard baixado e pasta estável</label>
+          <span class="hint"><strong>Godot 4.7.1</strong> via winget — ver SETUP-AMBIENTE.</span>
         </li>
-        <li><input type="checkbox" id="i3" /><label for="i3">Projeto Godot criado nesta pasta do repositório</label></li>
-        <li><input type="checkbox" id="i4" /><label for="i4"><code>.gitignore</code> oficial Godot adicionado + primeiro commit</label></li>
-        <li><input type="checkbox" id="i5" /><label for="i5">OpenJDK 17 (Temurin) instalado</label>
-          <span class="hint">https://adoptium.net/</span>
+        <li><input type="checkbox" id="i3" checked /><label for="i3">Projeto Godot criado nesta pasta do repositório</label>
+          <span class="hint"><code>project.godot</code> · nome “Treinamento Hashira” · v0.1.0.</span>
         </li>
-        <li><input type="checkbox" id="i6" /><label for="i6">Android Studio instalado; SDK em %LOCALAPPDATA%\Android\Sdk</label></li>
-        <li><input type="checkbox" id="i7" /><label for="i7">SDK packages: platform-tools, build-tools, platform API, cmdline-tools, NDK, CMake</label>
-          <span class="hint">Versões: seguir doc atual Godot “Exporting for Android”.</span>
+        <li><input type="checkbox" id="i4" checked /><label for="i4"><code>.gitignore</code> oficial Godot adicionado + commits no repo</label></li>
+        <li><input type="checkbox" id="i5" checked /><label for="i5">OpenJDK 17 instalado</label>
+          <span class="hint">Microsoft JDK 17 em Program Files (JAVA_HOME no android-paths).</span>
         </li>
-        <li><input type="checkbox" id="i8" /><label for="i8">Godot Editor Settings: Java SDK Path + Android SDK Path</label></li>
-        <li><input type="checkbox" id="i9" /><label for="i9">Export preset Android + templates baixados</label></li>
-        <li><input type="checkbox" id="i10" /><label for="i10">Hello APK instalado no celular (label na tela)</label></li>
+        <li><input type="checkbox" id="i6" checked /><label for="i6">Android Studio instalado; SDK em %LOCALAPPDATA%\Android\Sdk</label></li>
+        <li><input type="checkbox" id="i7" checked /><label for="i7">SDK packages: platform-tools, build-tools, platform API, cmdline-tools, NDK, CMake</label>
+          <span class="hint">platform 35, NDK, licenses aceitas, debug keystore gerado.</span>
+        </li>
+        <li><input type="checkbox" id="i8" /><label for="i8">Godot Editor Settings: Java SDK Path + Android SDK Path colados 1×</label>
+          <span class="hint">Paths prontos em <code>docs/android-paths.txt</code> — confirmar no Editor se ainda não.</span>
+        </li>
+        <li><input type="checkbox" id="i9" /><label for="i9">Export preset Android + export templates baixados</label>
+          <span class="hint">Ainda não há <code>export_presets.cfg</code> no repo.</span>
+        </li>
+        <li><input type="checkbox" id="i10" /><label for="i10">Hello APK (ou build do hub) instalado no celular</label></li>
         <li><input type="checkbox" id="i11" /><label for="i11">USB debugging ou sideload funcionando no telefone do sobrinho também</label></li>
       </ul>
 
       <h3>6.2 Ferramentas de arte / áudio</h3>
       <ul class="check" data-section="inst">
-        <li><input type="checkbox" id="i12" /><label for="i12">Aseprite ou LibreSprite (pixel / sheets)</label></li>
-        <li><input type="checkbox" id="i13" /><label for="i13">Grok Imagine (nesta conversa) ok para bases e conceitos</label></li>
-        <li><input type="checkbox" id="i14" /><label for="i14">Audacity (opcional) para cortar SFX</label></li>
+        <li><input type="checkbox" id="i12" /><label for="i12">Aseprite ou LibreSprite (pixel / sheets) — opcional se Imagine bastar no MVP</label></li>
+        <li><input type="checkbox" id="i13" checked /><label for="i13">Grok Imagine + skill <code>/grok-imagine-game-assets</code> ok para bases e packs</label></li>
+        <li><input type="checkbox" id="i14" /><label for="i14">Audacity (opcional) para cortar SFX</label>
+          <span class="hint">Pipeline: <code>docs/AUDIO-PIPELINE.md</code>.</span>
+        </li>
       </ul>
 
       <h3>6.3 Aprendizado mínimo antes do “jogo de verdade”</h3>
       <ul class="check" data-section="inst">
         <li><input type="checkbox" id="i15" /><label for="i15">Tutorial oficial Godot 4 — Your first 2D game</label></li>
-        <li><input type="checkbox" id="i16" /><label for="i16">Entendi scenes, signals, CharacterBody2D</label></li>
-        <li><input type="checkbox" id="i17" /><label for="i17">Li doc de export Android uma vez</label></li>
+        <li><input type="checkbox" id="i16" checked /><label for="i16">Já mexemos em scenes, signals, Control UI no boot/hub</label>
+          <span class="hint">CharacterBody2D de combate ainda é o próximo tutorial prático.</span>
+        </li>
+        <li><input type="checkbox" id="i17" /><label for="i17">Li doc de export Android uma vez + engine/07-export-android.md</label></li>
       </ul>
     </section>
 
@@ -721,52 +801,86 @@
     <section class="block" id="fases-dev">
       <h2><span class="phase-tag tech">Roadmap</span> 7. Fases de desenvolvimento (checklist de entrega)</h2>
 
-      <p class="lead">Status vivo em <code>docs/STATUS-PROGRESSO.md</code> (2026-08-03: boot validado no PC; combate ainda não).</p>
+      <p class="lead">
+        Snapshot <strong>2026-08-05</strong> · detalhe em <code>docs/STATUS-PROGRESSO.md</code>.
+        <strong>A ✅ · B 🟡 (hub polido; falta input/APK) · C ⬜ · D 🟡 save base · E 🟡 pack hub · F/G ⬜</strong>
+      </p>
+
+      <table>
+        <thead><tr><th>Fase</th><th>Nome</th><th>Status</th><th>Notas</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>Fundação produto + repo</td><td>✅</td><td>GDD, git, Godot, checklist</td></tr>
+          <tr><td>B</td><td>Hello + input + pixel</td><td>🟡</td><td>Boot/hub OK; InputMap/touch/APK faltam</td></tr>
+          <tr><td>C</td><td>Vertical slice combate</td><td>⬜ <strong>próximo</strong></td><td>Player, skills, breath, oni, fase</td></tr>
+          <tr><td>D</td><td>Meta (mapa, loja, save)</td><td>🟡</td><td>Mapa stub + save base; loja UI não</td></tr>
+          <tr><td>E</td><td>Arte &amp; feel</td><td>🟡</td><td>Pack v0.1 + hub Tanjiro v3; combate sheets não</td></tr>
+          <tr><td>F</td><td>Conteúdo em escala</td><td>⬜</td><td>—</td></tr>
+          <tr><td>G</td><td>Noite dos amigos</td><td>⬜</td><td>—</td></tr>
+        </tbody>
+      </table>
 
       <h3>Fase A — Fundação produto + repo</h3>
       <ul class="check" data-section="fase">
         <li><input type="checkbox" id="f1" checked /><label for="f1">Workshop da seção 2 feito</label></li>
         <li><input type="checkbox" id="f2" checked /><label for="f2">Este HTML usado como fonte de verdade de tarefas</label></li>
         <li><input type="checkbox" id="f3" checked /><label for="f3">Git init + projeto Godot + pastas base criadas</label></li>
+        <li><input type="checkbox" id="f3b" checked /><label for="f3b">Docs de engine + skills Pasqualotti no repo</label>
+          <span class="hint"><code>docs/engine/*</code> · <code>/pasqualotti-game-design</code> · <code>/grok-imagine-game-assets</code>.</span>
+        </li>
       </ul>
 
       <h3>Fase B — Hello + input + pixel config</h3>
       <ul class="check" data-section="fase">
-        <li><input type="checkbox" id="f4" checked /><label for="f4">Cena boot → main menu stub</label>
-          <span class="hint">Splash + loading + hub + mapa stub validados no Play (PC).</span>
+        <li><input type="checkbox" id="f4" checked /><label for="f4">Boot completo: splash → loading → hub → mapa stub</label>
+          <span class="hint">Validado no Play (PC). Hub com arte viva (não é mais “stub cinza”).</span>
         </li>
-        <li><input type="checkbox" id="f5" /><label for="f5">InputMap + touch buttons em canvas</label></li>
-        <li><input type="checkbox" id="f6" checked /><label for="f6">Config pixel (filter off, stretch)</label></li>
-        <li><input type="checkbox" id="f7" /><label for="f7">APK de menu no telefone</label>
-          <span class="hint">SDK Android já instalado; falta export preset + templates no Godot.</span>
+        <li><input type="checkbox" id="f4b" checked /><label for="f4b">Hub polish v1: botões temáticos, BG animado, Tanjiro hub_idle + flourish, pés no chão</label>
+          <span class="hint">Commits hub/art 2026-08-03…05. Pack review em <code>assets/pack_review_hub_tanjiro/</code>.</span>
+        </li>
+        <li><input type="checkbox" id="f5" /><label for="f5">InputMap + touch buttons em canvas (combate)</label>
+          <span class="hint">Asset row em <code>assets/ui/touch/buttons_row.png</code> — falta cortar + ligar actions.</span>
+        </li>
+        <li><input type="checkbox" id="f6" checked /><label for="f6">Config pixel/2D (filter off, stretch, mobile renderer)</label></li>
+        <li><input type="checkbox" id="f7" /><label for="f7">APK do menu/hub no telefone</label>
+          <span class="hint">SDK ok; falta preset + templates + export.</span>
         </li>
       </ul>
 
-      <h3>Fase C — Vertical slice combate (placeholders)</h3>
+      <h3>Fase C — Vertical slice combate (placeholders ok)</h3>
       <ul class="check" data-section="fase">
-        <li><input type="checkbox" id="f8" /><label for="f8">Player move + atk básico + 2 skills + breath/ultimate</label>
-          <span class="hint">GDD: 1 básico + 2 skills + ultimate (não mais “3 ataques soltos”).</span>
+        <li><input type="checkbox" id="f8" /><label for="f8">Player move + pulo + dash + atk básico + 2 skills + breath/ultimate</label>
+          <span class="hint">GDD §3–5. Ordem sugerida: move/pulo/dash → atk hitbox → breath → skills → ultimate.</span>
         </li>
-        <li><input type="checkbox" id="f9" /><label for="f9">1 oni fraco + 10 coins on death</label></li>
-        <li><input type="checkbox" id="f10" /><label for="f10">HUD: HP, breath, coins</label></li>
-        <li><input type="checkbox" id="f11" /><label for="f11">1 fase tilemap curta com goal</label></li>
+        <li><input type="checkbox" id="f9" /><label for="f9">1 oni fraco + 10 coins on death (drop no chão)</label></li>
+        <li><input type="checkbox" id="f10" /><label for="f10">HUD de combate: HP, breath, coins da run</label></li>
+        <li><input type="checkbox" id="f11" /><label for="f11">1 fase tilemap curta com goal + link no mapa</label></li>
         <li><input type="checkbox" id="f12" /><label for="f12">Playtest sobrinho: “dá pra entender sem tutorial?”</label></li>
       </ul>
 
       <h3>Fase D — Meta (mapa, loja, save)</h3>
       <ul class="check" data-section="fase">
-        <li><input type="checkbox" id="f13" /><label for="f13">World map W1 com 3 nós + boss lock</label></li>
-        <li><input type="checkbox" id="f14" /><label for="f14">Loja com ≥4 upgrades</label></li>
-        <li><input type="checkbox" id="f15" /><label for="f15">Save/load completo</label></li>
+        <li><input type="checkbox" id="f13" /><label for="f13">World map W1 visual com 3 nós + boss lock</label>
+          <span class="hint">Hoje: botões de texto. <code>Game.stages_cleared</code> pronto pra plugar.</span>
+        </li>
+        <li><input type="checkbox" id="f14" /><label for="f14">Loja com ≥4 upgrades compráveis</label></li>
+        <li><input type="checkbox" id="f15" checked /><label for="f15">Save/load base (moedas, stages, upgrades dict)</label>
+          <span class="hint">Completar com settings de áudio + teste kill-app.</span>
+        </li>
         <li><input type="checkbox" id="f16" /><label for="f16">Boss W1 v1 (mesmo que tosco)</label></li>
       </ul>
 
       <h3>Fase E — Arte &amp; feel</h3>
       <ul class="check" data-section="fase">
-        <li><input type="checkbox" id="f17" /><label for="f17">Tanjiro pixel + animações mínimas (idle, run, 3 atk, special, hurt)</label></li>
-        <li><input type="checkbox" id="f18" /><label for="f18">Tileset W1 + 2 onis</label></li>
-        <li><input type="checkbox" id="f19" /><label for="f19">UI HUD pixel</label></li>
-        <li><input type="checkbox" id="f20" /><label for="f20">SFX essenciais + 1 BGM loop</label></li>
+        <li><input type="checkbox" id="f17" /><label for="f17">Tanjiro combate: idle side, run, atks, ultimate, hurt</label>
+          <span class="hint">Hub showcase ✅ (idle/blink/flourish). Side idle + oni + keyart no pack v0.1. Falta run/combat set.</span>
+        </li>
+        <li><input type="checkbox" id="f18" /><label for="f18">Tileset W1 completo + 2 onis</label>
+          <span class="hint">Chão path + 1 oni fraco no pack; falta 2º oni e tiles de decor/hazard.</span>
+        </li>
+        <li><input type="checkbox" id="f19" /><label for="f19">UI HUD de combate + ícones HP/breath</label>
+          <span class="hint">Moeda e botões de hub existem.</span>
+        </li>
+        <li><input type="checkbox" id="f20" /><label for="f20">SFX essenciais + 1 BGM loop + jingle da marca</label></li>
       </ul>
 
       <h3>Fase F — Conteúdo em escala</h3>
@@ -788,44 +902,55 @@
 
     <!-- 8 -->
     <section class="block" id="arte">
-      <h2><span class="phase-tag art">Arte</span> 8. Arte pixel &amp; pipeline</h2>
+      <h2><span class="phase-tag art">Arte</span> 8. Arte &amp; pipeline Imagine</h2>
       <div class="callout">
-        Estilo: <strong>2D pixelado de fases</strong>. Imagine pode gerar referências / bases; para pixel limpo no jogo,
-        muitas vezes vale <strong>pixelar no Aseprite</strong> ou gerar em resolução baixa e limpar.
+        Style bible: <code>docs/STYLE-BIBLE.md</code> · Pack v0.1: <code>assets/pack_v01/</code> + manifest.
+        Estilo atual = <strong>cel cartoon legível mobile</strong> (não pixel 32×32 rígido). Chroma magenta <code>#FF00FF</code>.
+        Skills: <code>/grok-imagine-game-assets</code> · <code>/pasqualotti-game-design</code>.
       </div>
-      <h3>Style bible (preencher)</h3>
+      <h3>Style bible</h3>
       <ul class="check" data-section="arte">
-        <li><input type="checkbox" id="r1" /><label for="r1">Tamanho do personagem em tiles (ex.: 32×32 ou 48×48)</label></li>
-        <li><input type="checkbox" id="r2" /><label for="r2">Outline: sim/não; espessura 1px</label></li>
-        <li><input type="checkbox" id="r3" /><label for="r3">Paleta global limitada (ou por mundo)</label></li>
-        <li><input type="checkbox" id="r4" /><label for="r4">Proporção cabeça/corpo (chibi vs semi-real)</label></li>
+        <li><input type="checkbox" id="r1" checked /><label for="r1">Altura alvo ~48–64 px em jogo (master maior, escala no Godot)</label></li>
+        <li><input type="checkbox" id="r2" checked /><label for="r2">Outline: contorno escuro fino, silhueta nítida</label></li>
+        <li><input type="checkbox" id="r3" checked /><label for="r3">Paleta global (índigo / carmesim / ouro) documentada</label></li>
+        <li><input type="checkbox" id="r4" checked /><label for="r4">Proporção semi-chibi (~1/3 cabeça); hub frente · combate perfil</label></li>
       </ul>
-      <h3>Pipeline por personagem</h3>
+      <h3>Tanjiro — hub vs combate</h3>
       <ul class="check" data-section="arte">
-        <li><input type="checkbox" id="r5" /><label for="r5">Idle sheet</label></li>
-        <li><input type="checkbox" id="r6" /><label for="r6">Run sheet</label></li>
-        <li><input type="checkbox" id="r7" /><label for="r7">3 attacks + special + hurt + death</label></li>
-        <li><input type="checkbox" id="r8" /><label for="r8">Import SpriteFrames no Godot</label></li>
+        <li><input type="checkbox" id="r5" checked /><label for="r5">Hub idle sheet (open / breathe / blink / flourish) no Godot</label>
+          <span class="hint"><code>assets/characters/player/hub_idle/00–07</code> · katana fix v3.</span>
+        </li>
+        <li><input type="checkbox" id="r5b" checked /><label for="r5b">Pack v0.1: side idle, oni fraco, chão, moeda, touch row, keyart loading</label></li>
+        <li><input type="checkbox" id="r6" /><label for="r6">Run sheet (combate)</label></li>
+        <li><input type="checkbox" id="r7" /><label for="r7">Combat: basic + skill_1 + skill_2 + ultimate + hurt (+ death)</label></li>
+        <li><input type="checkbox" id="r8" /><label for="r8">Import SpriteFrames de combate no Godot (não só TextureRect do hub)</label></li>
         <li><input type="checkbox" id="r9" /><label for="r9">Hitboxes ajustadas por animação</label></li>
       </ul>
       <h3>Mundo / UI</h3>
       <ul class="check" data-section="arte">
-        <li><input type="checkbox" id="r10" /><label for="r10">Tileset W1 (chão, plataforma, decor, hazard)</label></li>
-        <li><input type="checkbox" id="r11" /><label for="r11">Parallax background W1</label></li>
-        <li><input type="checkbox" id="r12" /><label for="r12">Ícones de moeda, HP, respiração</label></li>
-        <li><input type="checkbox" id="r13" /><label for="r13">Botões touch 3 atks + special (estados normal/pressed/disabled)</label></li>
-        <li><input type="checkbox" id="r14" /><label for="r14">Telas: title, mapa, loja, game over, vitória de boss</label></li>
+        <li><input type="checkbox" id="r10" /><label for="r10">Tileset W1 completo (chão ✅ draft, plataforma, decor, hazard)</label></li>
+        <li><input type="checkbox" id="r11" checked /><label for="r11">Fundo do hub animado (frames + drift)</label>
+          <span class="hint">Parallax de <em>fase</em> W1 ainda falta.</span>
+        </li>
+        <li><input type="checkbox" id="r12" /><label for="r12">Ícones: moeda ✅ · HP · respiração</label></li>
+        <li><input type="checkbox" id="r13" /><label for="r13">Botões touch combate (cortar row + estados normal/pressed/disabled)</label></li>
+        <li><input type="checkbox" id="r14" /><label for="r14">Telas: splash ✅ · loading ✅ · hub ✅ · mapa visual · loja · game over · vitória boss</label></li>
+        <li><input type="checkbox" id="r15" checked /><label for="r15">Botões do hub temáticos (play, shop, chars, gear, panel)</label></li>
       </ul>
     </section>
 
     <!-- 9 -->
     <section class="block" id="audio">
       <h2><span class="phase-tag art">Áudio</span> 9. Áudio</h2>
+      <p class="lead">Pastas <code>assets/audio/{bgm,sfx}</code> existem, ainda vazias. Ver <code>docs/AUDIO-PIPELINE.md</code>.</p>
       <ul class="check" data-section="audio">
         <li><input type="checkbox" id="s1" /><label for="s1">Bus layout: Master / BGM / SFX</label></li>
-        <li><input type="checkbox" id="s2" /><label for="s2">SFX: slash light/heavy/thrust, hit, hurt, coin, ui_click, breath_full, special</label></li>
-        <li><input type="checkbox" id="s3" /><label for="s3">BGM: menu, fase W1, boss</label></li>
-        <li><input type="checkbox" id="s4" /><label for="s4">Licenças ok (original, CC0, ou composição de vocês) — sem rip de OST comercial no pacote</label></li>
+        <li><input type="checkbox" id="s2" /><label for="s2">SFX combate: slash, skill, hit, hurt, coin, breath_full, ultimate</label></li>
+        <li><input type="checkbox" id="s2b" /><label for="s2b">SFX UI + <strong>jingle / sting da marca</strong> no splash</label>
+          <span class="hint">Pendente GDD §9 — <code>brand_sting</code>.</span>
+        </li>
+        <li><input type="checkbox" id="s3" /><label for="s3">BGM: hub/menu, fase W1, boss</label></li>
+        <li><input type="checkbox" id="s4" /><label for="s4">Licenças ok (original, CC0, ou composição de vocês) — sem rip de OST comercial</label></li>
         <li><input type="checkbox" id="s5" /><label for="s5">Volume persistido no save</label></li>
       </ul>
     </section>
@@ -875,8 +1000,8 @@
         <div class="mini-card">
           <h4>MVP (obrigatório pra “jogo existe”)</h4>
           <p>
-            Tanjiro · 3 ataques · respiração+especial · oni fraco +10 coins · 1 mundo (3 fases+boss) ·
-            mapa · loja 4 upgrades · save · APK Android · pixel mínimo legível
+            Splash+hub · Tanjiro · atk básico + 2 skills + ultimate · dash + pulo · respiração ·
+            oni fraco +10 coins · 1 mundo (3 fases+boss) · mapa · loja 4 upgrades · save · APK Android · arte legível
           </p>
         </div>
         <div class="mini-card">
@@ -888,8 +1013,12 @@
         </div>
       </div>
       <ul class="check" data-section="mvp">
-        <li><input type="checkbox" id="mv1" /><label for="mv1">MVP definido e colado no fridge mental do time</label></li>
-        <li><input type="checkbox" id="mv2" /><label for="mv2">Qualquer ideia nova vai pra lista “depois do MVP” sem entrar no slice</label></li>
+        <li><input type="checkbox" id="mv1" checked /><label for="mv1">MVP definido e colado no fridge mental do time</label>
+          <span class="hint">GDD §7. Hub/boot já “existem”; o buraco é o slice de combate.</span>
+        </li>
+        <li><input type="checkbox" id="mv2" checked /><label for="mv2">Qualquer ideia nova vai pra lista “depois do MVP” sem entrar no slice</label>
+          <span class="hint">Regra em uso: não escalar elenco antes da Fase C divertida.</span>
+        </li>
       </ul>
     </section>
 
@@ -921,22 +1050,28 @@
         <li><input type="checkbox" id="e2" /><label for="e2">Godot — Exporting for Android</label></li>
         <li><input type="checkbox" id="e3" /><label for="e3">Tutorial state machine GDScript (GDQuest / similar)</label></li>
         <li><input type="checkbox" id="e4" /><label for="e4">TileMap / TileSet Godot 4</label></li>
-        <li><input type="checkbox" id="e5" /><label for="e5">Docs internos: <code>docs/PLANEJAMENTO-TECNICO.md</code></label></li>
+        <li><input type="checkbox" id="e5" checked /><label for="e5">Docs internos do projeto</label>
+          <span class="hint"><code>GDD-DECISOES</code> · <code>STATUS-PROGRESSO</code> · <code>SETUP-AMBIENTE</code> · <code>STYLE-BIBLE</code> · <code>docs/engine/*</code> · <code>PLANEJAMENTO-TECNICO</code>.</span>
+        </li>
+        <li><input type="checkbox" id="e6" checked /><label for="e6">Refs UX Brawl-like (só layout) em <code>docs/references/ui/</code></label></li>
       </ul>
       <div class="callout">
-        <strong>Próxima ação recomendada agora:</strong> marcar juntos a seção 2 (workshop de decisões),
-        depois seção 6 (instalar Godot + Git). Só então abrir o editor e começar a Fase B/C.
+        <strong>Próxima ação recomendada (2026-08-05):</strong>
+        1) Colar paths Android no Editor se ainda não · 2) InputMap + HUD touch (Fase B residual) ·
+        3) Player CharacterBody2D + atk básico + 1 oni + fase curta (Fase C) ·
+        4) APK no celular quando o slice “anda e bate”.
+        <br />Não priorizar mais personagens ou polish infinito do hub.
       </div>
     </section>
   </div>
 
   <footer>
     Pasqualotti Studios — Treinamento Hashira · Checklist mestre · Fan game não oficial para uso pessoal ·
-    Progresso: localStorage chave <span class="mono">hashira-checklist-v1</span>
+    Atualizado 2026-08-05 · Progresso: localStorage chave <span class="mono">hashira-checklist-v2</span>
   </footer>
 
   <script>
-    const STORAGE_KEY = "hashira-checklist-v1";
+    const STORAGE_KEY = "hashira-checklist-v2";
 
     function allBoxes() {
       return Array.from(document.querySelectorAll('ul.check input[type="checkbox"]'));

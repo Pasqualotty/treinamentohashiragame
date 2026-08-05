@@ -1,6 +1,6 @@
 # Setup do ambiente — Treinamento Hashira
 
-**Atualizado:** 2026-08-03
+**Atualizado:** 2026-08-05 (preset Android + script de export debug)
 
 ## Instalado nesta máquina
 
@@ -14,6 +14,8 @@
 | **Android SDK** | ✅ cmdline-tools | `%LOCALAPPDATA%\Android\Sdk` |
 | **Licenças SDK** | ✅ aceitas | `sdkmanager --licenses` |
 | **Debug keystore** | ✅ | `%APPDATA%\Godot\keystores\debug.keystore` |
+| **Export preset Android** | ✅ no git | `export_presets.cfg` · package `studio.pasqualotti.hashira` |
+| **Export templates 4.7.1** | ⏳ máquina | `%APPDATA%\Godot\export_templates\4.7.1.stable\` (1× no Editor) |
 
 ### Abrir o projeto
 
@@ -22,6 +24,8 @@ Duplo clique em `project.godot`, ou:
 ```powershell
 & "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64.exe" --path "C:\Users\mathe\Documents\Pasqualotti Studios - Demon Slayer - Treinamento hashira" --editor
 ```
+
+> Ajuste `--path` para a pasta real do clone/worktree (ex.: `hashira-apk-teste`).
 
 ### Fluxo já ligado no código
 
@@ -60,10 +64,23 @@ Variáveis de usuário: `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `JAVA_HOME`.
 
 1. Java SDK Path = pasta do JDK 17  
 2. Android SDK Path = pasta Sdk  
-3. **Project → Export → Add → Android** quando for gerar APK  
-4. Baixar **Export Templates** se o Godot pedir  
+3. Debug keystore = `%APPDATA%\Godot\keystores\debug.keystore`  
+4. **Editor → Manage Export Templates** → Download **4.7.1** (obrigatório)  
+5. **Project → Export…** → preset **Android Debug** (já vem de `export_presets.cfg`)  
+6. Export Project → APK em `export/TreinamentoHashira-debug.apk`
 
-> O SDK **já está instalado por linha de comando** — o wizard do Android Studio é opcional para o export Godot.
+Guia completo: `docs/engine/07-export-android.md`.
+
+### Export headless (opcional)
+
+```powershell
+.\scripts\export-android-debug.ps1
+```
+
+Requer templates 4.7.1 instalados e os paths acima no Editor Settings (o Godot CLI lê as mesmas settings do usuário).
+
+> O SDK **já está instalado por linha de comando** — o wizard do Android Studio é opcional para o export Godot.  
+> **Não** commitar keystore de release nem senhas.
 
 ### Controles PC (dev)
 
