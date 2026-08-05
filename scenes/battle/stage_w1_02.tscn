@@ -1,0 +1,166 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
+[ext_resource type="PackedScene" path="res://scenes/combat/player_sandbox.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/combat/dummy.tscn" id="3_dummy"]
+[ext_resource type="Script" path="res://scripts/battle/stage_goal.gd" id="4_goal"]
+
+[sub_resource type="RectangleShape2D" id="Rect_ground"]
+size = Vector2(2200, 48)
+
+[sub_resource type="RectangleShape2D" id="Rect_wall"]
+size = Vector2(40, 900)
+
+[sub_resource type="RectangleShape2D" id="Rect_plat"]
+size = Vector2(200, 24)
+
+[sub_resource type="RectangleShape2D" id="Rect_plat_short"]
+size = Vector2(140, 24)
+
+[sub_resource type="RectangleShape2D" id="Rect_goal"]
+size = Vector2(64, 96)
+
+[node name="StageW102" type="Node2D"]
+script = ExtResource("1_ctrl")
+stage_id = "w1_02"
+fall_death_y = 950.0
+
+[node name="Background" type="ColorRect" parent="."]
+offset_left = -100.0
+offset_top = -250.0
+offset_right = 2300.0
+offset_bottom = 950.0
+color = Color(0.16, 0.12, 0.2, 1)
+mouse_filter = 2
+
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(1000, 580)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("Rect_ground")
+
+[node name="Visual" type="ColorRect" parent="Ground"]
+offset_left = -1100.0
+offset_top = -24.0
+offset_right = 1100.0
+offset_bottom = 24.0
+color = Color(0.32, 0.26, 0.4, 1)
+
+[node name="PlatformA" type="StaticBody2D" parent="."]
+position = Vector2(480, 430)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformA"]
+shape = SubResource("Rect_plat")
+
+[node name="Visual" type="ColorRect" parent="PlatformA"]
+offset_left = -100.0
+offset_top = -12.0
+offset_right = 100.0
+offset_bottom = 12.0
+color = Color(0.42, 0.34, 0.52, 1)
+
+[node name="PlatformB" type="StaticBody2D" parent="."]
+position = Vector2(900, 360)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformB"]
+shape = SubResource("Rect_plat_short")
+
+[node name="Visual" type="ColorRect" parent="PlatformB"]
+offset_left = -70.0
+offset_top = -12.0
+offset_right = 70.0
+offset_bottom = 12.0
+color = Color(0.45, 0.36, 0.55, 1)
+
+[node name="PlatformC" type="StaticBody2D" parent="."]
+position = Vector2(1300, 420)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformC"]
+shape = SubResource("Rect_plat")
+
+[node name="Visual" type="ColorRect" parent="PlatformC"]
+offset_left = -100.0
+offset_top = -12.0
+offset_right = 100.0
+offset_bottom = 12.0
+color = Color(0.4, 0.32, 0.5, 1)
+
+[node name="WallLeft" type="StaticBody2D" parent="."]
+position = Vector2(-20, 360)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WallLeft"]
+shape = SubResource("Rect_wall")
+
+[node name="WallRight" type="StaticBody2D" parent="."]
+position = Vector2(2120, 360)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WallRight"]
+shape = SubResource("Rect_wall")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(140, 520)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position = Vector2(0, -40)
+limit_left = 0
+limit_top = -150
+limit_right = 2100
+limit_bottom = 740
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+
+[node name="Enemy1" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(620, 520)
+
+[node name="Enemy2" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(1400, 520)
+
+[node name="Goal" type="Area2D" parent="."]
+position = Vector2(1920, 520)
+collision_layer = 0
+collision_mask = 3
+monitoring = true
+monitorable = false
+script = ExtResource("4_goal")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Goal"]
+shape = SubResource("Rect_goal")
+
+[node name="PortalVisual" type="ColorRect" parent="Goal"]
+offset_left = -32.0
+offset_top = -80.0
+offset_right = 32.0
+offset_bottom = 16.0
+color = Color(0.55, 0.4, 0.95, 0.75)
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Goal"]
+offset_left = -48.0
+offset_top = -110.0
+offset_right = 48.0
+offset_bottom = -86.0
+theme_override_colors/font_color = Color(0.95, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "SAÍDA"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="."]
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 720.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(0.92, 0.88, 0.98, 1)
+theme_override_font_sizes/font_size = 16
+text = "W1-02 — plataformas mais altas · 2 oni · portal roxo"

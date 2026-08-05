@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="StageDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/stage_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+stage_id = "w1_01"
+display_name = "Mundo 1 — Fase 1"
+scene_path = "res://scenes/battle/stage_w1_01.tscn"
+requires_cleared = []
