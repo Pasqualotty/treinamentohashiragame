@@ -9,6 +9,7 @@ func _ready() -> void:
 	var path := "res://assets/branding/pasqualotti-studio-logo.png"
 	if ResourceLoader.exists(path):
 		logo.texture = load(path) as Texture2D
-	# Som da marca quando existir: AudioStreamPlayer
+	if is_instance_valid(Audio):
+		Audio.play_sfx("brand_sting")
 	await get_tree().create_timer(hold_seconds).timeout
 	SceneRouter.to_loading()

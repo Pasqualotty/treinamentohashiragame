@@ -40,6 +40,8 @@ func _ready() -> void:
 	_refresh()
 	if not Game.coins_changed.is_connected(_on_coins_changed):
 		Game.coins_changed.connect(_on_coins_changed)
+	if is_instance_valid(Audio):
+		Audio.play_bgm("hub")
 
 
 func _process(delta: float) -> void:
@@ -162,17 +164,23 @@ func _on_coins_changed(_total: int) -> void:
 	_refresh()
 
 
+func _ui_click() -> void:
+	if is_instance_valid(Audio):
+		Audio.play_sfx("ui_click")
+
+
 func _on_play_pressed() -> void:
+	_ui_click()
 	SceneRouter.to_world_map()
 
 
 func _on_shop_pressed() -> void:
-	SceneRouter.to_shop()
+	_ui_click()
 
 
 func _on_characters_pressed() -> void:
-	pass
+	_ui_click()
 
 
 func _on_settings_pressed() -> void:
-	pass
+	_ui_click()

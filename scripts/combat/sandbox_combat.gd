@@ -1,7 +1,8 @@
 extends Node2D
-## Sandbox de combate: player + oni fraco + dummy de teste.
+## Sandbox de combate: player + dummy. Hint de controles na UI.
 
 
 func _ready() -> void:
 	print("[SandboxCombat] A/D move · Espaço pulo · J/Z attack_basic")
-	print("[SandboxCombat] Oni: chase/telegraph; kill dropa coin (crédito só no pickup)")
+	if is_instance_valid(Audio):
+		Audio.play_bgm("stage")

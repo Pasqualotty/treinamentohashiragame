@@ -1,100 +1,143 @@
 # Pipeline de áudio — Treinamento Hashira
 
-## Posso gerar som daqui (Grok Build)?
+## Status MVP (frente audio-mvp)
 
-| Tipo | Nesta sessão EVA? | Ferramenta recomendada |
-|------|-------------------|------------------------|
-| **SFX** (moeda, slash, hit, UI click) | ❌ sem gerador de áudio embutido | **ElevenLabs Sound Effects** (texto → SFX) |
-| **Música / BGM loop** | ❌ | **Suno** / **Udio** / **ElevenLabs Music** / **Stable Audio** |
-| **Jingle da marca Pasqualotti** | ❌ | Gravado por vocês **ou** Suno/Eleven com prompt “logo sting” |
-| **Import no Godot** | ✅ | `.ogg` preferido; pasta `assets/audio/` |
+Áudio **mínimo jogável** está ligado:
 
-O Imagine (imagem/vídeo) **não gera áudio**.
+| Camada | Estado |
+|--------|--------|
+| Buses Master / BGM / SFX | `resources/default_bus_layout.tres` + `project.godot` |
+| Autoload `Audio` | `scripts/autoload/audio.gd` |
+| Volumes no save | `Game.audio_volume_*` → `user://save.json` |
+| SFX placeholders | `assets/audio/sfx/*.wav` (procedural, original) |
+| BGM placeholders | `assets/audio/bgm/hub_loop.wav`, `stage_loop.wav` |
+| Hooks | splash sting, hub BGM + UI click, mapa UI click, sandbox BGM, slash/hit, coin/breath/ultimate/stage_clear via Game |
 
----
-
-## Stack recomendada (fan project, sideload)
-
-### 1) Efeitos curtos (prioridade)
-
-**[ElevenLabs → Sound Effects](https://elevenlabs.io/sound-effects)**  
-- Prompt em inglês/português curto: `soft gold coin pickup chime game ui`  
-- Export WAV/MP3 → converter OGG se quiser  
-- Bom para: coin, slash, hurt, breath full, button click  
-
-Lista mínima MVP:
-
-| ID | Prompt sugerido |
-|----|-----------------|
-| `sfx_coin` | `short cheerful coin collect chime for mobile game` |
-| `sfx_slash_light` | `fast sword slash whoosh anime style short` |
-| `sfx_hit` | `blade impact light hit on enemy short` |
-| `sfx_hurt` | `player take damage thud short` |
-| `sfx_ui_click` | `soft ui button click` |
-| `sfx_breath_full` | `magical energy charge complete chime` |
-| `sfx_special` | `powerful sword special attack whoosh` |
-| `sfx_brand_sting` | `short cinematic logo sting japanese drums one second` |
-
-### 2) Música de fundo
-
-| Uso | Ferramenta |
-|-----|------------|
-| BGM fase / menu | **Suno** ou **Udio** (loops instrumentais) |
-| Alternativa local | **Stable Audio** (se tiver GPU/conta) |
-| Licença “mais segura” p/ produto | **ElevenLabs Music** (avaliar termos) |
-
-Prompts exemplo:
-
-- Menu: `dark night japanese bamboo forest ambient loop, soft taiko, no vocals, 90bpm`  
-- Fase: `energetic anime action instrumental loop, shakuhachi hints, no vocals`  
-- Boss: `intense demonic battle drums loop, dark, no vocals`  
-
-**Sempre** baixar instrumental e checar se o loop fecha (Audacity: cortar no beat).
-
-### 3) Grátis sem AI (placeholders)
-
-- [Kenney.nl](https://kenney.nl/assets) — UI/SFX packs  
-- [Freesound](https://freesound.org) — CC0 / CC-BY (créditos)  
+**Licença:** só original/procedural/CC0 — **nunca** OST Demon Slayer rip.
 
 ---
 
-## Estrutura no projeto
+## API (`Audio` autoload)
+
+```gdscript
+Audio.play_sfx("ui_click")          # silent no-op se arquivo faltar
+Audio.play_sfx("slash", 1.05)       # pitch opcional
+Audio.play_bgm("hub")               # aliases: hub, stage
+Audio.play_bgm("stage", true)       # from_start
+Audio.stop_bgm()
+Audio.set_volume_master(0.8)        # linear 0..1, persiste no save
+Audio.set_volume_bgm(0.6)
+Audio.set_volume_sfx(1.0)
+```
+
+IDs SFX: `ui_click`, `slash`, `hit`, `hurt`, `coin`, `breath_full`, `ultimate`, `stage_clear`, `brand_sting`.
+
+Graceful: se bus/arquivo faltar, não quebra cena (pool + `ResourceLoader.exists`).
+
+---
+
+## Arquivos no repo
 
 ```
 assets/audio/
   sfx/
-    coin.ogg
-    slash_light.ogg
-    ...
+    ui_click.wav
+    slash.wav
+    hit.wav
+    hurt.wav
+    coin.wav
+    breath_full.wav
+    ultimate.wav
+    stage_clear.wav
+    brand_sting.wav
   bgm/
-    menu_loop.ogg
-    stage_w1_loop.ogg
-  bus: Master / BGM / SFX  (Godot Audio bus layout)
+    hub_loop.wav
+    stage_loop.wav
+resources/default_bus_layout.tres   # Master → BGM, SFX
+scripts/autoload/audio.gd
+scripts/tools/generate_audio_placeholders.py
 ```
 
-### Godot
+Regenerar placeholders:
 
-1. **Project → Audio → Buses:** Master, BGM, SFX  
-2. Autoload `Audio` (futuro): `play_sfx(id)`, volume no save  
-3. Formato: **OGG Vorbis** preferido no mobile  
+```powershell
+python scripts/tools/generate_audio_placeholders.py
+```
 
----
-
-## O que a EVA faz / não faz
-
-| EVA faz | Você (ou ferramenta externa) |
-|---------|------------------------------|
-| Pastas, buses, código `Audio.play` | Conta ElevenLabs/Suno se precisar |
-| Integrar arquivos que você dropar em `assets/audio/` | Gerar/baixar WAV/MP3/OGG |
-| Checklist de quais SFX faltam | Aprovar jingle da marca |
-
-Quando tiver os arquivos na pasta, pede: **“liga os áudios no hub/combate”**.
+Depois abra o Godot uma vez para reimportar (gera `.import`).
 
 ---
 
-## Ordem prática
+## Onde toca no jogo
 
-1. SFX coin + slash + ui_click (ElevenLabs free tier)  
-2. 1 BGM menu loop  
-3. Jingle Pasqualotti (splash)  
-4. Resto do checklist de combate  
+| Evento | Onde |
+|--------|------|
+| Brand sting | `splash_studio.gd` |
+| BGM hub | `hub.gd` `_ready` |
+| UI click hub/mapa | `hub.gd`, `world_map.gd` |
+| BGM fase/sandbox | `sandbox_combat.gd` |
+| Slash | `player_combat.gd` ao iniciar ataque |
+| Hit | `dummy.gd` ao receber dano |
+| Coin / breath full / ultimate / stage clear | `game.gd` |
+
+`hurt.wav` está no pack para dano no player (ainda sem hook de HP do player).
+
+---
+
+## Posso gerar som daqui (Grok Build)?
+
+| Tipo | Nesta sessão? | Ferramenta recomendada |
+|------|---------------|------------------------|
+| **SFX placeholder** | ✅ script procedural Python | `generate_audio_placeholders.py` |
+| **SFX polido** | ❌ sem gerador AI embutido | **ElevenLabs Sound Effects** |
+| **Música / BGM loop** | ✅ tom/ambiente procedural curto | Suno / Udio / ElevenLabs Music p/ polir |
+| **Jingle marca** | ✅ `brand_sting` placeholder | Gravado ou Suno “logo sting” |
+| **Import Godot** | ✅ | `.wav` ok; `.ogg` preferido no mobile |
+
+O Imagine (imagem/vídeo) **não gera áudio**.
+
+### Prompts ElevenLabs (upgrade futuro)
+
+| ID | Prompt sugerido |
+|----|-----------------|
+| `coin` | `short cheerful coin collect chime for mobile game` |
+| `slash` | `fast sword slash whoosh anime style short` |
+| `hit` | `blade impact light hit on enemy short` |
+| `hurt` | `player take damage thud short` |
+| `ui_click` | `soft ui button click` |
+| `breath_full` | `magical energy charge complete chime` |
+| `ultimate` | `powerful sword special attack whoosh` |
+| `brand_sting` | `short cinematic logo sting japanese drums one second` |
+
+BGM Suno/Udio (sempre instrumental, sem vocal, sem tema comercial):
+
+- Hub: `dark night japanese bamboo forest ambient loop, soft taiko, no vocals, 90bpm`
+- Fase: `energetic anime action instrumental loop, shakuhachi hints, no vocals`
+
+**Sempre** checar loop no Audacity e licença dos termos da ferramenta.
+
+### Grátis sem AI
+
+- [Kenney.nl](https://kenney.nl/assets) — UI/SFX packs  
+- [Freesound](https://freesound.org) — CC0 / CC-BY (créditos)
+
+---
+
+## Godot
+
+1. Buses: `resources/default_bus_layout.tres` (Master / BGM / SFX)  
+2. Autoload `Audio` em `project.godot` (depois de `Game`)  
+3. Formato: WAV placeholders agora; migrar para **OGG Vorbis** quando tiver assets finais  
+4. Runtime: se layout faltar, `Audio._ensure_buses()` cria BGM/SFX em memória  
+
+---
+
+## O que a EVA / worker faz
+
+| Feito no MVP | Ainda humano / futuro |
+|--------------|------------------------|
+| Pastas, buses, `Audio.play_*` | Conta ElevenLabs/Suno se quiser polish |
+| Placeholders procedurais originais | Aprovar jingle final da marca |
+| Hooks splash/hub/sandbox/combate | Trocar WAV por OGG polido drop-in (mesmo nome base) |
+
+Trocar arquivo em `assets/audio/sfx|bgm/` com o **mesmo nome base** (`.ogg` preferido) — o autoload tenta `.ogg` antes de `.wav`.

@@ -17,9 +17,14 @@ run/main_scene="res://scenes/boot/splash_studio.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
+[audio]
+
+buses/default_bus_layout="res://resources/default_bus_layout.tres"
+
 [autoload]
 
 Game="*res://scripts/autoload/game.gd"
+Audio="*res://scripts/autoload/audio.gd"
 SceneRouter="*res://scripts/autoload/scene_router.gd"
 
 [display]
