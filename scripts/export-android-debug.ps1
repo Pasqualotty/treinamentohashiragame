@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Exporta APK debug do Treinamento Hashira (preset "Android Debug").
 
@@ -6,9 +6,9 @@
   Usa Godot 4.7 CLI headless. Requer:
   - export_presets.cfg no projeto
   - Export templates 4.7.1 em %APPDATA%\Godot\export_templates\4.7.1.stable\
-  - Editor Settings Android (Java + SDK + debug keystore) já configurados
+  - Editor Settings Android (Java + SDK + debug keystore) j├í configurados
 
-  Paths de referência: docs/android-paths.txt
+  Paths de refer├¬ncia: docs/android-paths.txt
 
 .PARAMETER GodotExe
   Caminho do Godot_v4.7.1-stable_win64.exe. Se omitido, tenta achar via WinGet / PATH.
@@ -55,7 +55,7 @@ if (-not $ProjectDir) {
 $projectFile = Join-Path $ProjectDir "project.godot"
 $presetsFile = Join-Path $ProjectDir "export_presets.cfg"
 if (-not (Test-Path -LiteralPath $projectFile)) {
-    throw "project.godot não encontrado em: $ProjectDir"
+    throw "project.godot n├úo encontrado em: $ProjectDir"
 }
 if (-not (Test-Path -LiteralPath $presetsFile)) {
     throw "export_presets.cfg ausente. Crie o preset Android no Editor ou restaure do git."
@@ -64,11 +64,11 @@ if (-not (Test-Path -LiteralPath $presetsFile)) {
 $godot = Resolve-GodotExe -Explicit $GodotExe
 if (-not $godot) {
     Write-Host @"
-Godot CLI não encontrado.
+Godot CLI n├úo encontrado.
 
 Instale Godot 4.7.x (Standard) ou passe -GodotExe.
 
-Caminho típico (winget):
+Caminho t├¡pico (winget):
   $env:LOCALAPPDATA\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64.exe
 
 Comando manual:
@@ -81,10 +81,10 @@ $tplDir = Join-Path $env:APPDATA "Godot\export_templates\4.7.1.stable"
 $tplApk = Join-Path $tplDir "android_debug.apk"
 if (-not (Test-Path -LiteralPath $tplApk)) {
     Write-Host @"
-Export templates 4.7.1 não encontrados em:
+Export templates 4.7.1 n├úo encontrados em:
   $tplDir
 
-No Editor: Editor → Manage Export Templates → Download and Install (4.7.1).
+No Editor: Editor ÔåÆ Manage Export Templates ÔåÆ Download and Install (4.7.1).
 Ou baixe o .tpz e extraia para a pasta acima:
   https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz
 
@@ -118,6 +118,6 @@ if ((Test-Path -LiteralPath $absOut) -and ((Get-Item -LiteralPath $absOut).Lengt
     exit 0
 }
 
-Write-Host "Export terminou sem APK válido (exit=$code). Veja o log do Godot acima."
+Write-Host "Export terminou sem APK v├ílido (exit=$code). Veja o log do Godot acima."
 if ($null -eq $code) { exit 1 }
 exit $code

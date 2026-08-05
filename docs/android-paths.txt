@@ -1,30 +1,30 @@
-# Paths Android — Treinamento Hashira (máquina de dev 2026-08)
-# Fan game pessoal; package estável no preset: studio.pasqualotti.hashira
+﻿# Paths Android ÔÇö Treinamento Hashira (m├íquina de dev 2026-08)
+# Fan game pessoal; package est├ível no preset: studio.pasqualotti.hashira
 
 JAVA_HOME=C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot
 ANDROID_SDK=C:\Users\mathe\AppData\Local\Android\Sdk
 ANDROID_HOME=C:\Users\mathe\AppData\Local\Android\Sdk
 ANDROID_SDK_ROOT=C:\Users\mathe\AppData\Local\Android\Sdk
 
-# Godot 4.7.1 (winget) — ajuste se o path do WinGet mudar
+# Godot 4.7.1 (winget) ÔÇö ajuste se o path do WinGet mudar
 GODOT_EXE=%LOCALAPPDATA%\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64.exe
 
-# Debug keystore (padrão Godot; NÃO commitar .keystore)
+# Debug keystore (padr├úo Godot; N├âO commitar .keystore)
 DEBUG_KEYSTORE=%APPDATA%\Godot\keystores\debug.keystore
 # alias=androiddebugkey  password=android
 
-# Export templates (obrigatório para gerar APK sem “custom template”)
+# Export templates (obrigat├│rio para gerar APK sem ÔÇ£custom templateÔÇØ)
 # Pasta esperada: %APPDATA%\Godot\export_templates\4.7.1.stable\
-# Arquivos: android_debug.apk, android_release.apk, …
-# Download: Editor → Manage Export Templates → Download
+# Arquivos: android_debug.apk, android_release.apk, ÔÇª
+# Download: Editor ÔåÆ Manage Export Templates ÔåÆ Download
 # Ou: https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz
 
-Godot Editor Settings → Export → Android:
+Godot Editor Settings ÔåÆ Export ÔåÆ Android:
   Java SDK Path = C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot
   Android SDK Path = C:\Users\mathe\AppData\Local\Android\Sdk
   Debug Keystore = C:\Users\mathe\AppData\Roaming\Godot\keystores\debug.keystore
 
 Preset versionado no repo:
-  export_presets.cfg → name "Android Debug"
+  export_presets.cfg ÔåÆ name "Android Debug"
   package/unique_name = studio.pasqualotti.hashira
   export_path = export/TreinamentoHashira-debug.apk
