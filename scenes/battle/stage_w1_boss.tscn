@@ -139,6 +139,16 @@ script = ExtResource("4_goal")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Goal"]
 shape = SubResource("Rect_goal")
 
+
+[node name="PortalGlow" type="ColorRect" parent="Goal"]
+offset_left = -48.0
+offset_top = -96.0
+offset_right = 48.0
+offset_bottom = 24.0
+color = Color(0.3, 0.7, 1, 0.25)
+mouse_filter = 2
+z_index = -1
+
 [node name="PortalVisual" type="ColorRect" parent="Goal"]
 offset_left = -36.0
 offset_top = -90.0
@@ -159,9 +169,9 @@ horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="."]
 offset_left = 16.0
-offset_top = 12.0
+offset_top = 100.0
 offset_right = 700.0
 offset_bottom = 48.0
 theme_override_colors/font_color = Color(1, 0.85, 0.8, 1)
 theme_override_font_sizes/font_size = 16
-text = "BOSS - derrote o inimigo e saia pelo portal"
+text = ""

@@ -6,6 +6,8 @@ const LOADING := "res://scenes/boot/loading.tscn"
 const HUB := "res://scenes/main_menu/hub.tscn"
 const WORLD_MAP := "res://scenes/world/world_map.tscn"
 const SHOP := "res://scenes/ui/shop.tscn"
+const CREDITS := "res://scenes/ui/credits.tscn"
+const SHOP := "res://scenes/ui/shop.tscn"
 
 
 func go_to(path: String) -> void:
@@ -28,6 +30,14 @@ func to_hub() -> void:
 
 func to_world_map() -> void:
 	go_to(WORLD_MAP)
+
+
+func to_shop() -> void:
+	go_to(SHOP)
+
+
+func to_credits() -> void:
+	go_to(CREDITS)
 
 
 func to_shop() -> void:

@@ -266,17 +266,22 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 
 ---
 
-## 9. Ainda aberto (próximo)
+## 9. Decisões fechadas no MVP (2026-08-06)
 
 - [x] Print de referência do hub + loading (Brawl Stars UX)
-- [ ] Jingle / SFX da marca Pasqualotti
-- [ ] Key art própria pra loading (placeholder até ter arte)
-- [ ] Nomes das 2 skills do Tanjiro
-- [ ] Upgrades da loja v1 (quais 4)
-- [ ] Resolução base final
-- [ ] Morreu na fase: perde moedas da fase ou mantém o que coletou?
-- [ ] Upgrades globais vs por personagem (sugestão: **globais** no MVP)
-- [x] JOGAR → **mapa do mundo** (escolhe a fase) — opção A
+- [x] Jingle / SFX da marca (sting procedural no splash)
+- [x] Key art loading (pack v0.1 + loading)
+- [x] Skills Tanjiro MVP: **Corte em Arco** / **Investida**
+- [x] Upgrades loja v1: **HP · Dano · Velocidade · Dash CD**
+- [x] Resolução base: **1280×720** paisagem
+- [x] Morte na fase: **perde moedas da run** (bank só no clear)
+- [x] Upgrades: **globais** no MVP
+- [x] JOGAR → **mapa do mundo**
+- [x] Elite ~20 moedas no pickup; boss = clear da run
+
+### Ainda pos-MVP
+
+- Elenco (Zenitsu/Inosuke/Hashiras), W2+, boss multiphase fancy, release keystore
 
 ---
 

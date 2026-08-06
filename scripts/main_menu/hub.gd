@@ -181,7 +181,10 @@ func _on_shop_pressed() -> void:
 
 func _on_characters_pressed() -> void:
 	_ui_click()
+	# MVP: so Tanjiro. Tela de elenco completa e pos-MVP.
+	character_name.text = "Tanjiro (unico no MVP)"
 
 
 func _on_settings_pressed() -> void:
 	_ui_click()
+	SceneRouter.to_credits()

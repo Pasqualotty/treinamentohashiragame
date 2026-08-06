@@ -1,5 +1,5 @@
-extends SceneTree
-## Smoke headless: carrega player canônico, stats, hitbox/hurtbox e valida estados básicos.
+﻿extends SceneTree
+## Smoke headless: carrega player canÃ´nico, stats, hitbox/hurtbox e valida estados bÃ¡sicos.
 ##
 ## Godot:
 ##   Godot_v4.7.1-stable_win64_console.exe --headless --path . -s res://scripts/combat/smoke_player_test.gd
@@ -13,11 +13,11 @@ func _initialize() -> void:
 	var stats: Resource = load("res://resources/player/player_stats.tres")
 	if stats == null:
 		ok = false
-		messages.append("player_stats.tres não carregou")
+		messages.append("player_stats.tres nÃ£o carregou")
 	else:
 		if not ("max_hp" in stats) or int(stats.get("max_hp")) < 1:
 			ok = false
-			messages.append("PlayerStats.max_hp inválido")
+			messages.append("PlayerStats.max_hp invÃ¡lido")
 		if not ("move_speed" in stats):
 			ok = false
 			messages.append("PlayerStats.move_speed ausente")
@@ -39,16 +39,16 @@ func _initialize() -> void:
 	var hurt_script: GDScript = load("res://scripts/combat/hurtbox.gd") as GDScript
 	if player_script == null:
 		ok = false
-		messages.append("player.gd não carregou")
+		messages.append("player.gd nÃ£o carregou")
 	if hit_script == null or hurt_script == null:
 		ok = false
 		messages.append("hitbox/hurtbox scripts ausentes")
 
-	# --- Cena canônica ---
+	# --- Cena canÃ´nica ---
 	var packed: PackedScene = load("res://scenes/characters/player/player.tscn") as PackedScene
 	if packed == null:
 		ok = false
-		messages.append("player.tscn não carregou")
+		messages.append("player.tscn nÃ£o carregou")
 	else:
 		var player: Node = packed.instantiate()
 		if player == null:
@@ -61,7 +61,7 @@ func _initialize() -> void:
 
 			if not player.is_in_group("player"):
 				ok = false
-				messages.append("player não está no group 'player'")
+				messages.append("player nÃ£o estÃ¡ no group 'player'")
 
 			if not player.has_method("get_state"):
 				ok = false
@@ -82,7 +82,7 @@ func _initialize() -> void:
 				ok = false
 				messages.append("player sem signal hp_changed")
 
-			# Nós de combate + animação
+			# NÃ³s de combate + animaÃ§Ã£o
 			var hb: Node = player.get_node_or_null("Hitbox")
 			var hurt: Node = player.get_node_or_null("Hurtbox")
 			if hb == null:
@@ -92,15 +92,15 @@ func _initialize() -> void:
 				ok = false
 				messages.append("Hurtbox child ausente")
 
-			var anim_sprite: Node = player.get_node_or_null("AnimatedSprite2D")
+			var anim_sprite: Node = player.get_node_or_null("CanvasItem")
 			if anim_sprite == null:
 				ok = false
-				messages.append("AnimatedSprite2D ausente no player canônico")
-			elif not (anim_sprite is AnimatedSprite2D):
+				messages.append("CanvasItem ausente no player canÃ´nico")
+			elif not (anim_sprite is CanvasItem):
 				ok = false
-				messages.append("AnimatedSprite2D tipo inválido")
+				messages.append("CanvasItem tipo invÃ¡lido")
 			else:
-				var aspr: AnimatedSprite2D = anim_sprite as AnimatedSprite2D
+				var aspr: CanvasItem = anim_sprite as CanvasItem
 				if aspr.sprite_frames == null:
 					ok = false
 					messages.append("SpriteFrames nulo no player")
@@ -112,7 +112,7 @@ func _initialize() -> void:
 						if not aspr.sprite_frames.has_animation(anim_name):
 							ok = false
 							messages.append("SpriteFrames sem anim '%s'" % anim_name)
-					# idle deve ter ≥1 frame e não ser caixa vazia
+					# idle deve ter â‰¥1 frame e nÃ£o ser caixa vazia
 					if aspr.sprite_frames.has_animation("idle"):
 						var fc: int = aspr.sprite_frames.get_frame_count("idle")
 						if fc < 1:
@@ -123,14 +123,14 @@ func _initialize() -> void:
 							if tex0 == null:
 								ok = false
 								messages.append("idle frame 0 sem texture")
-					# flip_h + pés (position.y negativo com centered)
+					# flip_h + pÃ©s (position.y negativo com centered)
 					if aspr.position.y >= 0.0:
 						ok = false
-						messages.append("sprite position.y deveria ser <0 (pés no chão), got %s" % str(aspr.position.y))
+						messages.append("sprite position.y deveria ser <0 (pÃ©s no chÃ£o), got %s" % str(aspr.position.y))
 					aspr.flip_h = true
 					if not aspr.flip_h:
 						ok = false
-						messages.append("flip_h não aplica")
+						messages.append("flip_h nÃ£o aplica")
 					aspr.flip_h = false
 
 			# HP inicial
@@ -152,7 +152,7 @@ func _initialize() -> void:
 				var hp2: int = int(player.call("get_hp"))
 				if hp2 != max_hp0 - 10:
 					ok = false
-					messages.append("apply_damage não reduziu HP corretamente (got %d)" % hp2)
+					messages.append("apply_damage nÃ£o reduziu HP corretamente (got %d)" % hp2)
 				# Espera hurt_invuln default (~0.45s) + margem
 				await create_timer(0.55).timeout
 				player.call("apply_damage", 9999, Vector2.ZERO)
@@ -161,24 +161,24 @@ func _initialize() -> void:
 				# State.DEAD = 9 no enum unificado
 				if int(st) != 9:
 					ok = false
-					messages.append("estado após kill deveria ser DEAD(9), got %s" % str(st))
+					messages.append("estado apÃ³s kill deveria ser DEAD(9), got %s" % str(st))
 				if not died_flag[0]:
 					ok = false
-					messages.append("signal died não emitiu")
+					messages.append("signal died nÃ£o emitiu")
 
 			player.queue_free()
 			await process_frame
 
-	# --- Sandbox combat aponta pro player canônico ---
+	# --- Sandbox combat aponta pro player canÃ´nico ---
 	var sandbox: PackedScene = load("res://scenes/battle/sandbox_combat.tscn") as PackedScene
 	if sandbox == null:
 		ok = false
-		messages.append("sandbox_combat.tscn não carregou")
+		messages.append("sandbox_combat.tscn nÃ£o carregou")
 	else:
 		var sc: Node = sandbox.instantiate()
 		root.add_child(sc)
 		await process_frame
-		# Player canônico: node "Player" direto OU nested PlayerSandbox/Player.
+		# Player canÃ´nico: node "Player" direto OU nested PlayerSandbox/Player.
 		var p: Node = sc.get_node_or_null("Player")
 		if p != null and not p.is_in_group("player"):
 			var nested: Node = p.get_node_or_null("Player")
@@ -203,11 +203,11 @@ func _initialize() -> void:
 			var path: String = str(p.get_script().resource_path)
 			if path.find("player.gd") < 0:
 				ok = false
-				messages.append("sandbox Player script não é player.gd: %s" % path)
-			# Confirma AnimatedSprite2D no player do sandbox
-			if p.get_node_or_null("AnimatedSprite2D") == null:
+				messages.append("sandbox Player script nÃ£o Ã© player.gd: %s" % path)
+			# Confirma CanvasItem no player do sandbox
+			if p.get_node_or_null("CanvasItem") == null:
 				ok = false
-				messages.append("sandbox Player sem AnimatedSprite2D")
+				messages.append("sandbox Player sem CanvasItem")
 		sc.queue_free()
 		await process_frame
 
@@ -232,7 +232,7 @@ func _initialize() -> void:
 			game.call("consume_ultimate")
 			if float(game.get("breath")) > 0.01:
 				ok = false
-				messages.append("consume_ultimate não zerou breath")
+				messages.append("consume_ultimate nÃ£o zerou breath")
 
 	if ok:
 		print("SMOKE_PLAYER_TEST PASS")
@@ -241,3 +241,4 @@ func _initialize() -> void:
 		for m: String in messages:
 			push_error("SMOKE_PLAYER_TEST FAIL: " + m)
 		quit(1)
+

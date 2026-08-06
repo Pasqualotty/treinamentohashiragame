@@ -50,8 +50,20 @@ func _ready() -> void:
 	if spawn_combat_hud:
 		_hud = COMBAT_HUD_SCENE.instantiate() as CanvasLayer
 		add_child(_hud)
+		var cur_hp: float = float(player_max_hp)
+		var max_hp: float = float(player_max_hp)
+		if _player != null:
+			var php: Variant = _player.get("hp")
+			if php != null:
+				cur_hp = float(php)
+			var st: Variant = _player.get("stats")
+			if st != null and st.get("max_hp") != null:
+				max_hp = float(st.get("max_hp"))
 		if _hud.has_method("set_hp"):
-			_hud.call("set_hp", player_max_hp, player_max_hp)
+			_hud.call("set_hp", cur_hp, max_hp)
+		if _player != null and _player.has_signal("hp_changed"):
+			if not _player.is_connected("hp_changed", _on_player_hp_changed):
+				_player.connect("hp_changed", _on_player_hp_changed)
 
 	if spawn_touch_controls:
 		add_child(TOUCH_SCENE.instantiate())
@@ -60,11 +72,16 @@ func _ready() -> void:
 	print("[StageController] stage_id=%s ready (touch+hud)" % stage_id)
 
 
+func _on_player_hp_changed(current: int, max_hp: int) -> void:
+	if _hud != null and _hud.has_method("set_hp"):
+		_hud.call("set_hp", float(current), float(max_hp))
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _completed or _dead or _returning:
 		return
 	if event.is_action_pressed("pause"):
-		_return_to_map(false)
+		_show_pause_menu()
 		get_viewport().set_input_as_handled()
 
 
@@ -147,8 +164,63 @@ func _build_back_button() -> void:
 	back.size = Vector2(120, 48)
 	back.focus_mode = Control.FOCUS_NONE
 	back.add_theme_font_size_override("font_size", 18)
-	back.pressed.connect(func() -> void: _return_to_map(false))
+	back.pressed.connect(func() -> void: _show_pause_menu())
 	layer.add_child(back)
+
+
+func _show_pause_menu() -> void:
+	if get_tree().paused:
+		return
+	get_tree().paused = true
+	var layer := CanvasLayer.new()
+	layer.name = "PauseMenu"
+	layer.layer = 80
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(layer)
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0, 0, 0, 0.55)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(dim)
+	var panel := VBoxContainer.new()
+	panel.position = Vector2(440, 220)
+	panel.custom_minimum_size = Vector2(400, 280)
+	panel.add_theme_constant_override("separation", 16)
+	layer.add_child(panel)
+	var title := Label.new()
+	title.text = "PAUSA"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_color_override("font_color", Color(1, 0.95, 0.85, 1))
+	panel.add_child(title)
+	var resume := Button.new()
+	resume.text = "Continuar"
+	resume.custom_minimum_size = Vector2(0, 56)
+	resume.pressed.connect(func() -> void:
+		get_tree().paused = false
+		layer.queue_free()
+	)
+	panel.add_child(resume)
+	var to_map := Button.new()
+	to_map.text = "Sair para o mapa"
+	to_map.custom_minimum_size = Vector2(0, 56)
+	to_map.pressed.connect(func() -> void:
+		get_tree().paused = false
+		layer.queue_free()
+		_return_to_map(false)
+	)
+	panel.add_child(to_map)
+	var to_hub := Button.new()
+	to_hub.text = "Sair para o hub"
+	to_hub.custom_minimum_size = Vector2(0, 56)
+	to_hub.pressed.connect(func() -> void:
+		get_tree().paused = false
+		layer.queue_free()
+		if not _completed:
+			Game.lose_run_coins()
+		SceneRouter.to_hub()
+	)
+	panel.add_child(to_hub)
 
 
 func _wire_enemies() -> void:
