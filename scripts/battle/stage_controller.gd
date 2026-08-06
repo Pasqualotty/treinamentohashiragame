@@ -166,11 +166,19 @@ func _on_player_hitbox_hit(_hurtbox: Variant, _hit_data: Variant) -> void:
 
 
 func _all_enemies_defeated() -> bool:
+	## Após um `defeated`, se não restar ninguém vivo no group (ou group vazio
+	## porque o último oni deu queue_free), a fase pode clear.
 	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemy")
 	if enemies.is_empty():
-		return false
+		return true
 	for n: Node in enemies:
-		if n.get("hp") != null and int(n.get("hp")) > 0:
+		if not is_instance_valid(n):
+			continue
+		var n_hp: Variant = n.get("hp")
+		if n_hp != null and int(n_hp) > 0:
+			return false
+		# Dummy/oni sem prop hp: conta como vivo se ainda no group.
+		if n_hp == null:
 			return false
 	return true
 

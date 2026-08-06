@@ -58,6 +58,14 @@ func _initialize() -> void:
 	if oni is Node2D:
 		(oni as Node2D).position = Vector2(0, 0)
 
+	# Array como ref mutável (lambda GDScript não atualiza bool local confiável).
+	var defeated_flag: Array = [false]
+	if oni.has_signal("defeated"):
+		oni.connect("defeated", func() -> void: defeated_flag[0] = true)
+	else:
+		ok = false
+		messages.append("oni deve declarar signal defeated")
+
 	await process_frame
 	await physics_frame
 	await physics_frame
@@ -103,6 +111,10 @@ func _initialize() -> void:
 				break
 		if any_coin:
 			break
+
+	if not bool(defeated_flag[0]):
+		ok = false
+		messages.append("signal defeated não emitido na morte do oni")
 
 	var coins_after_kill: int = int(game.get("coins_run"))
 	if coins_after_kill != 0:
