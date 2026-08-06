@@ -128,16 +128,18 @@ func _return_to_map(count_as_victory: bool) -> void:
 
 
 func _build_back_button() -> void:
+	## Topo-esquerda: fora do cluster touch (polegares embaixo) e longe do ATK.
 	var layer := CanvasLayer.new()
 	layer.name = "StageChrome"
 	layer.layer = 50
 	add_child(layer)
 	var back := Button.new()
 	back.name = "BackToMap"
-	back.text = "← Mapa"
-	back.position = Vector2(24, 640)
-	back.size = Vector2(140, 52)
+	back.text = "Mapa"
+	back.position = Vector2(16, 100)
+	back.size = Vector2(120, 48)
 	back.focus_mode = Control.FOCUS_NONE
+	back.add_theme_font_size_override("font_size", 18)
 	back.pressed.connect(func() -> void: _return_to_map(false))
 	layer.add_child(back)
 

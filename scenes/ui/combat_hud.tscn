@@ -20,11 +20,11 @@ mouse_filter = 2
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 96.0
+offset_bottom = 100.0
 grow_horizontal = 2
 theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 20
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 96
 theme_override_constants/margin_bottom = 8
 mouse_filter = 2
 
@@ -105,7 +105,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 18
-text = "Respiração"
+text = "BREATH"
 
 [node name="BreathLabel" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]
 unique_name_in_owner = true

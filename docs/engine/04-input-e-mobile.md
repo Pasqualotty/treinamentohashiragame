@@ -48,9 +48,11 @@ Ou arraste a cena como filho do root da `stage_*`. Não precisa reescrever o hub
 - **Direita:** ATK · H1 · H2 · ULT  
 - **Topo direita:** pause  
 
-Multi-touch: cada botão é `TouchScreenButton` (dedos independentes). Placeholders procedurais; asset `assets/ui/touch/buttons_row.png` fica pra polish visual.
+Multi-touch: cada botão é `TouchScreenButton` (dedos independentes). Texturas cortadas de `assets/ui/touch/buttons_row.png` → `btn_red/orange/blue/purple.png` + labels ASCII (ATK, H1, H2, ULT, PULO, DASH).
 
 Export `hide_on_desktop`: se true, esconde a camada em desktop (útil em builds mistos). Default **false** para playtest no editor com mouse.
+
+Chrome da fase (`StageController`): botão **Mapa** no topo-esquerda (não cobre ATK nem o cluster inferior).
 
 ## Teste
 

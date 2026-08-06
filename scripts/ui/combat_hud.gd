@@ -78,14 +78,27 @@ func _refresh_coins(run_total: int) -> void:
 func _style_bars() -> void:
 	_apply_bar_style(
 		hp_bar,
-		Color(0.12, 0.08, 0.1, 0.85),
+		Color(0.12, 0.08, 0.1, 0.88),
 		Color(0.85, 0.18, 0.22, 1.0)
 	)
 	_apply_bar_style(
 		breath_bar,
-		Color(0.08, 0.1, 0.18, 0.85),
+		Color(0.08, 0.1, 0.18, 0.88),
 		Color(0.357, 0.553, 0.937, 1.0)  # #5B8DEF STYLE-BIBLE
 	)
+	# Tipografia limpa / legível em mobile (sem depender só do .tscn).
+	if hp_label:
+		hp_label.add_theme_font_size_override("font_size", 20)
+		hp_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		hp_label.add_theme_constant_override("outline_size", 2)
+	if breath_label:
+		breath_label.add_theme_font_size_override("font_size", 20)
+		breath_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		breath_label.add_theme_constant_override("outline_size", 2)
+	if coins_label:
+		coins_label.add_theme_font_size_override("font_size", 28)
+		coins_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		coins_label.add_theme_constant_override("outline_size", 2)
 
 
 func _apply_bar_style(bar: ProgressBar, bg: Color, fill: Color) -> void:
