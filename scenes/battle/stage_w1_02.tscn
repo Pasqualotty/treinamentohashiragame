@@ -1,9 +1,11 @@
-﻿[gd_scene load_steps=11 format=3]
+﻿[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
 [ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/combat/dummy.tscn" id="3_dummy"]
 [ext_resource type="Script" path="res://scripts/battle/stage_goal.gd" id="4_goal"]
+
+[ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_village.png" id="9_bg"]
 
 [sub_resource type="RectangleShape2D" id="Rect_ground"]
 size = Vector2(2200, 48)
@@ -25,12 +27,17 @@ script = ExtResource("1_ctrl")
 stage_id = "w1_02"
 fall_death_y = 950.0
 
+[node name="BgArt" type="Sprite2D" parent="."]
+z_index = -20
+position = Vector2(640, 360)
+texture = ExtResource("9_bg")
+
 [node name="Background" type="ColorRect" parent="."]
 offset_left = -100.0
 offset_top = -250.0
 offset_right = 2300.0
 offset_bottom = 950.0
-color = Color(0.16, 0.12, 0.2, 1)
+color = Color(0.05, 0.07, 0.1, 0.35)
 mouse_filter = 2
 
 [node name="Ground" type="StaticBody2D" parent="."]
@@ -153,7 +160,7 @@ offset_right = 48.0
 offset_bottom = -86.0
 theme_override_colors/font_color = Color(0.95, 0.9, 1, 1)
 theme_override_font_sizes/font_size = 14
-text = "SAÃDA"
+text = "SAIDA"
 horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="."]
@@ -163,4 +170,4 @@ offset_right = 720.0
 offset_bottom = 48.0
 theme_override_colors/font_color = Color(0.92, 0.88, 0.98, 1)
 theme_override_font_sizes/font_size = 16
-text = "W1-02 â€” plataformas mais altas Â· 2 oni Â· portal roxo"
+text = "Fase 2 - plataformas e inimigos"
