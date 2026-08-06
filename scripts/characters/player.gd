@@ -1,4 +1,4 @@
-﻿extends CharacterBody2D
+extends CharacterBody2D
 ## Player can├┤nico unificado (movimento + combate MVP).
 ## Cena: scenes/characters/player/player.tscn
 ##
@@ -42,6 +42,11 @@ signal state_changed(new_state: State)
 @onready var hurtbox: Hurtbox = %Hurtbox
 @onready var hitbox_shape: CollisionShape2D = %HitboxShape
 
+const TEX_IDLE: Texture2D = preload("res://assets/characters/player/tanjiro_idle_side.png")
+const TEX_RUN: Texture2D = preload("res://assets/characters/player/combat/tanjiro_run.png")
+const TEX_ATTACK: Texture2D = preload("res://assets/characters/player/combat/tanjiro_attack_slash.png")
+const TEX_ATTACK_B: Texture2D = preload("res://assets/characters/player/hub_idle/06.png")
+
 var _state: State = State.IDLE
 ## 1.0 = direita, -1.0 = esquerda.
 var _facing: float = 1.0
@@ -62,6 +67,7 @@ var _hurt_timer: float = 0.0
 var _invuln_timer: float = 0.0
 var _hitbox_base_x: float = 28.0
 var _default_hitbox_size: Vector2 = Vector2(40.0, 30.0)
+var _run_bob_t: float = 0.0
 
 
 func _ready() -> void:
@@ -95,7 +101,14 @@ func _ready() -> void:
 		if not hurtbox.hurt.is_connected(_on_hurt):
 			hurtbox.hurt.connect(_on_hurt)
 
+	if sprite:
+		sprite.texture = TEX_IDLE
+		sprite.centered = true
+		# Master ~1024px -> altura em jogo ~90px
+		sprite.scale = Vector2(0.11, 0.11)
+		sprite.position = Vector2(0, -42)
 	_apply_facing_visual()
+	_sync_sprite_to_state()
 	hp_changed.emit(hp, stats.max_hp)
 
 
@@ -117,6 +130,8 @@ func _physics_process(delta: float) -> void:
 			_process_action(delta)
 		_:
 			_process_locomotion(delta)
+
+	_update_run_bob(delta)
 
 	move_and_slide()
 	_update_state_after_move()
@@ -538,6 +553,44 @@ func _set_state(new_state: State) -> void:
 		return
 	_state = new_state
 	state_changed.emit(new_state)
+	_sync_sprite_to_state()
+
+
+func _sync_sprite_to_state() -> void:
+	if sprite == null:
+		return
+	match _state:
+		State.RUN, State.DASH:
+			sprite.texture = TEX_RUN if TEX_RUN else TEX_IDLE
+		State.ATTACK_BASIC:
+			sprite.texture = TEX_ATTACK if TEX_ATTACK else TEX_IDLE
+		State.SKILL_1, State.SKILL_2, State.ULTIMATE:
+			sprite.texture = TEX_ATTACK_B if TEX_ATTACK_B else TEX_ATTACK
+		State.HURT, State.DEAD:
+			sprite.texture = TEX_IDLE
+			sprite.modulate = Color(1.0, 0.55, 0.55, 1.0) if _state == State.HURT else Color(0.5, 0.5, 0.55, 0.9)
+		_:
+			sprite.texture = TEX_IDLE
+			if _state != State.DEAD:
+				sprite.modulate = Color.WHITE
+	_apply_facing_visual()
+
+
+func _update_run_bob(delta: float) -> void:
+	if sprite == null:
+		return
+	var base_y: float = -42.0
+	if _state == State.RUN and is_on_floor():
+		_run_bob_t += delta * 12.0
+		sprite.position.y = base_y + sin(_run_bob_t) * 3.0
+	elif _state == State.JUMP:
+		sprite.position.y = base_y - 4.0
+		sprite.rotation = 0.08 * _facing
+	else:
+		_run_bob_t = 0.0
+		sprite.position.y = base_y
+		if _state != State.ATTACK_BASIC and _state != State.SKILL_1:
+			sprite.rotation = 0.0
 
 
 func _apply_facing_visual() -> void:
