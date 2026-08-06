@@ -82,7 +82,7 @@ func _initialize() -> void:
 				ok = false
 				messages.append("player sem signal hp_changed")
 
-			# Nós de combate
+			# Nós de combate + animação
 			var hb: Node = player.get_node_or_null("Hitbox")
 			var hurt: Node = player.get_node_or_null("Hurtbox")
 			if hb == null:
@@ -91,6 +91,47 @@ func _initialize() -> void:
 			if hurt == null:
 				ok = false
 				messages.append("Hurtbox child ausente")
+
+			var anim_sprite: Node = player.get_node_or_null("AnimatedSprite2D")
+			if anim_sprite == null:
+				ok = false
+				messages.append("AnimatedSprite2D ausente no player canônico")
+			elif not (anim_sprite is AnimatedSprite2D):
+				ok = false
+				messages.append("AnimatedSprite2D tipo inválido")
+			else:
+				var aspr: AnimatedSprite2D = anim_sprite as AnimatedSprite2D
+				if aspr.sprite_frames == null:
+					ok = false
+					messages.append("SpriteFrames nulo no player")
+				else:
+					var required: PackedStringArray = PackedStringArray([
+						"idle", "run", "attack", "hurt", "ultimate", "jump", "dash"
+					])
+					for anim_name: String in required:
+						if not aspr.sprite_frames.has_animation(anim_name):
+							ok = false
+							messages.append("SpriteFrames sem anim '%s'" % anim_name)
+					# idle deve ter ≥1 frame e não ser caixa vazia
+					if aspr.sprite_frames.has_animation("idle"):
+						var fc: int = aspr.sprite_frames.get_frame_count("idle")
+						if fc < 1:
+							ok = false
+							messages.append("idle sem frames")
+						else:
+							var tex0: Texture2D = aspr.sprite_frames.get_frame_texture("idle", 0)
+							if tex0 == null:
+								ok = false
+								messages.append("idle frame 0 sem texture")
+					# flip_h + pés (position.y negativo com centered)
+					if aspr.position.y >= 0.0:
+						ok = false
+						messages.append("sprite position.y deveria ser <0 (pés no chão), got %s" % str(aspr.position.y))
+					aspr.flip_h = true
+					if not aspr.flip_h:
+						ok = false
+						messages.append("flip_h não aplica")
+					aspr.flip_h = false
 
 			# HP inicial
 			if player.has_method("get_hp") and player.has_method("get_max_hp"):
@@ -137,7 +178,18 @@ func _initialize() -> void:
 		var sc: Node = sandbox.instantiate()
 		root.add_child(sc)
 		await process_frame
+		# Player canônico: node "Player" direto OU nested PlayerSandbox/Player.
 		var p: Node = sc.get_node_or_null("Player")
+		if p != null and not p.is_in_group("player"):
+			var nested: Node = p.get_node_or_null("Player")
+			if nested != null:
+				p = nested
+		if p == null:
+			var found: Array[Node] = sc.get_tree().get_nodes_in_group("player")
+			for n: Node in found:
+				if sc.is_ancestor_of(n):
+					p = n
+					break
 		if p == null:
 			ok = false
 			messages.append("sandbox_combat sem node Player")
@@ -152,6 +204,10 @@ func _initialize() -> void:
 			if path.find("player.gd") < 0:
 				ok = false
 				messages.append("sandbox Player script não é player.gd: %s" % path)
+			# Confirma AnimatedSprite2D no player do sandbox
+			if p.get_node_or_null("AnimatedSprite2D") == null:
+				ok = false
+				messages.append("sandbox Player sem AnimatedSprite2D")
 		sc.queue_free()
 		await process_frame
 
