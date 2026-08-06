@@ -1,11 +1,11 @@
-﻿[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
 [ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/characters/enemies/oni_elite.tscn" id="3_dummy"]
 [ext_resource type="Script" path="res://scripts/battle/stage_goal.gd" id="4_goal"]
-
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_forest.png" id="9_bg"]
+[ext_resource type="Texture2D" path="res://assets/tiles/w1/ground_platform_strip.png" id="10_plat"]
 
 [sub_resource type="RectangleShape2D" id="Rect_ground"]
 size = Vector2(1400, 48)
@@ -17,24 +17,32 @@ size = Vector2(40, 800)
 size = Vector2(160, 24)
 
 [sub_resource type="RectangleShape2D" id="Rect_goal"]
-size = Vector2(72, 110)
+size = Vector2(80, 120)
 
 [node name="StageW1Boss" type="Node2D"]
 script = ExtResource("1_ctrl")
 stage_id = "w1_boss"
 fall_death_y = 900.0
 
-[node name="BgArt" type="Sprite2D" parent="."]
+[node name="ParallaxBG" type="ParallaxBackground" parent="."]
+
+[node name="Far" type="ParallaxLayer" parent="ParallaxBG"]
+motion_scale = Vector2(0.15, 0.06)
+motion_mirroring = Vector2(1280, 0)
+
+[node name="BgArt" type="Sprite2D" parent="ParallaxBG/Far"]
 z_index = -20
 position = Vector2(640, 360)
+modulate = Color(1, 0.82, 0.78, 1)
 texture = ExtResource("9_bg")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Atmosphere" type="ColorRect" parent="."]
+z_index = -15
 offset_left = -80.0
 offset_top = -180.0
 offset_right = 1480.0
 offset_bottom = 900.0
-color = Color(0.05, 0.07, 0.1, 0.35)
+color = Color(0.18, 0.04, 0.04, 0.35)
 mouse_filter = 2
 
 [node name="Ground" type="StaticBody2D" parent="."]
@@ -45,12 +53,16 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
 shape = SubResource("Rect_ground")
 
-[node name="Visual" type="ColorRect" parent="Ground"]
+[node name="Visual" type="TextureRect" parent="Ground"]
 offset_left = -700.0
 offset_top = -24.0
 offset_right = 700.0
-offset_bottom = 24.0
-color = Color(0.42, 0.18, 0.16, 1)
+offset_bottom = 40.0
+texture = ExtResource("10_plat")
+expand_mode = 1
+stretch_mode = 1
+modulate = Color(1, 0.75, 0.7, 1)
+mouse_filter = 2
 
 [node name="SidePlatformL" type="StaticBody2D" parent="."]
 position = Vector2(280, 400)
@@ -60,12 +72,16 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SidePlatformL"]
 shape = SubResource("Rect_plat")
 
-[node name="Visual" type="ColorRect" parent="SidePlatformL"]
+[node name="Visual" type="TextureRect" parent="SidePlatformL"]
 offset_left = -80.0
 offset_top = -12.0
 offset_right = 80.0
-offset_bottom = 12.0
-color = Color(0.5, 0.22, 0.2, 1)
+offset_bottom = 20.0
+texture = ExtResource("10_plat")
+expand_mode = 1
+stretch_mode = 1
+modulate = Color(1, 0.75, 0.7, 1)
+mouse_filter = 2
 
 [node name="SidePlatformR" type="StaticBody2D" parent="."]
 position = Vector2(1000, 400)
@@ -75,12 +91,16 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SidePlatformR"]
 shape = SubResource("Rect_plat")
 
-[node name="Visual" type="ColorRect" parent="SidePlatformR"]
+[node name="Visual" type="TextureRect" parent="SidePlatformR"]
 offset_left = -80.0
 offset_top = -12.0
 offset_right = 80.0
-offset_bottom = 12.0
-color = Color(0.5, 0.22, 0.2, 1)
+offset_bottom = 20.0
+texture = ExtResource("10_plat")
+expand_mode = 1
+stretch_mode = 1
+modulate = Color(1, 0.75, 0.7, 1)
+mouse_filter = 2
 
 [node name="WallLeft" type="StaticBody2D" parent="."]
 position = Vector2(-20, 360)
@@ -126,22 +146,41 @@ script = ExtResource("4_goal")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Goal"]
 shape = SubResource("Rect_goal")
 
+[node name="PortalGlow" type="ColorRect" parent="Goal"]
+offset_left = -52.0
+offset_top = -110.0
+offset_right = 52.0
+offset_bottom = 32.0
+color = Color(1, 0.4, 0.15, 0.28)
+mouse_filter = 2
+
 [node name="PortalVisual" type="ColorRect" parent="Goal"]
-offset_left = -36.0
-offset_top = -90.0
-offset_right = 36.0
-offset_bottom = 20.0
-color = Color(1, 0.45, 0.25, 0.85)
+offset_left = -34.0
+offset_top = -96.0
+offset_right = 34.0
+offset_bottom = 22.0
+color = Color(1, 0.5, 0.28, 0.9)
+mouse_filter = 2
+
+[node name="PortalCore" type="ColorRect" parent="Goal"]
+offset_left = -16.0
+offset_top = -76.0
+offset_right = 16.0
+offset_bottom = 10.0
+color = Color(1, 0.92, 0.7, 0.6)
 mouse_filter = 2
 
 [node name="Label" type="Label" parent="Goal"]
 offset_left = -56.0
-offset_top = -120.0
+offset_top = -130.0
 offset_right = 56.0
-offset_bottom = -96.0
-theme_override_colors/font_color = Color(1, 0.9, 0.75, 1)
-theme_override_font_sizes/font_size = 14
-text = "VITÃ“RIA"
+offset_bottom = -102.0
+theme_override_colors/font_color = Color(1, 0.92, 0.75, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.85)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 16
+text = "SAIDA"
 horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="."]
@@ -149,6 +188,9 @@ offset_left = 16.0
 offset_top = 12.0
 offset_right = 700.0
 offset_bottom = 48.0
-theme_override_colors/font_color = Color(1, 0.85, 0.8, 1)
+theme_override_colors/font_color = Color(1, 0.88, 0.82, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 16
 text = "BOSS - derrote o inimigo e saia pelo portal"
