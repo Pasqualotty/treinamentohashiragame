@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://xhd3i5ia7th1"]
+[gd_scene load_steps=7 format=3 uid="uid://xhd3i5ia7th1"]
 
 [ext_resource type="Script" path="res://scripts/characters/player.gd" id="1_player"]
+[ext_resource type="Texture2D" path="res://assets/characters/player/tanjiro_idle_side.png" id="2_tex"]
 [ext_resource type="Resource" path="res://resources/player/player_stats.tres" id="3_stats"]
 [ext_resource type="Script" path="res://scripts/combat/hitbox.gd" id="4_hitbox"]
 [ext_resource type="Script" path="res://scripts/combat/hurtbox.gd" id="5_hurtbox"]
@@ -21,10 +22,12 @@ floor_stop_on_slope = true
 script = ExtResource("1_player")
 stats = ExtResource("3_stats")
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="."]
 unique_name_in_owner = true
-position = Vector2(0, -50)
+position = Vector2(0, -42)
+scale = Vector2(0.11, 0.11)
 centered = true
+texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 unique_name_in_owner = true
