@@ -124,10 +124,14 @@ func _apply_row_state(panel: Control, def: UpgradeDef) -> void:
 
 
 func _on_buy_pressed(upgrade_id: String) -> void:
+	if is_instance_valid(Audio):
+		Audio.play_sfx("ui_click")
 	if Game.buy_upgrade(upgrade_id):
 		var def: UpgradeDef = Game.get_upgrade_def(upgrade_id)
 		var name_str: String = def.display_name if def else upgrade_id
 		status_label.text = "Comprou %s → nível %d" % [name_str, Game.get_upgrade_level(upgrade_id)]
+		if is_instance_valid(Audio):
+			Audio.play_sfx("coin")
 	else:
 		if Game.get_upgrade_def(upgrade_id) and Game.get_upgrade_def(upgrade_id).is_maxed(Game.get_upgrade_level(upgrade_id)):
 			status_label.text = "Upgrade já no máximo"

@@ -54,8 +54,7 @@ func _on_hurt(hit_data: HitData) -> void:
 	velocity.y = hit_data.knockback.y
 	_start_flash()
 	_refresh_label()
-	if is_instance_valid(Audio):
-		Audio.play_sfx("hit")
+	# SFX/hitstop ficam no atacante (player); dummy so flash+knockback.
 	print("[Dummy] hurt dmg=%d hp=%d/%d knock=%s" % [
 		hit_data.damage, hp, max_hp, str(hit_data.knockback)
 	])

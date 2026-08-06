@@ -64,5 +64,7 @@ func _collect() -> void:
 	set_deferred("monitoring", false)
 	if value > 0:
 		Game.add_run_coins(value)
+	if is_instance_valid(Audio):
+		Audio.play_sfx("coin", randf_range(0.95, 1.12))
 	print("[CoinPickup] +%d run_coins → %d" % [value, Game.coins_run])
 	queue_free()

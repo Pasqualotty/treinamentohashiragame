@@ -71,5 +71,4 @@ offset_right = 900.0
 offset_bottom = 88.0
 theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
 theme_override_font_sizes/font_size = 17
-text = "Sandbox combate — A/D mover · Espaço pular · J/Z atacar
-Oni fraco (centro): chase + telegraph ~0.4s. Morte → coin no chão (crédito no pickup). Dummy à direita."
+text = "Sandbox combate - A/D mover | Espaco pular | J/Z atacar. Oni fraco + dummy. Morte dropa coin no chao."

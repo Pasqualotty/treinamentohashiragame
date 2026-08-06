@@ -26,6 +26,7 @@ buses/default_bus_layout="res://resources/default_bus_layout.tres"
 Game="*res://scripts/autoload/game.gd"
 Audio="*res://scripts/autoload/audio.gd"
 SceneRouter="*res://scripts/autoload/scene_router.gd"
+CombatFeel="*res://scripts/combat/combat_feel.gd"
 
 [display]
 

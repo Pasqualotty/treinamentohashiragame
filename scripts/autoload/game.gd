@@ -255,10 +255,10 @@ func _ensure_catalog() -> void:
 
 func _load_fallback_catalog() -> void:
 	var defs: Array[Dictionary] = [
-		{"id": "max_hp", "display_name": "Vida M├íxima", "description": "+10 HP por n├¡vel.", "stat_key": "max_hp", "value_per_level": 10.0},
-		{"id": "attack", "display_name": "Dano", "description": "+2 dano por n├¡vel.", "stat_key": "attack_damage", "value_per_level": 2.0},
-		{"id": "speed", "display_name": "Velocidade", "description": "+20 velocidade por n├¡vel.", "stat_key": "move_speed", "value_per_level": 20.0},
-		{"id": "dash_cd", "display_name": "Dash R├ípido", "description": "ÔêÆ0,12 s dash CD por n├¡vel.", "stat_key": "dash_cooldown", "value_per_level": -0.12},
+		{"id": "max_hp", "display_name": "Vida Maxima", "description": "+10 HP por nivel.", "stat_key": "max_hp", "value_per_level": 10.0},
+		{"id": "attack", "display_name": "Dano", "description": "+2 dano por nivel.", "stat_key": "attack_damage", "value_per_level": 2.0},
+		{"id": "speed", "display_name": "Velocidade", "description": "+20 velocidade por nivel.", "stat_key": "move_speed", "value_per_level": 20.0},
+		{"id": "dash_cd", "display_name": "Dash Rapido", "description": "-0,12 s dash CD por nivel.", "stat_key": "dash_cooldown", "value_per_level": -0.12},
 	]
 	for d in defs:
 		var def := UpgradeDef.new()

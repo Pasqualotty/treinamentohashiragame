@@ -110,14 +110,14 @@ func play_bgm(bgm_name: String, from_start: bool = false) -> void:
 
 
 func _as_looping(stream: AudioStream) -> AudioStream:
-	## Duplica e marca loop (não muta o .import cache).
+	## Duplica e marca loop (nao muta o .import cache).
 	if stream is AudioStreamWAV:
 		var wav := (stream as AudioStreamWAV).duplicate() as AudioStreamWAV
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		wav.loop_begin = 0
-		# Godot 4.x AudioStreamWAV: stereo bool (sem get_channel_count em algumas builds).
+		# Godot 4.x: AudioStreamWAV nao tem get_channel_count(); stereo=bool.
 		var channels: int = 2 if wav.stereo else 1
-		var bytes_per_sample: int = 2  # 16-bit PCM típico do import
+		var bytes_per_sample: int = 2  # 16-bit PCM tipico do import
 		if wav.format == AudioStreamWAV.FORMAT_8_BITS:
 			bytes_per_sample = 1
 		elif wav.format == AudioStreamWAV.FORMAT_IMA_ADPCM:

@@ -1,20 +1,21 @@
 extends CharacterBody2D
-## Player can├┤nico unificado (movimento + combate MVP).
+## Player canonico unificado (movimento + combate MVP).
 ## Cena: scenes/characters/player/player.tscn
 ##
 ## State machine: idle / run / jump / dash / attack_basic / skill_1 / skill_2 /
 ## ultimate / hurt / dead.
 ##
-## InputMap (s├│ actions ÔÇö sem is_key_pressed):
-##   move_left/right ┬À jump ┬À advance(dash) ┬À attack_basic ┬À skill_1 ┬À skill_2 ┬À ultimate
+## InputMap (so actions — sem is_key_pressed):
+##   move_left/right · jump · advance(dash) · attack_basic · skill_1 · skill_2 · ultimate
 ##
 ## Teclas playtest (project.godot):
-##   A/D ou setas ┬À Espa├ºo pulo ┬À Shift/F dash ┬À Z/J atk ┬À X/K skill1 ┬À C/L skill2 ┬À V/I ult
+##   A/D ou setas · Espaco pulo · Shift/F dash · Z/J atk · X/K skill1 · C/L skill2 · V/I ult
 ##
 ## Regras GDD:
-##   - Pulo 1├ù + coyote; dash c/ cooldown **sem** i-frames
-##   - Hits ÔåÆ Game.add_breath_from_hit; ultimate ÔåÆ Game.consume_ultimate + i-frames curtos
+##   - Pulo 1x + coyote; dash c/ cooldown **sem** i-frames
+##   - Hits → Game.add_breath_from_hit; ultimate → Game.consume_ultimate + i-frames curtos
 ##   - Skills placeholder: "Corte em Arco" / "Investida"
+##   - Juice: hit flash / knockback / hitstop / camera shake via CombatFeel
 
 enum State {
 	IDLE,
@@ -42,11 +43,6 @@ signal state_changed(new_state: State)
 @onready var hurtbox: Hurtbox = %Hurtbox
 @onready var hitbox_shape: CollisionShape2D = %HitboxShape
 
-const TEX_IDLE: Texture2D = preload("res://assets/characters/player/tanjiro_idle_side.png")
-const TEX_RUN: Texture2D = preload("res://assets/characters/player/combat/tanjiro_run.png")
-const TEX_ATTACK: Texture2D = preload("res://assets/characters/player/combat/tanjiro_attack_slash.png")
-const TEX_ATTACK_B: Texture2D = preload("res://assets/characters/player/hub_idle/06.png")
-
 var _state: State = State.IDLE
 ## 1.0 = direita, -1.0 = esquerda.
 var _facing: float = 1.0
@@ -67,7 +63,10 @@ var _hurt_timer: float = 0.0
 var _invuln_timer: float = 0.0
 var _hitbox_base_x: float = 28.0
 var _default_hitbox_size: Vector2 = Vector2(40.0, 30.0)
-var _run_bob_t: float = 0.0
+var _flash_left: float = 0.0
+var _base_modulate: Color = Color.WHITE
+const FLASH_HURT: Color = Color(1.5, 0.45, 0.45, 1.0)
+const FLASH_TIME: float = 0.1
 
 
 func _ready() -> void:
@@ -102,13 +101,8 @@ func _ready() -> void:
 			hurtbox.hurt.connect(_on_hurt)
 
 	if sprite:
-		sprite.texture = TEX_IDLE
-		sprite.centered = true
-		# Master ~1024px -> altura em jogo ~90px
-		sprite.scale = Vector2(0.11, 0.11)
-		sprite.position = Vector2(0, -42)
+		_base_modulate = sprite.modulate
 	_apply_facing_visual()
-	_sync_sprite_to_state()
 	hp_changed.emit(hp, stats.max_hp)
 
 
@@ -131,12 +125,11 @@ func _physics_process(delta: float) -> void:
 		_:
 			_process_locomotion(delta)
 
-	_update_run_bob(delta)
-
 	move_and_slide()
 	_update_state_after_move()
 	_apply_facing_visual()
 	_update_hurtbox_invuln()
+	_tick_flash(delta)
 
 
 func get_state() -> State:
@@ -181,7 +174,7 @@ func try_jump() -> bool:
 
 
 func try_dash() -> bool:
-	## Dash curto na dire├º├úo que olha. Cooldown; 1 dash a├®reo. Sem i-frames.
+	## Dash curto na direcao que olha. Cooldown; 1 dash aereo. Sem i-frames.
 	if _state == State.DASH or _state == State.DEAD or _state == State.HURT:
 		return false
 	if _is_attack_locked():
@@ -212,6 +205,9 @@ func apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 
 	hp = maxi(0, hp - amount)
 	hp_changed.emit(hp, stats.max_hp)
+	_start_flash()
+	if is_instance_valid(Audio):
+		Audio.play_sfx("hurt")
 
 	if hp <= 0:
 		_enter_dead()
@@ -224,6 +220,8 @@ func apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 	_disable_hitbox()
 	if hurtbox:
 		hurtbox.invulnerable = true
+	if is_instance_valid(CombatFeel):
+		CombatFeel.shake(2.5, 0.08)
 
 
 func heal_full() -> void:
@@ -253,7 +251,7 @@ func _process_locomotion(delta: float) -> void:
 	if Input.is_action_just_pressed("advance"):
 		try_dash()
 
-	# Combate ÔÇö prioridade: ultimate > skills > basic (s├│ no ch├úo p/ MVP skills/atk)
+	# Combate — prioridade: ultimate > skills > basic (so no chao p/ MVP skills/atk)
 	if Input.is_action_just_pressed("ultimate"):
 		if _try_start_ultimate():
 			return
@@ -292,7 +290,7 @@ func _process_action(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + stats.gravity * delta, stats.max_fall_speed)
 
-	# Skill 2 investida: avan├ºa durante active.
+	# Skill 2 investida: avanca durante active.
 	if _state == State.SKILL_2 and _action_timer >= _action_startup \
 			and _action_timer < _action_startup + _action_active:
 		velocity.x = _facing * stats.skill_2_lunge_speed
@@ -388,6 +386,10 @@ func _try_start_ultimate() -> bool:
 	_invuln_timer = maxf(_invuln_timer, stats.ultimate_iframes)
 	if hurtbox:
 		hurtbox.invulnerable = true
+	if is_instance_valid(Audio):
+		Audio.play_sfx("ultimate")
+	if is_instance_valid(CombatFeel):
+		CombatFeel.shake(CombatFeel.SHAKE_ULT, CombatFeel.SHAKE_ULT_DUR)
 
 	_begin_action(
 		State.ULTIMATE,
@@ -422,6 +424,9 @@ func _begin_action(
 	_configure_hitbox(damage, knockback, hit_size, offset_x)
 	_disable_hitbox()
 	_apply_facing_visual()
+	# SFX de swing (slash) no inicio do golpe; ultimate ja tocou "ultimate".
+	if new_state != State.ULTIMATE and is_instance_valid(Audio):
+		Audio.play_sfx("slash", randf_range(0.95, 1.08))
 
 
 func _configure_hitbox(damage: int, knockback: Vector2, size: Vector2, offset_x: float) -> void:
@@ -458,11 +463,16 @@ func _disable_hitbox() -> void:
 
 
 func _on_hitbox_hit(_hurtbox: Hurtbox, _hit_data: HitData) -> void:
-	# Respira├º├úo por hit que acerta (GDD).
+	# Respiracao por hit que acerta (GDD) + juice.
 	if stats:
 		Game.add_breath_from_hit(stats.breath_per_hit)
 	else:
 		Game.add_breath_from_hit()
+	if is_instance_valid(Audio):
+		Audio.play_sfx("hit", randf_range(0.92, 1.1))
+	if is_instance_valid(CombatFeel):
+		var is_ult: bool = _state == State.ULTIMATE
+		CombatFeel.hit_impact(1.25 if is_ult else 1.0, is_ult)
 
 
 func _on_hurt(hit_data: HitData) -> void:
@@ -531,8 +541,22 @@ func _tick_timers(delta: float) -> void:
 func _update_hurtbox_invuln() -> void:
 	if hurtbox == null or _state == State.DEAD:
 		return
-	# i-frames de hurt/ultimate; dash N├âO d├í i-frames.
+	# i-frames de hurt/ultimate; dash NAO da i-frames.
 	hurtbox.invulnerable = _invuln_timer > 0.0
+
+
+func _start_flash() -> void:
+	_flash_left = FLASH_TIME
+	if sprite and _state != State.DEAD:
+		sprite.modulate = FLASH_HURT
+
+
+func _tick_flash(delta: float) -> void:
+	if _flash_left <= 0.0:
+		return
+	_flash_left -= delta
+	if _flash_left <= 0.0 and sprite and _state != State.DEAD:
+		sprite.modulate = _base_modulate
 
 
 func _can_jump() -> bool:
@@ -553,44 +577,6 @@ func _set_state(new_state: State) -> void:
 		return
 	_state = new_state
 	state_changed.emit(new_state)
-	_sync_sprite_to_state()
-
-
-func _sync_sprite_to_state() -> void:
-	if sprite == null:
-		return
-	match _state:
-		State.RUN, State.DASH:
-			sprite.texture = TEX_RUN if TEX_RUN else TEX_IDLE
-		State.ATTACK_BASIC:
-			sprite.texture = TEX_ATTACK if TEX_ATTACK else TEX_IDLE
-		State.SKILL_1, State.SKILL_2, State.ULTIMATE:
-			sprite.texture = TEX_ATTACK_B if TEX_ATTACK_B else TEX_ATTACK
-		State.HURT, State.DEAD:
-			sprite.texture = TEX_IDLE
-			sprite.modulate = Color(1.0, 0.55, 0.55, 1.0) if _state == State.HURT else Color(0.5, 0.5, 0.55, 0.9)
-		_:
-			sprite.texture = TEX_IDLE
-			if _state != State.DEAD:
-				sprite.modulate = Color.WHITE
-	_apply_facing_visual()
-
-
-func _update_run_bob(delta: float) -> void:
-	if sprite == null:
-		return
-	var base_y: float = -42.0
-	if _state == State.RUN and is_on_floor():
-		_run_bob_t += delta * 12.0
-		sprite.position.y = base_y + sin(_run_bob_t) * 3.0
-	elif _state == State.JUMP:
-		sprite.position.y = base_y - 4.0
-		sprite.rotation = 0.08 * _facing
-	else:
-		_run_bob_t = 0.0
-		sprite.position.y = base_y
-		if _state != State.ATTACK_BASIC and _state != State.SKILL_1:
-			sprite.rotation = 0.0
 
 
 func _apply_facing_visual() -> void:

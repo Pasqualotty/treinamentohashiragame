@@ -176,6 +176,7 @@ func _on_play_pressed() -> void:
 
 func _on_shop_pressed() -> void:
 	_ui_click()
+	SceneRouter.to_shop()
 
 
 func _on_characters_pressed() -> void:

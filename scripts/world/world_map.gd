@@ -35,6 +35,8 @@ func _ready() -> void:
 	_layout_stage_buttons()
 	_refresh_nodes()
 	status_label.text = "Mundo 1 — escolha uma fase no caminho"
+	if is_instance_valid(Audio):
+		Audio.play_bgm("hub")
 
 
 func _notification(what: int) -> void:

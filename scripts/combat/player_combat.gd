@@ -31,6 +31,8 @@ func _ready() -> void:
 		_hitbox_base_x = absf(hitbox.position.x)
 		if is_zero_approx(_hitbox_base_x):
 			_hitbox_base_x = 28.0
+		if not hitbox.hit.is_connected(_on_hitbox_hit):
+			hitbox.hit.connect(_on_hitbox_hit)
 
 
 func _physics_process(delta: float) -> void:
@@ -124,3 +126,10 @@ func _apply_facing() -> void:
 		sprite.flip_h = facing < 0.0
 	if hitbox:
 		hitbox.position.x = _hitbox_base_x * facing
+
+
+func _on_hitbox_hit(_hurtbox: Variant, _hit_data: Variant) -> void:
+	if is_instance_valid(Audio):
+		Audio.play_sfx("hit", randf_range(0.92, 1.1))
+	if is_instance_valid(CombatFeel):
+		CombatFeel.hit_impact(1.0, false)

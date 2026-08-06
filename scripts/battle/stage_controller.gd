@@ -32,6 +32,9 @@ func _ready() -> void:
 		Game.breath = 0.0
 		Game.breath_changed.emit(Game.breath, Game.breath_max)
 
+	if is_instance_valid(Audio):
+		Audio.play_bgm("stage")
+
 	_player = _find_player()
 	_goal = _find_goal()
 	if _goal:
@@ -113,6 +116,10 @@ func _complete_stage() -> void:
 	_completed = true
 	Game.bank_run_coins()
 	Game.mark_stage_cleared(stage_id)
+	if is_instance_valid(Audio):
+		Audio.play_sfx("stage_clear")
+	if is_instance_valid(CombatFeel):
+		CombatFeel.shake(5.0, 0.15)
 	print("[StageController] CLEAR %s → bank + world_map" % stage_id)
 	await get_tree().create_timer(0.9).timeout
 	SceneRouter.to_world_map()
@@ -169,6 +176,7 @@ func _all_enemies_defeated() -> bool:
 	## Após um `defeated`, se não restar ninguém vivo no group (ou group vazio
 	## porque o último oni deu queue_free), a fase pode clear.
 	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemy")
+	# Grupo vazio apos queue_free = todos mortos (clear por wipe).
 	if enemies.is_empty():
 		return true
 	for n: Node in enemies:
@@ -179,6 +187,11 @@ func _all_enemies_defeated() -> bool:
 			return false
 		# Dummy/oni sem prop hp: conta como vivo se ainda no group.
 		if n_hp == null:
+			return false
+		if n.get("_died") == true or n.get("_defeated") == true:
+			continue
+		# Inimigo vivo sem hp exposto: nao assume morto.
+		if n.get("hp") == null:
 			return false
 	return true
 
