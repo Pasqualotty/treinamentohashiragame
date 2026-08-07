@@ -278,7 +278,7 @@
 <body>
   <header class="hero">
     <div class="hero-inner">
-      <div class="badge">Pasqualotti Studios · Fan project pessoal · Snapshot 2026-08-06 · MVP W1 COMPLETO</div>
+      <div class="badge">Pasqualotti Studios · Fan project pessoal · Snapshot 2026-08-07 · MVP W1 COMPLETO · residual = QA + escala</div>
       <h1>Demon Slayer — Treinamento Hashira</h1>
       <p class="subtitle">
         Documento mestre com passo a passo, decisões de produto, mecânicas, arquitetura técnica e
@@ -333,12 +333,14 @@
       <h2><span class="phase-tag crit">Essencial</span> 0. Ordem correta — o que vem antes?</h2>
       <p class="lead">Regra do projeto: <strong>produto leve → setup → protótipo feio jogável → arte/polish → conteúdo</strong>.</p>
       <div class="callout">
-        <strong>Onde estamos (2026-08-05):</strong>
-        GDD mínimo ✅ · Godot 4.7 + JDK + Android SDK ✅ · fluxo
-        <strong>splash → loading → hub (arte viva) → mapa stub</strong> validado no PC ✅ ·
-        pack de arte v0.1 + hub Tanjiro v3 ✅ ·
-        <strong>ainda não existe fase de combate jogável</strong> · APK no telefone ainda não.
-        <br /><strong>Próximo foco:</strong> residual Fase B (InputMap + touch + export) → Fase C (vertical slice).
+        <strong>Onde estamos (2026-08-07):</strong>
+        <strong>MVP W1 COMPLETO</strong> — splash → loading → hub → mapa visual → fases 1–3 + boss jogáveis ·
+        combate (Tanjiro, oni fraco/elite, breath/ult, touch, HUD) · loja 4 upgrades + save · pause · créditos ·
+        APK debug em <code>export/TreinamentoHashira-debug.apk</code> · prova emulador em <code>export/playtest_shots/</code>.
+        Hotfix: <code>SceneRouter</code> (const <code>SHOP</code> duplicada) corrigido.
+        <br /><strong>Próximo foco (pós-MVP):</strong> playtest humano (sobrinho) · QA touch/FPS/save · polish hitbox/arte ·
+        depois Fase F (elenco/mundos) e G (release assinado + 3+ celulares).
+        Detalhe vivo: <code>docs/STATUS-PROGRESSO.md</code>.
       </div>
       <div class="callout warn">
         <strong>Design de jogo (regras, loop, controles)</strong> vem <em>antes</em> de implementar de verdade.
@@ -351,11 +353,12 @@
         </thead>
         <tbody>
           <tr><td>Produto / GDD curto</td><td>Fase A</td><td>Loop, controles, respiração, moedas, MVP</td><td>✅ feito</td></tr>
-          <tr><td>Setup técnico</td><td>Fase A/B</td><td>Godot + Git + pastas + SDK</td><td>✅ (falta Hello APK)</td></tr>
-          <tr><td>Meta / boot / hub</td><td>Fase B+</td><td>Splash, loading, hub, mapa stub</td><td>✅ PC</td></tr>
-          <tr><td>Vertical slice</td><td><strong>agora</strong></td><td>Tanjiro combate, breath, 1 fase, oni, HUD</td><td>⬜ próximo</td></tr>
-          <tr><td>Arte &amp; áudio de combate</td><td>Em cima do slice</td><td>Run/atk sheets, SFX, BGM</td><td>🟡 hub/pack</td></tr>
-          <tr><td>Conteúdo em escala</td><td>Depois do slice divertido</td><td>Mundos, elenco, chefes</td><td>⬜</td></tr>
+          <tr><td>Setup técnico</td><td>Fase A/B</td><td>Godot + Git + pastas + SDK + APK debug</td><td>✅</td></tr>
+          <tr><td>Meta / boot / hub</td><td>Fase B+</td><td>Splash, loading, hub, mapa, loja, créditos</td><td>✅</td></tr>
+          <tr><td>Vertical slice + W1</td><td>Fase C–D</td><td>Tanjiro, 3 fases + boss, onis, HUD, save</td><td>✅ MVP</td></tr>
+          <tr><td>Arte &amp; áudio MVP</td><td>Fase E</td><td>Sheets legíveis, SFX/BGM placeholders, brand_sting</td><td>✅ MVP · polish depois</td></tr>
+          <tr><td>Conteúdo em escala</td><td>Fase F</td><td>Mundos, elenco, chefes</td><td>⬜ pós-MVP</td></tr>
+          <tr><td>Noite dos amigos / release</td><td>Fase G</td><td>Keystore, 3+ celulares, playtest humano</td><td>⬜ residual</td></tr>
         </tbody>
       </table>
       <ul class="check" data-section="ordem">
@@ -530,7 +533,7 @@
       </div>
       <ul class="check" data-section="mec">
         <li><input type="checkbox" id="m11" checked /><label for="m11">API de respiração no autoload <code>Game</code> (valor, max, signals)</label>
-          <span class="hint">Feito em <code>scripts/autoload/game.gd</code>. Ainda falta HUD e wiring no player de combate.</span>
+          <span class="hint">Feito em <code>scripts/autoload/game.gd</code> + HUD + player (MVP W1).</span>
         </li>
         <li><input type="checkbox" id="m12" checked /><label for="m12">HUD: barra de respiração (vazia → cheia com glow)</label></li>
         <li><input type="checkbox" id="m13" checked /><label for="m13">Botão ultimate desabilitado visualmente até full</label></li>
@@ -551,26 +554,26 @@
       <ul class="check" data-section="mec">
         <li><input type="checkbox" id="m21" checked /><label for="m21">Modelo de dados: World → lista de Stage IDs → Boss Stage</label></li>
         <li><input type="checkbox" id="m22" checked /><label for="m22">Cena de fase: TileMap + spawns + checkpoint + goal</label>
-          <span class="hint"><code>scenes/battle/</code> ainda vazia. Mapa só imprime “em breve”.</span>
+          <span class="hint"><code>scenes/battle/stage_w1_01..03 + boss</code> + <code>stage_controller.gd</code>.</span>
         </li>
         <li><input type="checkbox" id="m23" checked /><label for="m23">Tela de mapa do mundo (stub de botões de fase)</label>
-          <span class="hint"><code>scenes/world/world_map.tscn</code> + script — 3 fases + boss (texto stub). Falta mapa visual com nós/caminho.</span>
+          <span class="hint">Mapa visual W1 com nós Fase 1–3 + Boss · <code>world_map.tscn</code>.</span>
         </li>
         <li><input type="checkbox" id="m24" checked /><label for="m24">Transição de fim de fase → mapa (com moedas ganhadas / bank)</label></li>
         <li><input type="checkbox" id="m25" checked /><label for="m25">Bloquear boss até fases obrigatórias cleared</label>
-          <span class="hint">Texto no stub; lógica com <code>Game.stages_cleared</code> ainda não liga UI.</span>
+          <span class="hint">Lock no mapa + <code>Game.stages_cleared</code>.</span>
         </li>
       </ul>
 
       <h3>3.6 Loja e upgrades</h3>
       <ul class="check" data-section="mec">
         <li><input type="checkbox" id="m26" checked /><label for="m26">Tela de loja acessível do hub/mapa</label>
-          <span class="hint">Botão LOJA no hub existe (stub de mensagem).</span>
+          <span class="hint"><code>scenes/ui/shop.tscn</code> + botão LOJA no hub · 4 upgrades compráveis.</span>
         </li>
         <li><input type="checkbox" id="m27" checked /><label for="m27">Catálogo de upgrades em Resource/JSON (id, nome, custo, nível max, efeito)</label></li>
         <li><input type="checkbox" id="m28" checked /><label for="m28">Compra gasta moedas, sobe nível, aplica em PlayerStats</label></li>
         <li><input type="checkbox" id="m29" checked /><label for="m29">Persistência base: moedas banked + dict upgrades no save</label>
-          <span class="hint"><code>Game.save_game</code> / <code>load_game</code> — schema v1. Falta UI de compra e stats aplicados.</span>
+          <span class="hint"><code>Game.save_game</code> / <code>load_game</code> schema v1 + UI de compra (MVP).</span>
         </li>
       </ul>
 
@@ -802,20 +805,20 @@
       <h2><span class="phase-tag tech">Roadmap</span> 7. Fases de desenvolvimento (checklist de entrega)</h2>
 
       <p class="lead">
-        Snapshot <strong>2026-08-05</strong> · detalhe em <code>docs/STATUS-PROGRESSO.md</code>.
-        <strong>A ✅ · B 🟡 (hub polido; falta input/APK) · C ⬜ · D 🟡 save base · E 🟡 pack hub · F/G ⬜</strong>
+        Snapshot <strong>2026-08-07</strong> · detalhe em <code>docs/STATUS-PROGRESSO.md</code>.
+        <strong>A–E ✅ MVP · F/G ⬜ residual · próximo = playtest humano + QA Android real</strong>
       </p>
 
       <table>
         <thead><tr><th>Fase</th><th>Nome</th><th>Status</th><th>Notas</th></tr></thead>
         <tbody>
           <tr><td>A</td><td>Fundação produto + repo</td><td>✅</td><td>GDD, git, Godot, checklist</td></tr>
-          <tr><td>B</td><td>Hello + input + pixel</td><td>🟡</td><td>Boot/hub OK; InputMap/touch/APK faltam</td></tr>
-          <tr><td>C</td><td>Vertical slice combate</td><td>⬜ <strong>próximo</strong></td><td>Player, skills, breath, oni, fase</td></tr>
-          <tr><td>D</td><td>Meta (mapa, loja, save)</td><td>🟡</td><td>Mapa stub + save base; loja UI não</td></tr>
-          <tr><td>E</td><td>Arte &amp; feel</td><td>🟡</td><td>Pack v0.1 + hub Tanjiro v3; combate sheets não</td></tr>
-          <tr><td>F</td><td>Conteúdo em escala</td><td>⬜</td><td>—</td></tr>
-          <tr><td>G</td><td>Noite dos amigos</td><td>⬜</td><td>—</td></tr>
+          <tr><td>B</td><td>Hello + input + pixel</td><td>✅</td><td>Boot/hub + InputMap/touch + APK debug</td></tr>
+          <tr><td>C</td><td>Vertical slice combate</td><td>✅</td><td>Player, skills, breath, oni, fases W1</td></tr>
+          <tr><td>D</td><td>Meta (mapa, loja, save)</td><td>✅</td><td>Mapa visual, loja 4 upgrades, save, pause, créditos</td></tr>
+          <tr><td>E</td><td>Arte &amp; feel</td><td>✅ MVP</td><td>Sheets legíveis + SFX/BGM placeholders; polish AAA depois</td></tr>
+          <tr><td>F</td><td>Conteúdo em escala</td><td>⬜ <strong>depois</strong></td><td>Zenitsu/Inosuke, W2+, Hashiras</td></tr>
+          <tr><td>G</td><td>Noite dos amigos</td><td>⬜ <strong>próximo útil</strong></td><td>Playtest sobrinho, keystore, 3+ celulares</td></tr>
         </tbody>
       </table>
 
@@ -838,11 +841,11 @@
           <span class="hint">Commits hub/art 2026-08-03…05. Pack review em <code>assets/pack_review_hub_tanjiro/</code>.</span>
         </li>
         <li><input type="checkbox" id="f5" checked /><label for="f5">InputMap + touch buttons em canvas (combate)</label>
-          <span class="hint">Asset row em <code>assets/ui/touch/buttons_row.png</code> — falta cortar + ligar actions.</span>
+          <span class="hint"><code>combat_touch_controls</code> + texturas reais · residual = ergonomia no dedo (q1).</span>
         </li>
         <li><input type="checkbox" id="f6" checked /><label for="f6">Config pixel/2D (filter off, stretch, mobile renderer)</label></li>
         <li><input type="checkbox" id="f7" checked /><label for="f7">APK do menu/hub no telefone</label>
-          <span class="hint">SDK ok; falta preset + templates + export.</span>
+          <span class="hint"><code>export/TreinamentoHashira-debug.apk</code> · gl_compatibility no mobile.</span>
         </li>
       </ul>
 
@@ -860,7 +863,7 @@
       <h3>Fase D — Meta (mapa, loja, save)</h3>
       <ul class="check" data-section="fase">
         <li><input type="checkbox" id="f13" checked /><label for="f13">World map W1 visual com 3 nós + boss lock</label>
-          <span class="hint">Hoje: botões de texto. <code>Game.stages_cleared</code> pronto pra plugar.</span>
+          <span class="hint">Mapa visual + lock boss via <code>Game.stages_cleared</code>.</span>
         </li>
         <li><input type="checkbox" id="f14" checked /><label for="f14">Loja com ≥4 upgrades compráveis</label></li>
         <li><input type="checkbox" id="f15" checked /><label for="f15">Save/load base (moedas, stages, upgrades dict)</label>
@@ -871,16 +874,18 @@
 
       <h3>Fase E — Arte &amp; feel</h3>
       <ul class="check" data-section="fase">
-        <li><input type="checkbox" id="f17" /><label for="f17">Tanjiro combate: idle side, run, atks, ultimate, hurt</label>
-          <span class="hint">Hub showcase ✅ (idle/blink/flourish). Side idle + oni + keyart no pack v0.1. Falta run/combat set.</span>
+        <li><input type="checkbox" id="f17" checked /><label for="f17">Tanjiro combate: idle side, run, atks, ultimate, hurt</label>
+          <span class="hint">MVP: AnimatedSprite2D + estados. Residual: sheets multi-frame AAA + hitbox por frame (r9).</span>
         </li>
-        <li><input type="checkbox" id="f18" /><label for="f18">Tileset W1 completo + 2 onis</label>
-          <span class="hint">Chão path + 1 oni fraco no pack; falta 2º oni e tiles de decor/hazard.</span>
+        <li><input type="checkbox" id="f18" checked /><label for="f18">Tileset W1 completo + 2 onis</label>
+          <span class="hint">Oni fraco + elite · BG parallax / chão nas fases. Decor/hazard extra = polish.</span>
         </li>
-        <li><input type="checkbox" id="f19" /><label for="f19">UI HUD de combate + ícones HP/breath</label>
-          <span class="hint">Moeda e botões de hub existem.</span>
+        <li><input type="checkbox" id="f19" checked /><label for="f19">UI HUD de combate + ícones HP/breath</label>
+          <span class="hint"><code>combat_hud.tscn</code> no slice.</span>
         </li>
-        <li><input type="checkbox" id="f20" /><label for="f20">SFX essenciais + 1 BGM loop + jingle da marca</label></li>
+        <li><input type="checkbox" id="f20" checked /><label for="f20">SFX essenciais + 1 BGM loop + jingle da marca</label>
+          <span class="hint">Buses + <code>brand_sting</code> + hub/stage loops. Falta BGM de boss dedicado.</span>
+        </li>
       </ul>
 
       <h3>Fase F — Conteúdo em escala</h3>
@@ -930,7 +935,7 @@
       <ul class="check" data-section="arte">
         <li><input type="checkbox" id="r10" checked /><label for="r10">Tileset W1 completo (chão ✅ draft, plataforma, decor, hazard)</label></li>
         <li><input type="checkbox" id="r11" checked /><label for="r11">Fundo do hub animado (frames + drift)</label>
-          <span class="hint">Parallax de <em>fase</em> W1 ainda falta.</span>
+          <span class="hint">Hub animado ✅ · parallax de fase W1 ✅ (MVP).</span>
         </li>
         <li><input type="checkbox" id="r12" checked /><label for="r12">Ícones: moeda ✅ · HP · respiração</label></li>
         <li><input type="checkbox" id="r13" checked /><label for="r13">Botões touch combate (cortar row + estados normal/pressed/disabled)</label></li>
@@ -942,14 +947,16 @@
     <!-- 9 -->
     <section class="block" id="audio">
       <h2><span class="phase-tag art">Áudio</span> 9. Áudio</h2>
-      <p class="lead">Pastas <code>assets/audio/{bgm,sfx}</code> existem, ainda vazias. Ver <code>docs/AUDIO-PIPELINE.md</code>.</p>
+      <p class="lead">Pastas <code>assets/audio/{bgm,sfx}</code> com placeholders WAV + autoload <code>Audio</code>. Ver <code>docs/AUDIO-PIPELINE.md</code>.</p>
       <ul class="check" data-section="audio">
         <li><input type="checkbox" id="s1" checked /><label for="s1">Bus layout: Master / BGM / SFX</label></li>
         <li><input type="checkbox" id="s2" checked /><label for="s2">SFX combate: slash, skill, hit, hurt, coin, breath_full, ultimate</label></li>
         <li><input type="checkbox" id="s2b" checked /><label for="s2b">SFX UI + <strong>jingle / sting da marca</strong> no splash</label>
-          <span class="hint">Pendente GDD §9 — <code>brand_sting</code>.</span>
+          <span class="hint"><code>assets/audio/sfx/brand_sting.wav</code> + hooks no splash.</span>
         </li>
-        <li><input type="checkbox" id="s3" checked /><label for="s3">BGM: hub/menu, fase W1, boss</label></li>
+        <li><input type="checkbox" id="s3" checked /><label for="s3">BGM: hub/menu, fase W1, boss</label>
+          <span class="hint">hub_loop + stage_loop ✅ · <strong>boss loop dedicado ainda falta</strong>.</span>
+        </li>
         <li><input type="checkbox" id="s4" checked /><label for="s4">Licenças ok (original, CC0, ou composição de vocês) — sem rip de OST comercial</label></li>
         <li><input type="checkbox" id="s5" checked /><label for="s5">Volume persistido no save</label></li>
       </ul>
@@ -1014,10 +1021,10 @@
       </div>
       <ul class="check" data-section="mvp">
         <li><input type="checkbox" id="mv1" checked /><label for="mv1">MVP definido e colado no fridge mental do time</label>
-          <span class="hint">GDD §7. Hub/boot já “existem”; o buraco é o slice de combate.</span>
+          <span class="hint">GDD §7 · MVP W1 entregue 2026-08-06 · ver STATUS-PROGRESSO.</span>
         </li>
         <li><input type="checkbox" id="mv2" checked /><label for="mv2">Qualquer ideia nova vai pra lista “depois do MVP” sem entrar no slice</label>
-          <span class="hint">Regra em uso: não escalar elenco antes da Fase C divertida.</span>
+          <span class="hint">Pós-MVP: QA humano → polish → elenco/mundos (F) → release amigos (G).</span>
         </li>
       </ul>
     </section>
@@ -1056,18 +1063,19 @@
         <li><input type="checkbox" id="e6" checked /><label for="e6">Refs UX Brawl-like (só layout) em <code>docs/references/ui/</code></label></li>
       </ul>
       <div class="callout">
-        <strong>Próxima ação recomendada (2026-08-05):</strong>
-        1) Colar paths Android no Editor se ainda não · 2) InputMap + HUD touch (Fase B residual) ·
-        3) Player CharacterBody2D + atk básico + 1 oni + fase curta (Fase C) ·
-        4) APK no celular quando o slice “anda e bate”.
-        <br />Não priorizar mais personagens ou polish infinito do hub.
+        <strong>Próxima ação recomendada (2026-08-07):</strong>
+        1) Reabrir o projeto no Godot e confirmar boot (hotfix SceneRouter) ·
+        2) Playtest com o sobrinho sem explicar (f12 / b2) ·
+        3) QA no celular real: touch, FPS, save kill-app (q1–q4) ·
+        4) Só depois: polish hitbox/arte, BGM de boss, elenco (F) ou keystore release (G).
+        <br />Não priorizar mais personagens antes de provar diversão no W1 com humano de verdade.
       </div>
     </section>
   </div>
 
   <footer>
     Pasqualotti Studios — Treinamento Hashira · Checklist mestre · Fan game não oficial para uso pessoal ·
-    Atualizado 2026-08-05 · Progresso: localStorage chave <span class="mono">hashira-checklist-v2</span>
+    Atualizado 2026-08-07 · Progresso: localStorage chave <span class="mono">hashira-checklist-v2</span>
   </footer>
 
   <script>

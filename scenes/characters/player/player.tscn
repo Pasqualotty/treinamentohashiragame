@@ -24,9 +24,10 @@ stats = ExtResource("3_stats")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 unique_name_in_owner = true
-position = Vector2(0, -42)
-scale = Vector2(0.11, 0.11)
+position = Vector2(0, -48)
+scale = Vector2(0.14, 0.14)
 centered = true
+z_index = 2
 texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

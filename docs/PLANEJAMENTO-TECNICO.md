@@ -417,13 +417,28 @@ Trocar de papel às vezes = os dois aprendem.
 
 ## 13. Próximos passos concretos (quando você autorizar)
 
-1. Confirmar: **Godot 4 + GDScript + portrait?**  
-2. Instalar Fase A (Godot + Git) nesta máquina  
-3. Criar `project.godot` neste repositório + `.gitignore`  
-4. Escrever **GDD curto** (1 página): loop, controles, 1 personagem, 1 inimigo  
-5. Style bible + primeiros placeholders  
-6. Hello APK  
-7. Vertical slice  
+> **⚠️ Superado (2026-08-07):** a lista abaixo era o *primeiro* bootstrap do repo.  
+> Estado atual e pendências = **`docs/STATUS-PROGRESSO.md`** (+ checklist HTML).  
+> MVP W1 (boot → combate → loja → APK) já está entregue.
+
+### Histórico (bootstrap inicial — feito)
+
+1. ~~Confirmar: Godot 4 + GDScript~~ → **paisagem** 1280×720 (não portrait)  
+2. ~~Instalar Fase A (Godot + Git)~~  
+3. ~~Criar `project.godot` + `.gitignore`~~  
+4. ~~GDD curto~~ → `docs/GDD-DECISOES.md`  
+5. ~~Style bible + placeholders~~  
+6. ~~Hello APK~~ → `export/TreinamentoHashira-debug.apk`  
+7. ~~Vertical slice~~ → W1 fases 1–3 + boss  
+
+### Próximos de verdade (pós-MVP)
+
+1. Playtest humano (sobrinho) sem explicar  
+2. QA Android real (touch / FPS / save)  
+3. Polish (hitbox por frame, BGM boss, settings de volume na UI)  
+4. Conteúdo em escala (Zenitsu/Inosuke, W2+) quando divertir  
+5. Keystore release + “noite dos amigos” em 3+ aparelhos  
+
 
 ---
 

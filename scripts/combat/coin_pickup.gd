@@ -25,10 +25,25 @@ func _ready() -> void:
 	# Detecta body do player (collision_layer = 2).
 	collision_layer = 0
 	collision_mask = 2
-	if sprite and sprite.texture == null:
-		sprite.texture = COIN_TEX
+	# Hitbox generosa — moeda tem que ser fácil de pegar.
+	if shape and shape.shape is CircleShape2D:
+		(shape.shape as CircleShape2D).radius = maxf((shape.shape as CircleShape2D).radius, 22.0)
+	elif shape and shape.shape is RectangleShape2D:
+		(shape.shape as RectangleShape2D).size = Vector2(40, 40)
+	if sprite:
+		if sprite.texture == null:
+			sprite.texture = COIN_TEX
+		# Textura agora é 128px com alpha — escala fixa legível.
+		sprite.centered = true
+		sprite.scale = Vector2(0.38, 0.38)
+		sprite.z_index = 5
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
+	# Pop de spawn
+	scale = Vector2(0.6, 0.6)
+	var tw := create_tween()
+	tw.tween_property(self, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	set_physics_process(true)
 
 
 func setup(amount: int) -> void:
@@ -47,6 +62,29 @@ func _process(delta: float) -> void:
 	# Piscar no fim da vida.
 	if sprite and _life_left < 2.0:
 		sprite.modulate.a = 0.45 + 0.55 * absf(sin(_life_left * 12.0))
+
+
+func _physics_process(delta: float) -> void:
+	if _collected:
+		return
+	var player := _find_player()
+	if player == null:
+		return
+	var d: float = global_position.distance_to(player.global_position)
+	if d < 90.0:
+		global_position = global_position.move_toward(player.global_position, 280.0 * delta)
+	if d < 28.0:
+		_collect()
+
+
+func _find_player() -> Node2D:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var nodes := tree.get_nodes_in_group("player")
+	if nodes.is_empty():
+		return null
+	return nodes[0] as Node2D
 
 
 func _on_body_entered(body: Node2D) -> void:

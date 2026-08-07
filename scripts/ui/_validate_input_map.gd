@@ -72,6 +72,13 @@ func _initialize() -> void:
 					if b == null:
 						push_error("FAIL missing button node: %s" % btn_name)
 						failed = true
+					elif b is TextureButton:
+						var tb := b as TextureButton
+						if tb.texture_normal == null:
+							push_error("FAIL no texture_normal on %s" % btn_name)
+							failed = true
+						else:
+							print("OK button=%s TextureButton" % btn_name)
 					elif b is TouchScreenButton:
 						var tsb := b as TouchScreenButton
 						if tsb.texture_normal == null:
@@ -79,20 +86,30 @@ func _initialize() -> void:
 							failed = true
 						else:
 							print("OK button=%s action=%s" % [btn_name, tsb.action])
+					elif b is BaseButton:
+						print("OK button=%s BaseButton" % btn_name)
 					else:
-						push_error("FAIL %s not TouchScreenButton" % btn_name)
+						push_error("FAIL %s not a button type (%s)" % [btn_name, b.get_class()])
 						failed = true
-			# Labels ASCII (no mojibake / special pause glyphs)
-			var labels_node: Node = inst.get_node_or_null("Labels")
-			if labels_node:
-				for child in labels_node.get_children():
-					if child is Label:
-						var t: String = (child as Label).text
-						for bad in ["◄", "►", "❚", "ã", "ç", "\ufffd"]:
-							if bad in t:
-								push_error("FAIL non-ASCII/mojibake label: %s" % t)
-								failed = true
-				print("OK labels count=%d" % labels_node.get_child_count())
+			# Labels agora vão baked no PNG (assets/ui/touch/labeled/*)
+			var labeled_ok: int = 0
+			for action_name in ["move_left", "jump", "attack_basic", "ultimate", "pause"]:
+				var lp := "res://assets/ui/touch/labeled/%s.png" % action_name
+				if ResourceLoader.exists(lp):
+					labeled_ok += 1
+				else:
+					push_error("FAIL missing labeled texture: %s" % lp)
+					failed = true
+			print("OK labeled textures=%d" % labeled_ok)
+			# Simula action_press como o botão faz
+			Input.action_press("move_right")
+			await process_frame
+			if not Input.is_action_pressed("move_right"):
+				push_error("FAIL Input.action_press(move_right) not held")
+				failed = true
+			else:
+				print("OK action_press move_right")
+			Input.action_release("move_right")
 			inst.queue_free()
 			await process_frame
 

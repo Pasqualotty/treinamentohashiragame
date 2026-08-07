@@ -77,6 +77,15 @@ const FLASH_TIME: float = 0.1
 
 func _ready() -> void:
 	add_to_group("player")
+	# Física estável no chão (evita "patinar" / não grudar no tile).
+	floor_snap_length = 12.0
+	floor_max_angle = deg_to_rad(50.0)
+	safe_margin = 0.12
+	collision_layer = 2
+	collision_mask = 1
+	motion_mode = CharacterBody2D.MOTION_MODE_GROUNDED
+	up_direction = Vector2.UP
+
 	if stats == null:
 		stats = load(DEFAULT_STATS) as PlayerStats
 	if stats == null:
@@ -109,9 +118,11 @@ func _ready() -> void:
 	if sprite:
 		_base_modulate = Color.WHITE
 		sprite.centered = true
-		sprite.scale = Vector2(0.11, 0.11)
-		sprite.position = Vector2(0, -42)
+		# ~64–72px de altura em 1280×720 (legível sem virar wall).
+		sprite.scale = Vector2(0.14, 0.14)
+		sprite.position = Vector2(0, -48)
 		sprite.texture = TEX_IDLE
+		sprite.z_index = 2
 	_apply_facing_visual()
 	_sync_sprite_to_state()
 	hp_changed.emit(hp, stats.max_hp)
@@ -251,20 +262,26 @@ func heal_full() -> void:
 func _process_locomotion(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + stats.gravity * delta, stats.max_fall_speed)
+	else:
+		# Snap sutil: se está no chão e sem input vertical, zera residual.
+		if velocity.y > 0.0:
+			velocity.y = 0.0
 
 	var axis: float = Input.get_axis("move_left", "move_right")
 	if not is_zero_approx(axis):
 		_facing = signf(axis)
 		velocity.x = axis * stats.move_speed
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, stats.move_speed)
+		# Freio mais firme (feel responsivo no mobile/PC).
+		var brake: float = stats.move_speed * 8.0 * delta
+		velocity.x = move_toward(velocity.x, 0.0, maxf(brake, stats.move_speed * delta * 4.0))
 
 	if Input.is_action_just_pressed("jump"):
 		try_jump()
 	if Input.is_action_just_pressed("advance"):
 		try_dash()
 
-	# Combate — prioridade: ultimate > skills > basic (so no chao p/ MVP skills/atk)
+	# Combate — ultimate > skills > basic (basic também no ar).
 	if Input.is_action_just_pressed("ultimate"):
 		if _try_start_ultimate():
 			return
@@ -330,8 +347,7 @@ func _process_action(delta: float) -> void:
 func _try_start_attack_basic() -> bool:
 	if _is_attack_locked() or _state == State.DASH or _state == State.DEAD or _state == State.HURT:
 		return false
-	if not is_on_floor():
-		return false
+	# Basic pode no ar — skills/ult ainda preferem chão.
 	_begin_action(
 		State.ATTACK_BASIC,
 		stats.attack_startup,
@@ -618,15 +634,26 @@ func _sync_sprite_to_state() -> void:
 func _update_run_bob(delta: float) -> void:
 	if sprite == null:
 		return
-	var base_y: float = -42.0
+	var base_y: float = -48.0
 	if _state == State.RUN and is_on_floor():
-		_run_bob_t += delta * 12.0
-		sprite.position.y = base_y + sin(_run_bob_t) * 3.0
+		_run_bob_t += delta * 14.0
+		# Bob + leve squash de corrida (feel de peso).
+		sprite.position.y = base_y + sin(_run_bob_t) * 2.5
+		var squash: float = 1.0 + sin(_run_bob_t * 2.0) * 0.04
+		sprite.scale = Vector2(0.14 * (2.0 - squash), 0.14 * squash)
 	elif _state == State.JUMP:
-		sprite.position.y = base_y - 4.0
+		sprite.position.y = base_y - 6.0
+		sprite.scale = Vector2(0.13, 0.15)
+	elif _state == State.DASH:
+		sprite.position.y = base_y
+		sprite.scale = Vector2(0.16, 0.12)
+	elif _state in [State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE]:
+		sprite.position.y = base_y
+		sprite.scale = Vector2(0.145, 0.14)
 	else:
 		_run_bob_t = 0.0
 		sprite.position.y = base_y
+		sprite.scale = Vector2(0.14, 0.14)
 
 
 func _apply_facing_visual() -> void:

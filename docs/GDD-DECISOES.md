@@ -2,7 +2,7 @@
 
 **Projeto:** Treinamento Hashira (2D · Android · fan / uso pessoal)  
 **Estúdio:** Pasqualotti Studio  
-**Atualizado:** 2026-08-03 (progresso: boot validado no PC — ver `STATUS-PROGRESSO.md`)
+**Atualizado:** 2026-08-07 (MVP W1 completo no código — progresso vivo em `STATUS-PROGRESSO.md`)
 
 ---
 
@@ -141,7 +141,7 @@ Combate = `stage_*` com HUD de luta (stick, dash, skills).
 | Arquivo | Uso |
 |---------|-----|
 | `assets/branding/pasqualotti-studio-logo.png` | Splash do estúdio |
-| SFX marca (pendente) | `assets/audio/sfx/brand_sting.*` |
+| SFX marca | `assets/audio/sfx/brand_sting.wav` ✅ |
 | `docs/references/ui/ref-*.png` | UX only — nunca importar como asset de jogo “oficial” |
 
 ---

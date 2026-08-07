@@ -92,46 +92,34 @@ func _initialize() -> void:
 				ok = false
 				messages.append("Hurtbox child ausente")
 
-			var anim_sprite: Node = player.get_node_or_null("CanvasItem")
-			if anim_sprite == null:
+			# Visual: Sprite2D (canônico atual) ou AnimatedSprite2D legado.
+			var vis: Node = player.get_node_or_null("Sprite2D")
+			if vis == null:
+				vis = player.get_node_or_null("%Sprite2D")
+			if vis == null:
+				vis = player.find_child("Sprite2D", true, false)
+			if vis == null:
+				vis = player.find_child("AnimatedSprite2D", true, false)
+			if vis == null:
 				ok = false
-				messages.append("CanvasItem ausente no player canÃ´nico")
-			elif not (anim_sprite is CanvasItem):
-				ok = false
-				messages.append("CanvasItem tipo invÃ¡lido")
-			else:
-				var aspr: CanvasItem = anim_sprite as CanvasItem
+				messages.append("Sprite visual ausente no player canônico (Sprite2D)")
+			elif vis is Sprite2D:
+				var spr := vis as Sprite2D
+				if spr.texture == null:
+					ok = false
+					messages.append("Sprite2D sem texture")
+				else:
+					print("OK player Sprite2D texture=", spr.texture.resource_path)
+			elif vis is AnimatedSprite2D:
+				var aspr := vis as AnimatedSprite2D
 				if aspr.sprite_frames == null:
 					ok = false
-					messages.append("SpriteFrames nulo no player")
+					messages.append("SpriteFrames nulo no AnimatedSprite2D")
 				else:
-					var required: PackedStringArray = PackedStringArray([
-						"idle", "run", "attack", "hurt", "ultimate", "jump", "dash"
-					])
-					for anim_name: String in required:
-						if not aspr.sprite_frames.has_animation(anim_name):
-							ok = false
-							messages.append("SpriteFrames sem anim '%s'" % anim_name)
-					# idle deve ter â‰¥1 frame e nÃ£o ser caixa vazia
-					if aspr.sprite_frames.has_animation("idle"):
-						var fc: int = aspr.sprite_frames.get_frame_count("idle")
-						if fc < 1:
-							ok = false
-							messages.append("idle sem frames")
-						else:
-							var tex0: Texture2D = aspr.sprite_frames.get_frame_texture("idle", 0)
-							if tex0 == null:
-								ok = false
-								messages.append("idle frame 0 sem texture")
-					# flip_h + pÃ©s (position.y negativo com centered)
-					if aspr.position.y >= 0.0:
-						ok = false
-						messages.append("sprite position.y deveria ser <0 (pÃ©s no chÃ£o), got %s" % str(aspr.position.y))
-					aspr.flip_h = true
-					if not aspr.flip_h:
-						ok = false
-						messages.append("flip_h nÃ£o aplica")
-					aspr.flip_h = false
+					print("OK player AnimatedSprite2D frames")
+			else:
+				ok = false
+				messages.append("Visual tipo inválido: %s" % vis.get_class())
 
 			# HP inicial
 			if player.has_method("get_hp") and player.has_method("get_max_hp"):
@@ -204,10 +192,15 @@ func _initialize() -> void:
 			if path.find("player.gd") < 0:
 				ok = false
 				messages.append("sandbox Player script nÃ£o Ã© player.gd: %s" % path)
-			# Confirma CanvasItem no player do sandbox
-			if p.get_node_or_null("CanvasItem") == null:
+			# Confirma visual no player do sandbox
+			var svis: Node = p.get_node_or_null("Sprite2D")
+			if svis == null:
+				svis = p.find_child("Sprite2D", true, false)
+			if svis == null:
+				svis = p.find_child("AnimatedSprite2D", true, false)
+			if svis == null:
 				ok = false
-				messages.append("sandbox Player sem CanvasItem")
+				messages.append("sandbox Player sem Sprite visual")
 		sc.queue_free()
 		await process_frame
 

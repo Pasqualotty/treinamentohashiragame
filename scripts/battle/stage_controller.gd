@@ -1,21 +1,24 @@
 extends Node2D
-## Controller comum das fases W1: touch + HUD + goal/inimigos → clear, morte → reload.
+## Controller comum das fases W1:
+## touch + HUD + ondas de oni → destrava saída → clear / morte.
 
 const COMBAT_HUD_SCENE := preload("res://scenes/ui/combat_hud.tscn")
 const TOUCH_SCENE := preload("res://scenes/ui/combat_touch_controls.tscn")
+const WAVE_SCRIPT := preload("res://scripts/battle/wave_director.gd")
 
-## IDs canônicos: w1_01 | w1_02 | w1_03 | w1_boss
 @export var stage_id: String = "w1_01"
 @export var reset_run_coins_on_start: bool = true
 @export var reset_breath_on_start: bool = true
-## true = reload da fase; false = volta ao mapa.
 @export var reload_on_death: bool = true
 @export var fall_death_y: float = 900.0
 @export var spawn_combat_hud: bool = true
 @export var spawn_touch_controls: bool = true
 @export var player_max_hp: int = 100
-## Se true, matar todos do group enemy também completa (além do portal).
-@export var clear_when_enemies_dead: bool = true
+## Com ondas: NÃO limpa a fase só por matar o último oni da cena.
+## Clear = portal após waves_finished (ou portal se use_waves=false).
+@export var use_waves: bool = true
+@export var clear_when_enemies_dead: bool = false
+@export var lock_goal_until_waves_done: bool = true
 
 var _completed: bool = false
 var _dead: bool = false
@@ -23,6 +26,8 @@ var _player: Node2D
 var _goal: Area2D
 var _hud: CanvasLayer
 var _returning: bool = false
+var _waves_done: bool = false
+var _wave_director: Node
 
 
 func _ready() -> void:
@@ -37,15 +42,12 @@ func _ready() -> void:
 
 	_player = _find_player()
 	_goal = _find_goal()
-	if _goal:
-		if _goal.has_signal("reached"):
-			if not _goal.reached.is_connected(_on_goal_reached):
-				_goal.reached.connect(_on_goal_reached)
-		elif not _goal.body_entered.is_connected(_on_goal_body_entered):
-			_goal.body_entered.connect(_on_goal_body_entered)
-
-	_wire_enemies()
+	_setup_player_physics()
 	_wire_player_hits()
+	_wire_player_death()
+
+	if _goal and lock_goal_until_waves_done and use_waves:
+		_set_goal_locked(true)
 
 	if spawn_combat_hud:
 		_hud = COMBAT_HUD_SCENE.instantiate() as CanvasLayer
@@ -69,7 +71,82 @@ func _ready() -> void:
 		add_child(TOUCH_SCENE.instantiate())
 
 	_build_back_button()
-	print("[StageController] stage_id=%s ready (touch+hud)" % stage_id)
+	_build_controls_hint()
+
+	if use_waves:
+		_start_waves()
+	else:
+		_waves_done = true
+		_wire_enemies()
+		if _goal:
+			_set_goal_locked(false)
+
+	if _goal:
+		if _goal.has_signal("reached"):
+			if not _goal.reached.is_connected(_on_goal_reached):
+				_goal.reached.connect(_on_goal_reached)
+		elif not _goal.body_entered.is_connected(_on_goal_body_entered):
+			_goal.body_entered.connect(_on_goal_body_entered)
+
+	print("[StageController] stage_id=%s ready waves=%s" % [stage_id, use_waves])
+
+
+func _setup_player_physics() -> void:
+	if _player == null:
+		return
+	if _player is CharacterBody2D:
+		var body := _player as CharacterBody2D
+		body.floor_snap_length = 12.0
+		body.floor_max_angle = deg_to_rad(50.0)
+		body.safe_margin = 0.12
+		body.collision_mask = 1 # world
+		body.collision_layer = 2 # player
+		# Garante câmera ativa no play.
+		var cam := body.get_node_or_null("Camera2D") as Camera2D
+		if cam:
+			cam.make_current()
+
+
+func _start_waves() -> void:
+	_wave_director = Node.new()
+	_wave_director.set_script(WAVE_SCRIPT)
+	_wave_director.name = "WaveDirector"
+	_wave_director.set("stage_id", stage_id)
+	_wave_director.set("spawn_y", _guess_spawn_y())
+	_wave_director.set("auto_start", true)
+	_wave_director.set("clear_scene_enemies_on_start", true)
+	add_child(_wave_director)
+	if _wave_director.has_signal("waves_finished"):
+		_wave_director.connect("waves_finished", _on_waves_finished)
+
+
+func _guess_spawn_y() -> float:
+	if _player != null:
+		return _player.global_position.y
+	return 500.0
+
+
+func _on_waves_finished() -> void:
+	_waves_done = true
+	if _goal:
+		_set_goal_locked(false)
+	print("[StageController] waves done → goal unlocked")
+
+
+func _set_goal_locked(locked: bool) -> void:
+	if _goal == null:
+		return
+	_goal.monitoring = not locked
+	_goal.visible = true
+	var label := _goal.get_node_or_null("Label") as Label
+	if label:
+		label.text = "FECHADA" if locked else "SAIDA"
+	var glow := _goal.get_node_or_null("PortalGlow") as CanvasItem
+	if glow:
+		glow.modulate = Color(0.5, 0.5, 0.5, 0.5) if locked else Color.WHITE
+	var vis := _goal.get_node_or_null("PortalVisual") as CanvasItem
+	if vis:
+		vis.modulate = Color(0.4, 0.4, 0.45, 0.55) if locked else Color.WHITE
 
 
 func _on_player_hp_changed(current: int, max_hp: int) -> void:
@@ -85,6 +162,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+func _process(_delta: float) -> void:
+	## Pause via botão on-screen usa action_press (nem sempre vira InputEvent
+	## em _unhandled_input). Checa também aqui.
+	if _completed or _dead or _returning:
+		return
+	if get_tree().paused:
+		return
+	if Input.is_action_just_pressed("pause"):
+		_show_pause_menu()
+
+
 func _physics_process(_delta: float) -> void:
 	if _completed or _dead:
 		return
@@ -96,13 +184,12 @@ func _physics_process(_delta: float) -> void:
 		report_player_death()
 
 
-## API pública — inimigos / traps podem chamar depois.
 func report_player_death() -> void:
 	if _completed or _dead:
 		return
 	_dead = true
 	Game.lose_run_coins()
-	print("[StageController] player death → lose_run_coins stage=%s" % stage_id)
+	print("[StageController] player death stage=%s" % stage_id)
 	if reload_on_death:
 		get_tree().reload_current_scene()
 	else:
@@ -110,18 +197,23 @@ func report_player_death() -> void:
 
 
 func _on_goal_reached(_body: Node2D) -> void:
+	if lock_goal_until_waves_done and use_waves and not _waves_done:
+		return
 	_complete_stage()
 
 
 func _on_goal_body_entered(body: Node2D) -> void:
 	if body != null and body.is_in_group("player"):
+		if lock_goal_until_waves_done and use_waves and not _waves_done:
+			return
 		_complete_stage()
 
 
 func _on_enemy_defeated() -> void:
 	if not clear_when_enemies_dead or _completed or _dead:
 		return
-	# Aguarda um frame para o inimigo sair do group se o script remover.
+	if use_waves and not _waves_done:
+		return
 	await get_tree().process_frame
 	if _all_enemies_defeated():
 		_complete_stage()
@@ -137,7 +229,7 @@ func _complete_stage() -> void:
 		Audio.play_sfx("stage_clear")
 	if is_instance_valid(CombatFeel):
 		CombatFeel.shake(5.0, 0.15)
-	print("[StageController] CLEAR %s → bank + world_map" % stage_id)
+	print("[StageController] CLEAR %s coins_banked" % stage_id)
 	await get_tree().create_timer(0.9).timeout
 	SceneRouter.to_world_map()
 
@@ -152,7 +244,6 @@ func _return_to_map(count_as_victory: bool) -> void:
 
 
 func _build_back_button() -> void:
-	## Topo-esquerda: fora do cluster touch (polegares embaixo) e longe do ATK.
 	var layer := CanvasLayer.new()
 	layer.name = "StageChrome"
 	layer.layer = 50
@@ -168,10 +259,37 @@ func _build_back_button() -> void:
 	layer.add_child(back)
 
 
+func _build_controls_hint() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "ControlsHint"
+	layer.layer = 45
+	add_child(layer)
+	var lbl := Label.new()
+	lbl.position = Vector2(16, 64)
+	lbl.size = Vector2(900, 28)
+	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.add_theme_color_override("font_color", Color(0.92, 0.95, 0.88, 0.95))
+	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	lbl.add_theme_constant_override("shadow_offset_x", 1)
+	lbl.add_theme_constant_override("shadow_offset_y", 1)
+	lbl.text = "PC: A/D mover · Espaço pulo · Shift dash · Z atk · X/C skills · V ult · Esc pause"
+	layer.add_child(lbl)
+	# Some sozinho depois de 8s.
+	var tw := create_tween()
+	tw.tween_interval(8.0)
+	tw.tween_property(lbl, "modulate:a", 0.0, 1.2)
+	tw.tween_callback(lbl.queue_free)
+
+
 func _show_pause_menu() -> void:
 	if get_tree().paused:
 		return
+	if has_node("PauseMenu"):
+		return
 	get_tree().paused = true
+	# Garante que hitstop não deixe o jogo em câmera lenta na pausa.
+	if is_instance_valid(CombatFeel):
+		Engine.time_scale = 1.0
 	var layer := CanvasLayer.new()
 	layer.name = "PauseMenu"
 	layer.layer = 80
@@ -196,16 +314,20 @@ func _show_pause_menu() -> void:
 	var resume := Button.new()
 	resume.text = "Continuar"
 	resume.custom_minimum_size = Vector2(0, 56)
+	resume.process_mode = Node.PROCESS_MODE_ALWAYS
 	resume.pressed.connect(func() -> void:
 		get_tree().paused = false
+		Engine.time_scale = 1.0
 		layer.queue_free()
 	)
 	panel.add_child(resume)
 	var to_map := Button.new()
 	to_map.text = "Sair para o mapa"
 	to_map.custom_minimum_size = Vector2(0, 56)
+	to_map.process_mode = Node.PROCESS_MODE_ALWAYS
 	to_map.pressed.connect(func() -> void:
 		get_tree().paused = false
+		Engine.time_scale = 1.0
 		layer.queue_free()
 		_return_to_map(false)
 	)
@@ -213,8 +335,10 @@ func _show_pause_menu() -> void:
 	var to_hub := Button.new()
 	to_hub.text = "Sair para o hub"
 	to_hub.custom_minimum_size = Vector2(0, 56)
+	to_hub.process_mode = Node.PROCESS_MODE_ALWAYS
 	to_hub.pressed.connect(func() -> void:
 		get_tree().paused = false
+		Engine.time_scale = 1.0
 		layer.queue_free()
 		if not _completed:
 			Game.lose_run_coins()
@@ -240,15 +364,20 @@ func _wire_player_hits() -> void:
 			hitbox.connect("hit", _on_player_hitbox_hit)
 
 
+func _wire_player_death() -> void:
+	if _player == null:
+		return
+	if _player.has_signal("died") and not _player.is_connected("died", report_player_death):
+		_player.connect("died", report_player_death)
+
+
 func _on_player_hitbox_hit(_hurtbox: Variant, _hit_data: Variant) -> void:
-	Game.add_breath_from_hit(10.0)
+	# Breath também no player; reforço se o player não conectou.
+	pass
 
 
 func _all_enemies_defeated() -> bool:
-	## Após um `defeated`, se não restar ninguém vivo no group (ou group vazio
-	## porque o último oni deu queue_free), a fase pode clear.
 	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemy")
-	# Grupo vazio apos queue_free = todos mortos (clear por wipe).
 	if enemies.is_empty():
 		return true
 	for n: Node in enemies:
@@ -257,13 +386,9 @@ func _all_enemies_defeated() -> bool:
 		var n_hp: Variant = n.get("hp")
 		if n_hp != null and int(n_hp) > 0:
 			return false
-		# Dummy/oni sem prop hp: conta como vivo se ainda no group.
-		if n_hp == null:
-			return false
-		if n.get("_died") == true or n.get("_defeated") == true:
+		if n.get("_died") == true:
 			continue
-		# Inimigo vivo sem hp exposto: nao assume morto.
-		if n.get("hp") == null:
+		if n_hp == null:
 			return false
 	return true
 
@@ -272,13 +397,11 @@ func _find_player() -> Node2D:
 	var from_group: Array[Node] = get_tree().get_nodes_in_group("player")
 	if not from_group.is_empty():
 		return from_group[0] as Node2D
-	var direct := get_node_or_null("Player") as Node2D
-	return direct
+	return get_node_or_null("Player") as Node2D
 
 
 func _find_goal() -> Area2D:
 	var direct := get_node_or_null("Goal") as Area2D
 	if direct:
 		return direct
-	var nested := find_child("Goal", true, false)
-	return nested as Area2D
+	return find_child("Goal", true, false) as Area2D

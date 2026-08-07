@@ -24,8 +24,9 @@ coin_reward = 10
 
 [node name="Sprite" type="Sprite2D" parent="."]
 unique_name_in_owner = true
-position = Vector2(0, -28)
-scale = Vector2(0.14, 0.14)
+position = Vector2(0, -36)
+scale = Vector2(0.16, 0.16)
+z_index = 1
 texture = ExtResource("2_tex")
 flip_h = true
 

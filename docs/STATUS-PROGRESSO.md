@@ -1,45 +1,100 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-08-06  
-**Marca:** **MVP W1 COMPLETO**
+**Atualizado:** 2026-08-07 (pass de jogabilidade)  
+**Marca:** **MVP W1 + hotfix PLAYABLE**  
+**Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
+**Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
+**GDD / decisões:** `docs/GDD-DECISOES.md`
 
 ---
 
 ## Onde estamos (1 frase)
 
-**MVP do checklist fechado e jogavel:** splash → loading → hub → mapa W1 visual → fases 1–3 + boss → combate (Tanjiro, oni fraco/elite, coins, breath/ult, touch, HUD) → clear → loja 4 upgrades + save → APK debug. Prova em emulador Android (hub/mapa/fase).
+**W1 jogável de verdade (validado smoke headless):** input mouse+teclado+touch, movimento do player, ondas de oni, moedas com magnet, saída trancada até limpar ondas. Fluxo: splash → loading → hub → mapa → fase (ondas) → portal → loja/save.
+
+### Hotfix playability 2026-08-07 (crítico)
+
+| Problema reportado | Causa | Correção |
+|--------------------|-------|----------|
+| Botões não funcionam no Godot (PC) | `TouchScreenButton` **não** recebe mouse | Controles viraram `TextureButton` + `Input.action_press/release` + `emulate_touch_from_mouse` |
+| Movimento “não existe” / física zoada | feel fraco + floor snap fraco; (e input touch morto) | Player snappier, floor_snap, stats mais responsivos; smoke prova `move_right` dx>8 |
+| Fase sem andamento | 1 oni estático + clear imediato | `WaveDirector`: 3 ondas weak/elite, portal FECHADO até acabar |
+| Moedas chatas de pegar | hitbox pequena | radius maior + magnet 90px |
+| SceneRouter null | `const SHOP` duplicado | removido |
+
+**Smoke:** `godot --headless --path . -s res://scripts/qa/smoke_playable_w1.gd` → **PASS** (player move + 2 onis onda 1 + TouchRoot + WaveDirector).
 
 ---
 
-## Definicao de “pronto” (MVP do GDD §2 / d17)
+## Definição de “pronto” (MVP)
 
 | Item | Status |
 |------|--------|
 | 1 mundo, 3 fases + boss | ✅ |
-| So Tanjiro | ✅ |
+| Só Tanjiro | ✅ |
 | Loja 4 upgrades + save | ✅ |
 | 2 tipos de oni (fraco + elite) | ✅ |
 | Boot splash → loading → hub | ✅ |
-| JOGAR → mapa → fase jogavel | ✅ |
+| JOGAR → mapa → fase jogável | ✅ |
 | Touch + InputMap | ✅ |
-| APK instalavel | ✅ `export/TreinamentoHashira-debug.apk` |
-| Creditos fan game | ✅ engrenagem do hub |
+| APK instalável | ✅ `export/TreinamentoHashira-debug.apk` |
+| Créditos fan game | ✅ engrenagem do hub |
 | Pause na fase | ✅ Continuar / Mapa / Hub |
+| SceneRouter (shop/credits/mapa) | ✅ (hotfix 2026-08-07) |
 
 ---
 
-## FORA do MVP (depois — checklist F/G residual)
+## O que ficou **pendente** (pós-MVP / residual)
 
-- Zenitsu, Inosuke, Hashiras, W2–W5, Muzan/Yoriichi  
-- Anim sheets AAA multi-frame  
-- Keystore release assinado + “noite dos amigos” em 3+ aparelhos  
-- Balance fino / nomes de skill com o sobrinho  
+Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 
-Isso **nao** bloqueia o MVP. O doc diz: MVP ≠ jogo dos sonhos no dia 1.
+### 1) QA humano & playtest (próximo útil)
+
+| Item | Por quê | Doc / checklist |
+|------|---------|-----------------|
+| Playtest com o sobrinho **sem explicar** | prova se o jogo ensina sozinho | checklist `f12`, `b2` |
+| Checklist touch (polegares alcançam tudo) | conforto real no celular deitado | `q1` |
+| Stress: trocar cena 20× sem crash | regressão de router/autoload | `q2` |
+| Kill-app mid-save (save não corrompe) | confiança no meta | `q3` |
+| FPS ≥ 30 em aparelho fraco (fase cheia) | Android real, não só emulador | `q4` |
+| “Noite dos amigos” em ≥3 celulares | distribuição real | Fase G `f28` |
+
+### 2) Polish / feel (não bloqueante)
+
+| Item | Notas |
+|------|--------|
+| Hitboxes ajustadas **por frame** de animação | checklist `r9` — hoje hitbox funciona, mas não é fine-tune por sheet |
+| Sheets AAA multi-frame (run/atk/ult mais fluidos) | MVP usa sheets legíveis; upgrade de arte depois |
+| BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
+| UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
+| PERSONAGENS no hub | stub / Tanjiro only — tela select real = pós-MVP |
+| Missões / XP / social no hub | GDD: fase 2+ / fora offline |
+
+### 3) Conteúdo em escala (Fase F — sonho)
+
+- Zenitsu, Inosuke, depois Hashiras  
+- Mundos W2–W5  
+- Muzan / Yoriichi endgame  
+- Ultimate / kit por personagem  
+
+### 4) Release “sério” (Fase G)
+
+| Item | Status |
+|------|--------|
+| APK **debug** no círculo | ✅ existe |
+| Keystore **release** + backup **fora do git** | ⬜ `q6` / `f26` |
+| Versão semver + changelog na mão do amigo | 🟡 `CHANGELOG` 0.1.0; bump assinado ainda não |
+| Play Store | ❌ **fora de escopo** (IP fan game) |
+
+### 5) Estudos / processo (opcional)
+
+- Tutoriais Godot oficiais (`e1`–`e3`)  
+- Ler riscos em voz alta com o sobrinho (`k1`)  
+- Nomes de skill / balance fino com playtest humano  
 
 ---
 
-## Decisoes GDD fechadas no codigo (defaults)
+## Decisões GDD fechadas no código (defaults)
 
 | Tema | Default MVP |
 |------|-------------|
@@ -47,7 +102,7 @@ Isso **nao** bloqueia o MVP. O doc diz: MVP ≠ jogo dos sonhos no dia 1.
 | Upgrades loja | HP, Dano, Velocidade, Dash CD |
 | Morte na fase | perde moedas da run (`lose_run_coins`) |
 | Upgrades | **globais** |
-| Elite/boss moedas | elite 20 / boss clear bank da run |
+| Elite / boss moedas | elite 20 / boss clear bank da run |
 
 ---
 
@@ -57,16 +112,31 @@ Isso **nao** bloqueia o MVP. O doc diz: MVP ≠ jogo dos sonhos no dia 1.
 export/TreinamentoHashira-debug.apk
 ```
 
-Desinstale a versao antiga → instale esta → celular deitado.
+Desinstale a versão antiga → instale esta → celular **deitado**.
 
-Prints de prova (emulador): `export/playtest_shots/PROOF_*.png`
+Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 
 ---
 
-## Historico
+## Mapa de docs (o que atualizar quando)
+
+| Arquivo | Papel |
+|---------|--------|
+| **`docs/STATUS-PROGRESSO.md`** | Snapshot “onde estamos / o que falta” — **atualizar sempre** |
+| `CHANGELOG.md` | O que entrou em cada versão |
+| `docs/CHECKLIST-MESTRE.html` | Checklist longo; marcações no browser + snapshot de fase no HTML |
+| `docs/GDD-DECISOES.md` | Decisões de produto (só muda com decisão nova) |
+| `docs/PLANEJAMENTO-TECNICO.md` | Plano histórico de setup; **§13 “próximos passos” está superado** pelo MVP |
+
+---
+
+## Histórico
 
 | Data | Evento |
 |------|--------|
 | 2026-08-03 | GDD + boot/hub |
-| 2026-08-05 | W1 playable + arte + audio + frentes |
-| 2026-08-06 | **MVP W1 COMPLETO** (pause, creditos, polimento residual, APK) |
+| 2026-08-05 | W1 playable + arte + áudio + frentes |
+| 2026-08-06 | **MVP W1 COMPLETO** (pause, créditos, polimento residual, APK) |
+| 2026-08-07 | Hotfix `SceneRouter` (SHOP duplicado); docs alinhados |
+| 2026-08-07 | **Playable pass:** touch mouse-safe, ondas W1, coins magnet, player feel, smoke PASS |
+| 2026-08-07 | **Visual pass:** chroma moeda (sem magenta), botões lacados labeled, escala coin/player/oni |

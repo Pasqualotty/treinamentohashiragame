@@ -32,14 +32,28 @@ func hitstop(duration_sec: float = HITSTOP_DEFAULT) -> void:
 	duration_sec = clampf(duration_sec, 0.02, 0.08)
 	_hitstop_busy = true
 	var prev: float = Engine.time_scale
-	if prev <= 0.001:
+	if prev <= 0.001 or prev > 1.0:
 		prev = 1.0
 	Engine.time_scale = HITSTOP_SCALE
 	var tree: SceneTree = get_tree()
 	if tree:
 		# ignore_time_scale=true → duração em wall-clock.
 		await tree.create_timer(duration_sec, true, true).timeout
-	Engine.time_scale = 1.0 if prev < 0.5 else prev
+	# Failsafe: nunca deixa time_scale preso em slow-mo.
+	if not is_inside_tree() or Engine.time_scale < 0.5:
+		Engine.time_scale = 1.0
+	else:
+		Engine.time_scale = 1.0 if prev < 0.5 else prev
+	_hitstop_busy = false
+
+
+func _exit_tree() -> void:
+	Engine.time_scale = 1.0
+	_hitstop_busy = false
+
+
+func reset_time_scale() -> void:
+	Engine.time_scale = 1.0
 	_hitstop_busy = false
 
 
