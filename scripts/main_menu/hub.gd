@@ -13,6 +13,7 @@ extends Control
 const HUB_IDLE_DIR := "res://assets/characters/player/hub_idle"
 const BG_DIR := "res://assets/ui/hub"
 const BTN_DIR := "res://assets/ui/buttons"
+const FONT_DISPLAY_BOLD := "res://assets/fonts/Cinzel-Bold.ttf"
 
 # 00 open, 01 breathe, 02 open, 03 blink, 04 open, 05 open, 06 slash, 07 overhead
 const FRAME_DURATIONS: Array[float] = [0.70, 0.40, 0.55, 0.12, 0.45, 0.35, 0.30, 0.35]
@@ -138,6 +139,9 @@ func _apply_stylebox(btn: Button, tex_path: String, font_color: Color) -> void:
 	btn.add_theme_color_override("font_hover_color", font_color.lightened(0.1))
 	btn.add_theme_color_override("font_pressed_color", font_color.darkened(0.15))
 	btn.add_theme_font_size_override("font_size", 20 if btn != play_btn else 28)
+	if btn == play_btn and ResourceLoader.exists(FONT_DISPLAY_BOLD):
+		# CTA principal em fonte de display — peso ceremonial, distinto das ações secundárias.
+		btn.add_theme_font_override("font", load(FONT_DISPLAY_BOLD) as Font)
 
 
 func _apply_icon_button(btn: Button, tex_path: String) -> void:

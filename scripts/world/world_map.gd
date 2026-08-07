@@ -80,7 +80,7 @@ func _draw_path(canvas: Control) -> void:
 		var from: Vector2 = points[i]
 		var to: Vector2 = points[i + 1]
 		var unlocked: bool = _is_path_segment_unlocked(i)
-		var col := Color(0.85, 0.72, 0.35, 0.95) if unlocked else Color(0.35, 0.38, 0.4, 0.7)
+		var col := Palette.with_alpha(Palette.GOLD, 0.95) if unlocked else Color(0.35, 0.38, 0.4, 0.7)
 		canvas.draw_line(from, to, col, 3.0, true)
 
 
@@ -98,11 +98,11 @@ func _draw_node_rings(canvas: Control) -> void:
 				fill = Color(0.18, 0.42, 0.28, 0.95)
 				ring = Color(0.55, 0.9, 0.55, 1.0)
 			"available":
-				fill = Color(0.42, 0.32, 0.14, 0.95)
-				ring = Color(0.95, 0.82, 0.35, 1.0)
+				fill = Palette.with_alpha(Palette.GOLD_DIM, 0.95)
+				ring = Palette.GOLD
 			"boss_available":
-				fill = Color(0.38, 0.12, 0.18, 0.95)
-				ring = Color(0.95, 0.4, 0.45, 1.0)
+				fill = Palette.with_alpha(Palette.CRIMSON_DIM, 0.95)
+				ring = Palette.CRIMSON_BRIGHT
 			_:
 				fill = Color(0.2, 0.22, 0.24, 0.9)
 				ring = Color(0.45, 0.48, 0.5, 0.85)

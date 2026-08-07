@@ -42,8 +42,8 @@ func _make_row(def: UpgradeDef) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(0, 96)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.1, 0.14, 0.92)
-	style.border_color = Color(0.55, 0.45, 0.28, 0.9)
+	style.bg_color = Palette.with_alpha(Palette.PANEL, 0.92)
+	style.border_color = Palette.with_alpha(Palette.GOLD, 0.55)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(10)
 	style.content_margin_left = 16
