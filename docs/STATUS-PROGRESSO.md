@@ -1,16 +1,17 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-08-07 (pass de jogabilidade)  
-**Marca:** **MVP W1 + hotfix PLAYABLE**  
+**Atualizado:** 2026-08-07 (playtest-gate + premium wave)  
+**Marca:** **MVP W1 + PLAYABLE + gate de playtest**  
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
+**Playtest humano 10 min:** `docs/PLAYTEST-SOBRINHO.md`  
 **GDD / decisões:** `docs/GDD-DECISOES.md`
 
 ---
 
 ## Onde estamos (1 frase)
 
-**W1 jogável de verdade (validado smoke headless):** input mouse+teclado+touch, movimento do player, ondas de oni, moedas com magnet, saída trancada até limpar ondas. Fluxo: splash → loading → hub → mapa → fase (ondas) → portal → loja/save.
+**W1 jogável de verdade (validado smoke headless):** input mouse+teclado+touch, movimento do player, ondas de oni, moedas com magnet, saída trancada até limpar ondas. Fluxo: splash → loading → hub → mapa → fase (ondas) → portal → loja/save. **Gate de playtest** documentado + suite `tools/run_smokes.ps1`.
 
 ### Hotfix playability 2026-08-07 (crítico)
 
@@ -22,7 +23,42 @@
 | Moedas chatas de pegar | hitbox pequena | radius maior + magnet 90px |
 | SceneRouter null | `const SHOP` duplicado | removido |
 
-**Smoke:** `godot --headless --path . -s res://scripts/qa/smoke_playable_w1.gd` → **PASS** (player move + 2 onis onda 1 + TouchRoot + WaveDirector).
+**Smoke playable:** `godot --headless --path . -s res://scripts/qa/smoke_playable_w1.gd` → player move + onis onda 1 + TouchRoot + WaveDirector.  
+**Suite gate:** `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1` (load + playable + combat e2e + meta + player).
+
+---
+
+## Premium wave (próximo degrau de qualidade)
+
+> “Premium” aqui **não** é loja paga — é o pacote de **feel + touch + cerimônia de fase + áudio + animação** que deixa o W1 com cara de jogo de verdade pro playtest do sobrinho.
+
+| Faixa | O que é | Status (snapshot) | Gate / prova |
+|-------|---------|-------------------|--------------|
+| **Playable base** | Input, ondas, moedas, portal trancado, smokes | ✅ 2026-08-07 | `smoke_playable_w1` + e2e combat |
+| **Feel de combate** | Hitstop, juice, SFX de hit, knockback legível | 🟡 frentes paralelas / residual | playtest humano + e2e |
+| **Anim combate** | Sheets idle/run/atk no player canônico | 🟡 residual (MVP tem slash legível) | visual + smoke player |
+| **Touch premium** | Layout polegares, hit areas, labels | 🟡 pós-hotfix mouse-safe | checklist sobrinho + `q1` |
+| **Cerimônia de fase** | Intro/clear/portal/feedback de onda | 🟡 parcial (label de onda + saída) | e2e waves + humano |
+| **Áudio pass** | BGM hub/stage, SFX hit/coin/ui | 🟡 loops + sfx existem; boss BGM não | ouvir no device |
+| **Playtest gate** | Suite automática + checklist 10 min | ✅ este gate | `run_smokes.ps1` + `PLAYTEST-SOBRINHO.md` |
+
+### Como “fechar” a premium wave (definição prática)
+
+1. **Máquina:** `tools/run_smokes.ps1` → `SUITE PASS`  
+2. **Humano:** `docs/PLAYTEST-SOBRINHO.md` → veredito PASS (sem você explicar)  
+3. **Device:** 1 APK debug em celular real, paisagem, sem crash no fluxo hub→fase→volta  
+
+Enquanto (2) ou (3) falharem, a wave **não** está premium de verdade — só “funciona no editor”.
+
+### Comandos rápidos
+
+```powershell
+# Suite headless (exit != 0 se qualquer smoke falhar)
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
+
+# Só e2e combat (jump/dash/atk/coin/waves)
+# & <Godot_console.exe> --headless --path . -s res://scripts/qa/smoke_combat_e2e.gd
+```
 
 ---
 
@@ -123,6 +159,8 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | Arquivo | Papel |
 |---------|--------|
 | **`docs/STATUS-PROGRESSO.md`** | Snapshot “onde estamos / o que falta” — **atualizar sempre** |
+| `docs/PLAYTEST-SOBRINHO.md` | Checklist humano 10 min (playtest sem explicar) |
+| `tools/run_smokes.ps1` | Suite headless; exit ≠ 0 se falhar |
 | `CHANGELOG.md` | O que entrou em cada versão |
 | `docs/CHECKLIST-MESTRE.html` | Checklist longo; marcações no browser + snapshot de fase no HTML |
 | `docs/GDD-DECISOES.md` | Decisões de produto (só muda com decisão nova) |
@@ -140,3 +178,4 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | 2026-08-07 | Hotfix `SceneRouter` (SHOP duplicado); docs alinhados |
 | 2026-08-07 | **Playable pass:** touch mouse-safe, ondas W1, coins magnet, player feel, smoke PASS |
 | 2026-08-07 | **Visual pass:** chroma moeda (sem magenta), botões lacados labeled, escala coin/player/oni |
+| 2026-08-07 | **Playtest gate:** e2e combat reforçado, `run_smokes.ps1`, PLAYTEST-SOBRINHO, seção premium wave |
