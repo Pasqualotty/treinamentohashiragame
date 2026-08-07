@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/credits.gd" id="1_credits"]
+[ext_resource type="FontFile" path="res://assets/fonts/Cinzel-Bold.ttf" id="2_display"]
 
 [node name="Credits" type="Control"]
 layout_mode = 3
@@ -18,7 +19,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.06, 0.07, 0.1, 1)
+color = Color(0.058824, 0.070588, 0.094118, 1)
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 1
@@ -30,10 +31,26 @@ offset_top = 80.0
 offset_right = 300.0
 offset_bottom = 130.0
 grow_horizontal = 2
+theme_override_fonts/font = ExtResource("2_display")
 theme_override_font_sizes/font_size = 36
-theme_override_colors/font_color = Color(0.95, 0.85, 0.55, 1)
-text = "Creditos"
+theme_override_colors/font_color = Color(0.909804, 0.721569, 0.290196, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+text = "Créditos"
 horizontal_alignment = 1
+
+[node name="Divider" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -80.0
+offset_top = 136.0
+offset_right = 80.0
+offset_bottom = 138.0
+grow_horizontal = 2
+color = Color(0.909804, 0.721569, 0.290196, 0.55)
+mouse_filter = 2
 
 [node name="Body" type="Label" parent="."]
 layout_mode = 1
@@ -47,9 +64,10 @@ offset_top = -160.0
 offset_right = 420.0
 offset_bottom = 160.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_font_sizes/font_size = 20
-theme_override_colors/font_color = Color(0.9, 0.9, 0.88, 1)
+grow_vertical = 1
+theme_override_font_sizes/font_size = 18
+theme_override_constants/line_spacing = -6
+theme_override_colors/font_color = Color(1, 0.964706, 0.917647, 1)
 text = "Treinamento Hashira
 Pasqualotti Studio
 
@@ -60,8 +78,8 @@ Nao e afiliado a ufotable, Aniplex, Shueisha ou Shonen Jump.
 Obrigado por jogar.
 Feito com carinho (e muita cafeina)."
 horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 3
+vertical_alignment = 0
+autowrap_mode = 0
 
 [node name="Back" type="Button" parent="."]
 layout_mode = 1

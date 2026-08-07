@@ -80,6 +80,8 @@ var _dash_cooldown_left: float = 0.0
 var _dash_time_left: float = 0.0
 var _air_dash_used: bool = false
 var _was_on_floor: bool = false
+## Tempo contínuo no ar — evita dust falso no spawn (landing só conta se caiu de fato).
+var _air_time: float = 0.0
 
 ## Input buffers (s) — jump / attack_basic / dash (advance).
 var _buf_jump: float = 0.0
@@ -253,6 +255,8 @@ func try_dash() -> bool:
 	velocity.x = _facing * stats.dash_speed
 	velocity.y = 0.0
 	_disable_hitbox()
+	if is_instance_valid(Fx):
+		Fx.dust(global_position)
 	return true
 
 
@@ -504,6 +508,10 @@ func _try_start_ultimate() -> bool:
 		Audio.play_sfx("ultimate")
 	if is_instance_valid(CombatFeel):
 		CombatFeel.shake(CombatFeel.SHAKE_ULT, CombatFeel.SHAKE_ULT_DUR)
+		if CombatFeel.has_method("freeze_frame"):
+			CombatFeel.freeze_frame()
+		if CombatFeel.has_method("zoom_punch"):
+			CombatFeel.zoom_punch(CombatFeel.ZOOM_PUNCH_ULT, CombatFeel.ZOOM_PUNCH_DUR)
 
 	_begin_action(
 		State.ULTIMATE,
@@ -543,6 +551,17 @@ func _begin_action(
 	# SFX de swing (slash) no inicio do golpe; ultimate ja tocou "ultimate".
 	if new_state != State.ULTIMATE and is_instance_valid(Audio):
 		Audio.play_sfx("slash", randf_range(0.95, 1.08))
+	if is_instance_valid(Fx):
+		var slash_kind: StringName = &"basic"
+		match new_state:
+			State.SKILL_1, State.SKILL_2:
+				slash_kind = &"skill"
+			State.ULTIMATE:
+				slash_kind = &"ultimate"
+			_:
+				slash_kind = &"basic"
+		var slash_pos: Vector2 = global_position + Vector2(offset_x * 0.55 * _facing, -28.0)
+		Fx.slash(slash_pos, _facing, slash_kind)
 
 
 func _configure_hitbox(damage: int, knockback: Vector2, size: Vector2, offset_x: float) -> void:
@@ -578,7 +597,7 @@ func _disable_hitbox() -> void:
 		hitbox.disable()
 
 
-func _on_hitbox_hit(_hurtbox: Hurtbox, _hit_data: HitData) -> void:
+func _on_hitbox_hit(_hurtbox: Hurtbox, hit_data: HitData) -> void:
 	# Respiracao por hit que acerta (GDD) + juice por tipo.
 	if stats:
 		Game.add_breath_from_hit(stats.breath_per_hit)
@@ -586,16 +605,32 @@ func _on_hitbox_hit(_hurtbox: Hurtbox, _hit_data: HitData) -> void:
 		Game.add_breath_from_hit()
 	if is_instance_valid(Audio):
 		Audio.play_sfx("hit", randf_range(0.92, 1.1))
+	var kind: StringName = &"basic"
+	match _state:
+		State.SKILL_1, State.SKILL_2:
+			kind = &"skill"
+		State.ULTIMATE:
+			kind = &"ultimate"
+		_:
+			kind = &"basic"
 	if is_instance_valid(CombatFeel):
-		var kind: StringName = &"basic"
-		match _state:
-			State.SKILL_1, State.SKILL_2:
-				kind = &"skill"
-			State.ULTIMATE:
-				kind = &"ultimate"
-			_:
-				kind = &"basic"
 		CombatFeel.hit_impact_typed(kind, 1.0)
+	if is_instance_valid(Fx):
+		var spark_color: Color = Fx.COLOR_WHITE
+		var spark_amount: int = 12
+		var is_crit: bool = false
+		match kind:
+			&"skill":
+				spark_color = Fx.COLOR_WATER
+			&"ultimate":
+				spark_color = Fx.COLOR_GOLD
+				spark_amount = 18
+				is_crit = true
+			_:
+				spark_color = Fx.COLOR_WHITE
+		var hit_pos: Vector2 = hitbox.global_position if hitbox else global_position
+		Fx.spark(hit_pos, spark_color, spark_amount)
+		Fx.damage_number(hit_pos + Vector2(0.0, -18.0), hit_data.damage if hit_data else 0, is_crit)
 
 
 func _on_hurt(hit_data: HitData) -> void:
@@ -644,12 +679,17 @@ func _update_state_after_move() -> void:
 func _update_coyote(delta: float) -> void:
 	var on_floor: bool = is_on_floor()
 	if on_floor:
+		if not _was_on_floor and _air_time > 0.08 and is_instance_valid(Fx):
+			Fx.dust(global_position)
+		_air_time = 0.0
 		_coyote_timer = stats.coyote_time
 		_air_dash_used = false
-	elif _was_on_floor and not on_floor:
-		pass
 	else:
-		_coyote_timer = maxf(_coyote_timer - delta, 0.0)
+		_air_time += delta
+		if _was_on_floor:
+			pass
+		else:
+			_coyote_timer = maxf(_coyote_timer - delta, 0.0)
 	_was_on_floor = on_floor
 
 

@@ -95,3 +95,11 @@ Project ÔåÆ Project Settings ÔåÆ Input Map:
 | skill_1 / skill_2 | K / L |
 | ultimate | I |
 | pause | Esc |
+
+---
+
+## Preflight (antes de build/APK)
+
+Antes de qualquer build/APK, rode: `bash scripts/preflight.sh`
+
+Ele roda o import headless do Godot + a suite completa de smokes (`tools/run_smokes.ps1`) e so cria a sentinela de preflight se tudo passar. Se falhar, o output mostra qual etapa/smoke quebrou — corrija antes de seguir pro build.

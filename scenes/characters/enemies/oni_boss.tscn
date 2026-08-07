@@ -1,0 +1,108 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/enemies/oni_boss.gd" id="1_boss"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemies/oni_weak_side.png" id="2_tex"]
+[ext_resource type="Script" path="res://scripts/combat/hurtbox.gd" id="3_hurtbox"]
+[ext_resource type="Script" path="res://scripts/combat/hitbox.gd" id="4_hitbox"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(64, 96)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
+size = Vector2(70, 98)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hit"]
+size = Vector2(46, 42)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_slam"]
+size = Vector2(64, 30)
+
+[node name="OniBoss" type="CharacterBody2D" groups=["enemy"]]
+collision_layer = 4
+collision_mask = 1
+floor_stop_on_slope = true
+script = ExtResource("1_boss")
+max_hp = 300
+coin_reward = 80
+
+[node name="Sprite" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(0, -52)
+scale = Vector2(0.3, 0.3)
+z_index = 2
+texture = ExtResource("2_tex")
+flip_h = true
+modulate = Color(0.78, 0.55, 1.05, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -48)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(0, -48)
+collision_layer = 16
+collision_mask = 0
+monitoring = false
+monitorable = true
+script = ExtResource("3_hurtbox")
+team = &"enemy"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("RectangleShape2D_hurt")
+
+[node name="Hitbox" type="Area2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(46, -48)
+collision_layer = 8
+collision_mask = 16
+monitoring = false
+monitorable = false
+script = ExtResource("4_hitbox")
+damage = 14
+knockback = Vector2(240, -70)
+team = &"enemy"
+
+[node name="HitboxShape" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("RectangleShape2D_hit")
+
+[node name="SlamHitboxL" type="Area2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(-30, -16)
+collision_layer = 8
+collision_mask = 16
+monitoring = false
+monitorable = false
+script = ExtResource("4_hitbox")
+damage = 16
+knockback = Vector2(-200, -220)
+team = &"enemy"
+
+[node name="SlamShapeL" type="CollisionShape2D" parent="SlamHitboxL"]
+shape = SubResource("RectangleShape2D_slam")
+
+[node name="SlamHitboxR" type="Area2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(30, -16)
+collision_layer = 8
+collision_mask = 16
+monitoring = false
+monitorable = false
+script = ExtResource("4_hitbox")
+damage = 16
+knockback = Vector2(200, -220)
+team = &"enemy"
+
+[node name="SlamShapeR" type="CollisionShape2D" parent="SlamHitboxR"]
+shape = SubResource("RectangleShape2D_slam")
+
+[node name="HpLabel" type="Label" parent="."]
+unique_name_in_owner = true
+offset_left = -90.0
+offset_top = -130.0
+offset_right = 90.0
+offset_bottom = -104.0
+theme_override_colors/font_color = Color(1, 0.6, 0.95, 1)
+theme_override_font_sizes/font_size = 15
+text = "HP 300/300"
+horizontal_alignment = 1
