@@ -33,6 +33,10 @@ const FLASH_TIME: float = 0.1
 const KNOCK_FRICTION: float = 820.0
 const ONI_WEAK_SCENE: PackedScene = preload("res://scenes/characters/enemies/oni_weak.tscn")
 const COIN_SCENE: PackedScene = preload("res://scenes/combat/coin_pickup.tscn")
+## Duração do recoil visual procedural ao tomar hit — poise total de estado,
+## mas ainda mostra um jolt discreto (o boss é pesado, então é mais sutil que
+## nos onis comuns).
+const HURT_RECOIL_DUR: float = 0.2
 
 @export var max_hp: int = 300
 ## Valor da moeda spawnada no chão (creditada só no pickup).
@@ -91,6 +95,12 @@ var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity") 
 var _died: bool = false
 var _minions: Array[Node] = []
 
+# --- Animação procedural (transform absoluto por frame, sem frames novos) ---
+var _sprite_base_pos: Vector2 = Vector2.ZERO
+var _sprite_base_scale: Vector2 = Vector2.ONE
+var _walk_t: float = 0.0
+var _hurt_recoil_t: float = 0.0
+
 var _hp_layer: CanvasLayer
 var _hp_bar: ProgressBar
 var _hp_name_label: Label
@@ -110,6 +120,8 @@ func _ready() -> void:
 		_base_modulate = sprite.modulate
 		facing = -1.0 if sprite.flip_h else 1.0
 		_patrol_dir = facing
+		_sprite_base_pos = sprite.position
+		_sprite_base_scale = sprite.scale
 	if hurtbox:
 		hurtbox.team = &"enemy"
 		if not hurtbox.hurt.is_connected(_on_hurt):
@@ -168,6 +180,7 @@ func _physics_process(delta: float) -> void:
 		State.RECOVER:
 			_ai_recover(delta)
 
+	_update_anim(delta)
 	move_and_slide()
 	if state == State.CHARGE and is_on_wall():
 		_end_charge()
@@ -463,6 +476,120 @@ func _ai_recover(delta: float) -> void:
 		state = State.CHASE
 
 
+# --- Animação procedural (transform absoluto por frame, sem frames novos) ---
+
+func _phase_weight_mult() -> float:
+	## Motion fica mais pesado/ameaçador conforme a fase avança (amplitude +
+	## frequência maiores em P2/P3) — reforça a escalada sem tocar na state
+	## machine de fases.
+	match phase:
+		Phase.P2:
+			return 1.15
+		Phase.P3:
+			return 1.3
+		_:
+			return 1.0
+
+
+func _update_anim(delta: float) -> void:
+	## Motion procedural do boss: telegraph com silhueta distinta por
+	## AttackKind (CHARGE recolhe pra trás, SLAM agacha/comprime, SUMMON
+	## pulsa/levita), stomp de impacto no SLAM, stretch no CHARGE, gesto no
+	## SUMMON, e settle com wobble no RECOVER. Absoluto por frame (sem
+	## drift); volta pra _sprite_base_pos/_sprite_base_scale ao sair do
+	## estado. INTRO/DEAD não passam por aqui (early-return no
+	## _physics_process) — quem cuida deles é o banner/tween de morte.
+	if sprite == null:
+		return
+	if _hurt_recoil_t > 0.0:
+		_hurt_recoil_t = maxf(_hurt_recoil_t - delta, 0.0)
+
+	var pos: Vector2 = _sprite_base_pos
+	var scl: Vector2 = _sprite_base_scale
+	var rot: float = 0.0
+	var weight: float = _phase_weight_mult()
+
+	match state:
+		State.PATROL, State.CHASE:
+			var chasing: bool = state == State.CHASE
+			var moving: bool = is_on_floor() and not is_zero_approx(velocity.x)
+			var move_dir: float = signf(velocity.x) if moving else facing
+			if moving:
+				_walk_t += delta * (7.0 if chasing else 4.6) * weight
+			var amp: float = (5.2 if chasing else 3.4) * weight
+			var bob: float = sin(_walk_t) * amp if moving else 0.0
+			pos = _sprite_base_pos + Vector2(0.0, bob)
+			scl = _sprite_base_scale * Vector2(1.0 - absf(bob) * 0.010, 1.0 + absf(bob) * 0.012)
+			rot = deg_to_rad((5.0 if chasing else 2.5) * move_dir * weight) if moving else 0.0
+		State.TELEGRAPH:
+			_walk_t = 0.0
+			var dur: float = maxf(_telegraph_duration_for(_pending_attack), 0.0001)
+			var p: float = clampf(_phase_timer / dur, 0.0, 1.0)
+			match _pending_attack:
+				AttackKind.CHARGE:
+					var wind: float = sin(p * PI * 0.5)
+					var tremor: float = sin(_phase_timer * 44.0) * 0.8 * p * weight
+					pos = _sprite_base_pos + Vector2(-9.0 * wind * facing + tremor, 3.0 * wind)
+					scl = _sprite_base_scale * Vector2(1.0 - 0.12 * wind, 1.0 + 0.10 * wind)
+					rot = deg_to_rad((-8.0 * wind + tremor) * facing)
+				AttackKind.SLAM:
+					var crouch: float = sin(p * PI * 0.5)
+					var tremor2: float = sin(_phase_timer * 50.0) * 0.9 * p * weight
+					pos = _sprite_base_pos + Vector2(tremor2, 5.0 * crouch)
+					scl = _sprite_base_scale * Vector2(1.0 + 0.16 * crouch, 1.0 - 0.20 * crouch)
+					rot = deg_to_rad(tremor2 * 1.5)
+				AttackKind.SUMMON:
+					var pulse: float = sin(p * TAU * 1.6) * p
+					pos = _sprite_base_pos + Vector2(0.0, -4.0 * p - pulse * 1.5)
+					scl = _sprite_base_scale * Vector2(1.0 + 0.05 * p + 0.03 * pulse, 1.0 + 0.08 * p + 0.03 * pulse)
+					rot = deg_to_rad(pulse * 4.0)
+		State.CHARGE:
+			# Stretch forte na direção do dash.
+			_walk_t = 0.0
+			var q: float = clampf(_phase_timer / maxf(charge_max_time, 0.0001), 0.0, 1.0)
+			var burst: float = sin(q * PI)
+			pos = _sprite_base_pos + Vector2(5.0 * facing, 2.5 * burst)
+			scl = _sprite_base_scale * Vector2(1.30 + 0.10 * burst, 0.80 - 0.06 * burst)
+			rot = deg_to_rad(4.0 * facing)
+		State.SLAM:
+			# Stomp: compressão forte no impacto, expande e relaxa até o fim
+			# da janela ativa (sincroniza com o shake de CombatFeel).
+			_walk_t = 0.0
+			var q2: float = clampf(_phase_timer / maxf(slam_active_time, 0.0001), 0.0, 1.0)
+			var slam_e: float = 1.0 - q2
+			var impact: float = exp(-q2 * 9.0)
+			pos = _sprite_base_pos + Vector2(0.0, 6.0 * impact)
+			scl = _sprite_base_scale * Vector2(1.0 + 0.30 * impact - 0.05 * slam_e, 1.0 - 0.32 * impact + 0.05 * slam_e)
+		State.SUMMON:
+			# Gesto de invocação: pulsa/levita levemente (espelha o threshold
+			# de 0.4s usado em _ai_summon).
+			_walk_t = 0.0
+			var pulse2: float = sin(_phase_timer * 16.0)
+			pos = _sprite_base_pos + Vector2(0.0, -3.0 - pulse2 * 1.2)
+			scl = _sprite_base_scale * Vector2(1.05 + 0.03 * pulse2, 1.08 + 0.03 * pulse2)
+			rot = deg_to_rad(pulse2 * 3.0)
+		State.RECOVER:
+			_walk_t = 0.0
+			var dur2: float = maxf(recovery_time * (0.75 if phase == Phase.P3 else 1.0), 0.0001)
+			var q3: float = clampf(_phase_timer / dur2, 0.0, 1.0)
+			var wobble: float = sin(q3 * PI * 3.0) * (1.0 - q3)
+			pos = _sprite_base_pos + Vector2(wobble * 3.5 * facing, absf(wobble) * 1.8)
+			scl = _sprite_base_scale * Vector2(1.0 - wobble * 0.05, 1.0 + wobble * 0.05)
+			rot = deg_to_rad(wobble * 5.0 * facing)
+		_:
+			_walk_t = 0.0
+
+	if _hurt_recoil_t > 0.0:
+		var e3: float = _hurt_recoil_t / HURT_RECOIL_DUR
+		pos += Vector2(-5.0 * e3 * facing, -1.2 * e3)
+		rot += deg_to_rad(-5.0 * e3 * facing)
+		scl *= Vector2(1.0 + 0.03 * e3, 1.0 - 0.045 * e3)
+
+	sprite.position = pos
+	sprite.scale = scl
+	sprite.rotation = rot
+
+
 # --- Dano / fases ---
 
 func _on_hurt(hit_data: HitData) -> void:
@@ -473,6 +600,7 @@ func _on_hurt(hit_data: HitData) -> void:
 	velocity.x = hit_data.knockback.x * 0.45
 	velocity.y = hit_data.knockback.y * 0.45
 	_start_flash()
+	_hurt_recoil_t = HURT_RECOIL_DUR
 	_refresh_hp_bar()
 	print("[OniBoss] hurt dmg=%d hp=%d/%d phase=%s" % [hit_data.damage, hp, max_hp, Phase.keys()[phase]])
 	# Poise total: hit não cancela telegraph/ataque em andamento. Só a
@@ -555,6 +683,12 @@ func _on_defeated() -> void:
 		tw.set_parallel(true)
 		tw.tween_property(sprite, "modulate:a", 0.0, 0.55)
 		tw.tween_property(self, "scale", Vector2(0.85, 0.85), 0.55)
+		# Tombo/squash procedural do sprite — gigante desmoronando.
+		var fall_dir: float = facing if not is_zero_approx(facing) else 1.0
+		tw.tween_property(sprite, "rotation", deg_to_rad(58.0 * fall_dir), 0.55) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(sprite, "scale", _sprite_base_scale * Vector2(1.18, 0.72), 0.55) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		await tw.finished
 	if tree:
 		await tree.create_timer(0.15).timeout

@@ -16,6 +16,10 @@ const FLASH_TIME: float = 0.1
 const KNOCK_FRICTION: float = 860.0
 const COIN_SCENE: PackedScene = preload("res://scenes/combat/coin_pickup.tscn")
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/characters/enemies/oni_projectile.tscn")
+## Duração do recoil visual procedural ao tomar hit (overlay).
+const HURT_RECOIL_DUR: float = 0.2
+## Duração do "coice" visual no instante do disparo (overlay em RECOVER).
+const FIRE_KICK_DUR: float = 0.22
 
 @export var max_hp: int = 22
 ## Valor da moeda spawnada no chão (creditada só no pickup).
@@ -51,6 +55,13 @@ var _cooldown_left: float = 0.0
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity") as float
 var _died: bool = false
 
+# --- Animação procedural (transform absoluto por frame, sem frames novos) ---
+var _sprite_base_pos: Vector2 = Vector2.ZERO
+var _sprite_base_scale: Vector2 = Vector2.ONE
+var _walk_t: float = 0.0
+var _hurt_recoil_t: float = 0.0
+var _fire_kick_t: float = 0.0
+
 
 func _ready() -> void:
 	add_to_group("enemy")
@@ -60,6 +71,8 @@ func _ready() -> void:
 		_base_modulate = sprite.modulate
 		facing = -1.0 if sprite.flip_h else 1.0
 		_patrol_dir = facing
+		_sprite_base_pos = sprite.position
+		_sprite_base_scale = sprite.scale
 	if hurtbox:
 		hurtbox.team = &"enemy"
 		if not hurtbox.hurt.is_connected(_on_hurt):
@@ -90,6 +103,7 @@ func _physics_process(delta: float) -> void:
 		State.RECOVER:
 			_ai_recover(delta)
 
+	_update_anim(delta)
 	move_and_slide()
 	_tick_flash(delta)
 
@@ -170,6 +184,7 @@ func _fire_and_recover() -> void:
 	if sprite:
 		sprite.modulate = _base_modulate
 	_fire_projectile()
+	_fire_kick_t = FIRE_KICK_DUR
 	state = State.RECOVER
 	_phase_timer = 0.0
 
@@ -180,6 +195,66 @@ func _ai_recover(delta: float) -> void:
 	if _phase_timer >= attack_recovery:
 		_cooldown_left = attack_cooldown
 		state = State.CHASE
+
+
+func _update_anim(delta: float) -> void:
+	## Motion procedural: pose de mira (recua/estica levemente ao carregar o
+	## tiro) no telegraph + "coice" de disparo no início do RECOVER. Absoluto
+	## por frame (sem drift); volta pra _sprite_base_pos/_sprite_base_scale
+	## fora desses estados.
+	if sprite == null:
+		return
+	if _hurt_recoil_t > 0.0:
+		_hurt_recoil_t = maxf(_hurt_recoil_t - delta, 0.0)
+	if _fire_kick_t > 0.0:
+		_fire_kick_t = maxf(_fire_kick_t - delta, 0.0)
+
+	var pos: Vector2 = _sprite_base_pos
+	var scl: Vector2 = _sprite_base_scale
+	var rot: float = 0.0
+
+	match state:
+		State.PATROL, State.CHASE:
+			var chasing: bool = state == State.CHASE
+			var moving: bool = is_on_floor() and not is_zero_approx(velocity.x)
+			var move_dir: float = signf(velocity.x) if moving else facing
+			if moving:
+				_walk_t += delta * (12.5 if chasing else 8.0)
+			var amp: float = 2.6 if chasing else 1.8
+			var bob: float = sin(_walk_t) * amp if moving else 0.0
+			pos = _sprite_base_pos + Vector2(0.0, bob)
+			scl = _sprite_base_scale * Vector2(1.0 - absf(bob) * 0.010, 1.0 + absf(bob) * 0.012)
+			rot = deg_to_rad((4.0 if chasing else 2.0) * move_dir) if moving else 0.0
+		State.TELEGRAPH:
+			# Pose de mira: recua/estica contra o facing enquanto "carrega" o
+			# tiro, com tremor leve (tensão crescendo até o disparo).
+			_walk_t = 0.0
+			var p: float = clampf(_phase_timer / maxf(telegraph_time, 0.0001), 0.0, 1.0)
+			var draw: float = sin(p * PI * 0.5)
+			var tremor: float = sin(_phase_timer * 50.0) * 0.5 * p
+			pos = _sprite_base_pos + Vector2(-5.0 * draw * facing + tremor, -1.5 * draw)
+			scl = _sprite_base_scale * Vector2(1.0 - 0.09 * draw, 1.0 + 0.09 * draw)
+			rot = deg_to_rad((-5.0 * draw + tremor) * facing)
+		_:
+			_walk_t = 0.0
+
+	if _fire_kick_t > 0.0:
+		# Coice do disparo — recua rápido contra o facing e relaxa.
+		var k: float = _fire_kick_t / FIRE_KICK_DUR
+		var ke: float = k * k
+		pos += Vector2(-7.0 * ke * facing, 0.0)
+		rot += deg_to_rad(-6.0 * ke * facing)
+		scl *= Vector2(1.0 - 0.05 * ke, 1.0 + 0.06 * ke)
+
+	if _hurt_recoil_t > 0.0:
+		var e3: float = _hurt_recoil_t / HURT_RECOIL_DUR
+		pos += Vector2(-8.0 * e3 * facing, -2.0 * e3)
+		rot += deg_to_rad(-9.0 * e3 * facing)
+		scl *= Vector2(1.0 + 0.05 * e3, 1.0 - 0.07 * e3)
+
+	sprite.position = pos
+	sprite.scale = scl
+	sprite.rotation = rot
 
 
 func _fire_projectile() -> void:
@@ -205,6 +280,7 @@ func _on_hurt(hit_data: HitData) -> void:
 	velocity.x = hit_data.knockback.x
 	velocity.y = hit_data.knockback.y
 	_start_flash()
+	_hurt_recoil_t = HURT_RECOIL_DUR
 	_refresh_label()
 	print("[OniRanged] hurt dmg=%d hp=%d/%d" % [hit_data.damage, hp, max_hp])
 	# Interrompe telegraph ao tomar hit (ainda não comprometeu o disparo).
@@ -229,7 +305,17 @@ func _on_defeated() -> void:
 		hp_label.text = "HP 0/%d — KO" % max_hp
 	_spawn_coin_drop()
 	defeated.emit()
+	# Tombo/squash procedural junto com o fade.
 	var tree: SceneTree = get_tree()
+	if sprite and tree:
+		var tw: Tween = create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(sprite, "modulate:a", 0.0, 0.3)
+		var fall_dir: float = facing if not is_zero_approx(facing) else 1.0
+		tw.tween_property(sprite, "rotation", deg_to_rad(74.0 * fall_dir), 0.3) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(sprite, "scale", _sprite_base_scale * Vector2(1.2, 0.66), 0.3) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	if tree:
 		await tree.create_timer(0.35).timeout
 	if is_instance_valid(self):
