@@ -9,13 +9,15 @@ extends CanvasLayer
 @export var size_sec: float = 88.0
 @export var size_pause: float = 56.0
 @export var stick_size: float = 156.0
-@export var stick_deadzone: float = 0.14
+@export var stick_deadzone: float = 0.12
 
 const ICONS_DIR := "res://assets/ui/touch/icons"
 const LABELED_DIR := "res://assets/ui/touch/labeled"
-const PRESS_SCALE := 0.92
-const PRESS_MOD := Color(1.12, 1.08, 0.95, 1.0)
-const NORMAL_MOD := Color(1.0, 1.0, 1.0, 0.98)
+const PRESS_SCALE := 0.9
+## Press mais quente/claro e idle mais discreto — diferença de estado nítida.
+const PRESS_MOD := Color(1.2, 1.14, 0.9, 1.0)
+const NORMAL_MOD := Color(1.0, 1.0, 1.0, 0.86)
+const RELEASE_EASE_SEC := 0.14
 
 var _root: Control
 var _tex_cache: Dictionary = {}
@@ -66,35 +68,30 @@ func _build_left_cluster() -> void:
 
 
 func _build_right_cluster() -> void:
-	## ATK grande âncora; H1 acima, H2 à direita, ULT abaixo-esquerda do ATK.
+	## ATK grande âncora no canto inferior direito (descanso natural do polegar).
+	## ULT fica à esquerda do ATK na mesma base; H1/H2 empilhados numa fileira
+	## acima — grade com gap real entre todos os botões (sem sobreposição).
 	var m: float = safe_margin
 	var s_atk: float = size_main + 12.0
 	var s_sec: float = size_sec
+	var s_ult: float = size_sec + 10.0
 	var gap: float = 18.0
 	var right: float = design_size.x - m
 	var bottom: float = design_size.y - m
 
-	var atk_tl := Vector2(right - s_atk - s_sec - gap, bottom - s_atk - 24.0)
+	var atk_tl := Vector2(right - s_atk, bottom - s_atk)
 	_add_action_button("attack_basic", atk_tl, Vector2(s_atk, s_atk))
 
-	# H1 acima do ATK
-	_add_action_button(
-		"skill_1",
-		Vector2(atk_tl.x + s_atk - s_sec * 0.35, atk_tl.y - s_sec - gap),
-		Vector2(s_sec, s_sec)
-	)
-	# H2 à direita do ATK
-	_add_action_button(
-		"skill_2",
-		Vector2(right - s_sec, atk_tl.y + s_atk * 0.25),
-		Vector2(s_sec, s_sec)
-	)
-	# ULT embaixo do ATK, levemente à esquerda
-	_add_action_button(
-		"ultimate",
-		Vector2(atk_tl.x - 4.0, bottom - s_sec - 4.0),
-		Vector2(s_sec + 10.0, s_sec)
-	)
+	# ULT à esquerda do ATK, base alinhada, gap>=0 garantido (sem overlap).
+	var ult_tl := Vector2(atk_tl.x - gap - s_ult, bottom - s_sec)
+	_add_action_button("ultimate", ult_tl, Vector2(s_ult, s_sec))
+
+	# H1/H2 numa fileira acima de ATK/ULT, também com gap real entre si.
+	var row_top_y: float = atk_tl.y - gap - s_sec
+	var skill_2_tl := Vector2(right - s_sec, row_top_y)
+	_add_action_button("skill_2", skill_2_tl, Vector2(s_sec, s_sec))
+	var skill_1_tl := Vector2(skill_2_tl.x - gap - s_sec, row_top_y)
+	_add_action_button("skill_1", skill_1_tl, Vector2(s_sec, s_sec))
 
 
 func _build_pause() -> void:
@@ -230,6 +227,9 @@ func _fallback_circle(col: Color, pressed: bool) -> Texture2D:
 
 
 func _on_tsb_pressed(action: String, btn: TouchScreenButton) -> void:
+	# Press é instantâneo (sem tween) — resposta imediata importa mais que
+	# suavidade num jogo de combate. O "juice" fica pro release.
+	_kill_btn_tween(btn)
 	var base: Vector2 = btn.get_meta("base_scale", btn.scale)
 	btn.scale = base * PRESS_SCALE
 	btn.modulate = PRESS_MOD
@@ -238,9 +238,27 @@ func _on_tsb_pressed(action: String, btn: TouchScreenButton) -> void:
 
 
 func _on_tsb_released(_action: String, btn: TouchScreenButton) -> void:
+	# Release com ease-back suave (spring) — feedback tátil premium sem
+	# atrasar a resposta do press em si.
+	_kill_btn_tween(btn)
 	var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE)
-	btn.scale = base
-	btn.modulate = NORMAL_MOD
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.set_trans(Tween.TRANS_BACK)
+	tw.set_ease(Tween.EASE_OUT)
+	tw.tween_property(btn, "scale", base, RELEASE_EASE_SEC)
+	tw.tween_property(btn, "modulate", NORMAL_MOD, RELEASE_EASE_SEC)
+	btn.set_meta("release_tween", tw)
+
+
+func _kill_btn_tween(btn: TouchScreenButton) -> void:
+	# get_meta(key, null) NÃO suprime o erro "meta ausente" no Godot 4 (null é
+	# o mesmo sentinel de "sem default") — precisa do has_meta() antes.
+	if not btn.has_meta("release_tween"):
+		return
+	var tw: Variant = btn.get_meta("release_tween")
+	if tw is Tween and (tw as Tween).is_valid():
+		(tw as Tween).kill()
 
 
 func _release_all() -> void:
@@ -250,6 +268,7 @@ func _release_all() -> void:
 	for action: Variant in _btn_nodes.keys():
 		var btn: TouchScreenButton = _btn_nodes[action] as TouchScreenButton
 		if btn:
+			_kill_btn_tween(btn)
 			var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE)
 			btn.scale = base
 			btn.modulate = NORMAL_MOD

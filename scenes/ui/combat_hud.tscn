@@ -35,18 +35,22 @@ layout_mode = 2
 theme_override_constants/separation = 20
 mouse_filter = 2
 
-[node name="HpBlock" type="VBoxContainer" parent="Root/TopSafe/TopRow"]
+[node name="HpBlock" type="PanelContainer" parent="Root/TopSafe/TopRow"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="HpInner" type="VBoxContainer" parent="Root/TopSafe/TopRow/HpBlock"]
+layout_mode = 2
 theme_override_constants/separation = 4
 mouse_filter = 2
 
-[node name="HpHeader" type="HBoxContainer" parent="Root/TopSafe/TopRow/HpBlock"]
+[node name="HpHeader" type="HBoxContainer" parent="Root/TopSafe/TopRow/HpBlock/HpInner"]
 layout_mode = 2
 theme_override_constants/separation = 8
 mouse_filter = 2
 
-[node name="HpIcon" type="TextureRect" parent="Root/TopSafe/TopRow/HpBlock/HpHeader"]
+[node name="HpIcon" type="TextureRect" parent="Root/TopSafe/TopRow/HpBlock/HpInner/HpHeader"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
@@ -56,7 +60,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="HpTitle" type="Label" parent="Root/TopSafe/TopRow/HpBlock/HpHeader"]
+[node name="HpTitle" type="Label" parent="Root/TopSafe/TopRow/HpBlock/HpInner/HpHeader"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.9, 0.88, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
@@ -65,7 +69,7 @@ theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 18
 text = "HP"
 
-[node name="HpLabel" type="Label" parent="Root/TopSafe/TopRow/HpBlock/HpHeader"]
+[node name="HpLabel" type="Label" parent="Root/TopSafe/TopRow/HpBlock/HpInner/HpHeader"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -77,7 +81,7 @@ theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 20
 text = "100 / 100"
 
-[node name="HpBar" type="ProgressBar" parent="Root/TopSafe/TopRow/HpBlock"]
+[node name="HpBar" type="ProgressBar" parent="Root/TopSafe/TopRow/HpBlock/HpInner"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
@@ -85,18 +89,22 @@ max_value = 100.0
 value = 100.0
 show_percentage = false
 
-[node name="BreathBlock" type="VBoxContainer" parent="Root/TopSafe/TopRow"]
+[node name="BreathBlock" type="PanelContainer" parent="Root/TopSafe/TopRow"]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="BreathInner" type="VBoxContainer" parent="Root/TopSafe/TopRow/BreathBlock"]
+layout_mode = 2
 theme_override_constants/separation = 4
 mouse_filter = 2
 
-[node name="BreathHeader" type="HBoxContainer" parent="Root/TopSafe/TopRow/BreathBlock"]
+[node name="BreathHeader" type="HBoxContainer" parent="Root/TopSafe/TopRow/BreathBlock/BreathInner"]
 layout_mode = 2
 theme_override_constants/separation = 8
 mouse_filter = 2
 
-[node name="BreathIcon" type="TextureRect" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]
+[node name="BreathIcon" type="TextureRect" parent="Root/TopSafe/TopRow/BreathBlock/BreathInner/BreathHeader"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
@@ -106,7 +114,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="BreathTitle" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]
+[node name="BreathTitle" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathInner/BreathHeader"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
@@ -115,7 +123,7 @@ theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 18
 text = "Respiracao"
 
-[node name="BreathLabel" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]
+[node name="BreathLabel" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathInner/BreathHeader"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -127,7 +135,7 @@ theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 20
 text = "0%"
 
-[node name="BreathBar" type="ProgressBar" parent="Root/TopSafe/TopRow/BreathBlock"]
+[node name="BreathBar" type="ProgressBar" parent="Root/TopSafe/TopRow/BreathBlock/BreathInner"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
@@ -135,15 +143,19 @@ max_value = 100.0
 value = 0.0
 show_percentage = false
 
-[node name="CoinsBlock" type="HBoxContainer" parent="Root/TopSafe/TopRow"]
+[node name="CoinsBlock" type="PanelContainer" parent="Root/TopSafe/TopRow"]
 custom_minimum_size = Vector2(140, 0)
 layout_mode = 2
 size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="CoinsInner" type="HBoxContainer" parent="Root/TopSafe/TopRow/CoinsBlock"]
+layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 2
 mouse_filter = 2
 
-[node name="CoinsIcon" type="TextureRect" parent="Root/TopSafe/TopRow/CoinsBlock"]
+[node name="CoinsIcon" type="TextureRect" parent="Root/TopSafe/TopRow/CoinsBlock/CoinsInner"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
@@ -153,7 +165,7 @@ expand_mode = 1
 stretch_mode = 5
 mouse_filter = 2
 
-[node name="CoinsLabel" type="Label" parent="Root/TopSafe/TopRow/CoinsBlock"]
+[node name="CoinsLabel" type="Label" parent="Root/TopSafe/TopRow/CoinsBlock/CoinsInner"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 4
@@ -163,3 +175,38 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 28
 text = "0"
+
+[node name="ComboBlock" type="Control" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -130.0
+offset_right = 130.0
+offset_top = 108.0
+offset_bottom = 160.0
+grow_horizontal = 2
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0)
+
+[node name="ComboPanel" type="PanelContainer" parent="Root/ComboBlock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ComboLabel" type="Label" parent="Root/ComboBlock/ComboPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(1, 0.96, 0.92, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 26
+text = "x0 COMBO"
