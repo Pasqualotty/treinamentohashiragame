@@ -38,7 +38,11 @@ func _ready() -> void:
 		Game.breath_changed.emit(Game.breath, Game.breath_max)
 
 	if is_instance_valid(Audio):
-		Audio.play_bgm("stage")
+		# Boss stages use darker BGM key; others use stage loop.
+		if "boss" in stage_id.to_lower():
+			Audio.play_bgm("boss")
+		else:
+			Audio.play_bgm("stage")
 
 	_player = _find_player()
 	_goal = _find_goal()

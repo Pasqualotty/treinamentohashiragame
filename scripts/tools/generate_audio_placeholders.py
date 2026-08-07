@@ -249,6 +249,42 @@ def main() -> None:
         a = i / cf
         stage[n - cf + i] = stage[n - cf + i] * (1 - a) + stage[i] * a
     write_wav(BGM / "stage_loop.wav", stage)
+
+    # Boss: darker pulse, lower drones, tense stabs (original, not commercial OST).
+    boss = [0.0] * n
+    beat_len_b = 60.0 / 100
+    notes_boss = [98.00, 116.54, 130.81, 146.83, 130.81, 116.54, 110.00, 98.00]
+    for i in range(n):
+        t = i / SR
+        beat_phase = (t % beat_len_b) / beat_len_b
+        bass_env = math.exp(-beat_phase * 6)
+        drone = (
+            math.sin(2 * math.pi * 55 * t) * 0.16
+            + math.sin(2 * math.pi * 82.41 * t) * 0.10
+            + math.sin(2 * math.pi * 110 * t) * 0.05
+        )
+        kick = (
+            math.sin(2 * math.pi * (60 - 35 * beat_phase) * t) * 0.28 * bass_env
+            if beat_phase < 0.28
+            else 0.0
+        )
+        sub = (t % (beat_len_b / 2)) / (beat_len_b / 2)
+        snare = (
+            random.uniform(-1, 1) * 0.09 * math.exp(-sub * 28)
+            if 0.48 < beat_phase < 0.58
+            else 0.0
+        )
+        bar = int(t / beat_len_b) % 8
+        stab_env = max(0.0, 1.0 - (beat_phase * 3.5))
+        lead = math.sin(2 * math.pi * notes_boss[bar] * t) * 0.09 * stab_env
+        menace = math.sin(2 * math.pi * 41.2 * t) * 0.06 * (0.6 + 0.4 * math.sin(2 * math.pi * 0.2 * t))
+        boss[i] = drone + kick + snare + lead + menace
+    cf = int(0.18 * SR)
+    for i in range(cf):
+        a = i / cf
+        boss[n - cf + i] = boss[n - cf + i] * (1 - a) + boss[i] * a
+    write_wav(BGM / "boss_loop.wav", boss)
+
     print("OK — placeholders regenerados (original/procedural).")
 
 

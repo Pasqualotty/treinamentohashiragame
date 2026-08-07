@@ -64,8 +64,14 @@ func lose_run_coins() -> void:
 
 
 func add_breath_from_hit(amount: float = 10.0) -> void:
+	var was_ready: bool = is_ultimate_ready()
 	breath = minf(breath + amount, breath_max)
 	breath_changed.emit(breath, breath_max)
+	# SFX only on the edge into full breath (not every hit while already full).
+	if not was_ready and is_ultimate_ready():
+		var audio := get_node_or_null("/root/Audio")
+		if audio != null and audio.has_method("play_sfx"):
+			audio.call("play_sfx", "breath_full")
 
 
 func is_ultimate_ready() -> bool:

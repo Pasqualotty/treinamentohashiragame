@@ -10,8 +10,8 @@
 | Autoload `Audio` | `scripts/autoload/audio.gd` |
 | Volumes no save | `Game.audio_volume_*` → `user://save.json` |
 | SFX placeholders | `assets/audio/sfx/*.wav` (procedural, original) |
-| BGM placeholders | `assets/audio/bgm/hub_loop.wav`, `stage_loop.wav` |
-| Hooks | splash sting, hub BGM + UI click, mapa UI click, sandbox BGM, slash/hit, coin/breath/ultimate/stage_clear via Game |
+| BGM placeholders | `assets/audio/bgm/hub_loop.wav`, `stage_loop.wav`, `boss_loop.wav` |
+| Hooks | splash sting, hub BGM + UI click, mapa UI click, stage/boss BGM, slash/hit, coin/breath_full/ultimate/stage_clear |
 
 **Licença:** só original/procedural/CC0 — **nunca** OST Demon Slayer rip.
 
@@ -22,8 +22,9 @@
 ```gdscript
 Audio.play_sfx("ui_click")          # silent no-op se arquivo faltar
 Audio.play_sfx("slash", 1.05)       # pitch opcional
-Audio.play_bgm("hub")               # aliases: hub, stage
+Audio.play_bgm("hub")               # aliases: hub, stage, boss
 Audio.play_bgm("stage", true)       # from_start
+Audio.play_bgm("boss")              # W1 boss (placeholder loop)
 Audio.stop_bgm()
 Audio.set_volume_master(0.8)        # linear 0..1, persiste no save
 Audio.set_volume_bgm(0.6)
@@ -53,6 +54,7 @@ assets/audio/
   bgm/
     hub_loop.wav
     stage_loop.wav
+    boss_loop.wav
 resources/default_bus_layout.tres   # Master → BGM, SFX
 scripts/autoload/audio.gd
 scripts/tools/generate_audio_placeholders.py
@@ -75,12 +77,12 @@ Depois abra o Godot uma vez para reimportar (gera `.import`).
 | Brand sting | `splash_studio.gd` |
 | BGM hub | `hub.gd` `_ready` |
 | UI click hub/mapa | `hub.gd`, `world_map.gd` |
-| BGM fase/sandbox | `sandbox_combat.gd` |
-| Slash | `player_combat.gd` ao iniciar ataque |
-| Hit | `dummy.gd` ao receber dano |
-| Coin / breath full / ultimate / stage clear | `game.gd` |
-
-`hurt.wav` está no pack para dano no player (ainda sem hook de HP do player).
+| BGM fase/sandbox | `stage_controller.gd` (`stage`), `sandbox_combat.gd` |
+| BGM boss | `stage_controller.gd` quando `stage_id` contém `boss` |
+| Slash / hit / hurt / ultimate | `player.gd` / `player_combat.gd` |
+| Coin | `coin_pickup.gd` |
+| Breath full | `game.gd` `add_breath_from_hit` (borda full) |
+| Stage clear | `stage_controller.gd` |
 
 ---
 
