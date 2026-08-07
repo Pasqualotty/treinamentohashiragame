@@ -28,11 +28,17 @@ var _bg_i: int = 0
 var _bg_timer: float = 0.0
 var _bg_dir: int = 1
 
+var _play_pulse_tween: Tween
+
+const PULSE_PERIOD := 0.9
+const PULSE_COLOR := Color(1.12, 1.08, 0.85, 1.0)
+
 
 func _ready() -> void:
 	_load_idle_frames()
 	_load_bg_frames()
 	_style_buttons()
+	_style_chrome()
 	if _frames.size() > 0:
 		character_art.texture = _frames[0]
 		character_art.visible = true
@@ -43,6 +49,9 @@ func _ready() -> void:
 		Game.coins_changed.connect(_on_coins_changed)
 	if is_instance_valid(Audio):
 		Audio.play_bgm("hub")
+	# Espera um frame p/ o layout do container assentar antes de fixar o pivot do pulse.
+	await get_tree().process_frame
+	_start_play_pulse()
 
 
 func _process(delta: float) -> void:
@@ -159,6 +168,42 @@ func _apply_icon_button(btn: Button, tex_path: String) -> void:
 	btn.add_theme_stylebox_override("focus", empty)
 
 
+func _style_chrome() -> void:
+	# Painéis leves atrás do perfil/moedas do topo — mesma linguagem "chrome"
+	# dos blocos do HUD de combate (StyleBoxFlat + borda dourada translúcida).
+	_apply_badge_style(find_child("ProfileBadge", true, false) as PanelContainer)
+	_apply_badge_style(find_child("CoinsBadge", true, false) as PanelContainer)
+
+
+func _apply_badge_style(panel: PanelContainer) -> void:
+	if panel == null:
+		return
+	var style := StyleBoxFlat.new()
+	style.bg_color = Palette.with_alpha(Palette.PANEL, 0.7)
+	style.border_color = Palette.with_alpha(Palette.GOLD, 0.5)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	panel.add_theme_stylebox_override("panel", style)
+
+
+func _start_play_pulse() -> void:
+	if play_btn == null:
+		return
+	if _play_pulse_tween and _play_pulse_tween.is_valid():
+		_play_pulse_tween.kill()
+	play_btn.pivot_offset = play_btn.size * 0.5
+	_play_pulse_tween = create_tween()
+	_play_pulse_tween.set_loops()
+	_play_pulse_tween.tween_property(play_btn, "modulate", PULSE_COLOR, PULSE_PERIOD) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_play_pulse_tween.tween_property(play_btn, "modulate", Color(1, 1, 1, 1), PULSE_PERIOD) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
 func _refresh() -> void:
 	coins_label.text = "🪙 %d" % Game.coins_banked
 	character_name.text = "Tanjiro"
@@ -191,4 +236,4 @@ func _on_characters_pressed() -> void:
 
 func _on_settings_pressed() -> void:
 	_ui_click()
-	SceneRouter.to_credits()
+	SceneRouter.to_settings()
