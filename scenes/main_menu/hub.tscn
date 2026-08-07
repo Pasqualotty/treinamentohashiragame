@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/main_menu/hub.gd" id="1_hub"]
+[ext_resource type="FontFile" path="res://assets/fonts/Cinzel-Bold.ttf" id="2_display"]
 
 [node name="Hub" type="Control"]
 layout_mode = 3
@@ -11,6 +12,16 @@ grow_horizontal = 2
 grow_vertical = 2
 clip_contents = true
 script = ExtResource("1_hub")
+
+[node name="BgBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.058824, 0.070588, 0.094118, 1)
+mouse_filter = 2
 
 [node name="BgArt" type="TextureRect" parent="."]
 unique_name_in_owner = true
@@ -35,7 +46,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.06, 0.05, 0.12, 0.42)
+color = Color(0.058824, 0.070588, 0.094118, 0.42)
 mouse_filter = 2
 
 [node name="TopBar" type="HBoxContainer" parent="."]
@@ -126,6 +137,7 @@ theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("2_display")
 theme_override_font_sizes/font_size = 26
 text = "Tanjiro"
 horizontal_alignment = 1
