@@ -1,8 +1,9 @@
 extends CanvasLayer
-## HUD de combate — painéis lacados, ícones HP/respiração, moedas.
+## HUD de combate — painéis lacados, ícones HP/respiração, moedas, combo.
 ## HP anima suave ao mudar (tween) e pulsa em vermelho quando baixo (<25%).
-## Respiração ganha brilho pulsante quando cheia (ULT pronta).
-## Moedas dão um "pop" de escala a cada mudança.
+## Respiração ganha brilho pulsante quando cheia (ULT pronta) + flourish extra
+## no ícone. Moedas dão um "pop" de escala a cada mudança. Combo mostra
+## "xN COMBO" com pop + fade quando idle.
 
 @onready var hp_bar: ProgressBar = %HpBar
 @onready var hp_label: Label = %HpLabel
@@ -10,6 +11,8 @@ extends CanvasLayer
 @onready var breath_label: Label = %BreathLabel
 @onready var coins_label: Label = %CoinsLabel
 @onready var coins_icon: TextureRect = %CoinsIcon
+@onready var combo_block: Control = %ComboBlock
+@onready var combo_label: Label = %ComboLabel
 
 const TEX_HEART := "res://assets/ui/icons/hp_heart.png"
 const TEX_BREATH := "res://assets/ui/icons/breath_orb.png"
@@ -21,6 +24,10 @@ const BREATH_TWEEN_DURATION := 0.3
 const POP_DURATION := 0.12
 const POP_SCALE := 1.28
 const PULSE_PERIOD := 0.55
+
+const COMBO_IDLE_SEC: float = 1.3
+const COMBO_POP_MIN: float = 1.22
+const COMBO_POP_MAX: float = 1.5
 
 var _hp: float = 100.0
 var _hp_max: float = 100.0
@@ -37,6 +44,12 @@ var _breath_value_tween: Tween
 var _low_hp_tween: Tween
 var _breath_glow_tween: Tween
 
+var _player_ref: Node = null
+var _combo_idle_timer: Timer
+var _combo_fade_tween: Tween
+var _combo_pop_tween: Tween
+var _ult_pulse_tween: Tween
+
 
 func _ready() -> void:
 	_hp_block = find_child("HpBlock", true, false) as Control
@@ -45,6 +58,7 @@ func _ready() -> void:
 
 	_style_chrome()
 	_style_bars()
+	_style_combo()
 	_bind_icons()
 	set_hp(_hp, _hp_max)
 	_refresh_breath(Game.breath, Game.breath_max)
@@ -54,6 +68,14 @@ func _ready() -> void:
 		Game.breath_changed.connect(_on_breath_changed)
 	if not Game.run_coins_changed.is_connected(_on_run_coins_changed):
 		Game.run_coins_changed.connect(_on_run_coins_changed)
+	_combo_idle_timer = Timer.new()
+	_combo_idle_timer.wait_time = COMBO_IDLE_SEC
+	_combo_idle_timer.one_shot = true
+	_combo_idle_timer.timeout.connect(_on_combo_idle_timeout)
+	add_child(_combo_idle_timer)
+	set_process(true)
+	_try_connect_combo()
+
 	# Pivot central p/ o "pop" de moedas escalar a partir do meio, não do canto.
 	await get_tree().process_frame
 	_center_pivot(coins_icon)
@@ -87,6 +109,73 @@ func _on_breath_changed(value: float, max_value: float) -> void:
 
 func _on_run_coins_changed(run_total: int) -> void:
 	_refresh_coins(run_total, true)
+
+
+## --- Combo counter (xN COMBO, pop + fade-idle) ---------------------------
+## Conexão defensiva ao combo_changed do player: o player pode não existir
+## ainda no primeiro frame (ordem de instanciação da fase), e o sinal pode
+## nem existir ainda (frente H em paralelo). Para de procurar assim que
+## encontra o node do grupo "player" (com ou sem o sinal).
+
+func _process(_delta: float) -> void:
+	if _player_ref == null or not is_instance_valid(_player_ref):
+		_try_connect_combo()
+
+
+func _try_connect_combo() -> void:
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		return
+	var p: Node = players[0]
+	_player_ref = p
+	if p.has_signal("combo_changed") and not p.is_connected("combo_changed", _on_combo_changed):
+		p.connect("combo_changed", _on_combo_changed)
+	set_process(false)
+
+
+func _on_combo_changed(count: int) -> void:
+	if count <= 0:
+		_fade_combo_out()
+		return
+	combo_label.text = "x%d COMBO" % count
+	combo_label.add_theme_color_override("font_color", _combo_color(count))
+	_show_combo(count)
+	_combo_idle_timer.start()
+
+
+func _on_combo_idle_timeout() -> void:
+	_fade_combo_out()
+
+
+func _combo_color(count: int) -> Color:
+	if count >= 10:
+		return Palette.CRIMSON_BRIGHT
+	if count >= 5:
+		return Palette.GOLD_BRIGHT
+	return Palette.CREAM
+
+
+func _show_combo(count: int) -> void:
+	if _combo_fade_tween and _combo_fade_tween.is_valid():
+		_combo_fade_tween.kill()
+	_combo_fade_tween = create_tween()
+	_combo_fade_tween.tween_property(combo_block, "modulate:a", 1.0, 0.06)
+
+	if _combo_pop_tween and _combo_pop_tween.is_valid():
+		_combo_pop_tween.kill()
+	var pop: float = lerpf(COMBO_POP_MIN, COMBO_POP_MAX, clampf(float(count) / 20.0, 0.0, 1.0))
+	combo_block.scale = Vector2(pop, pop)
+	_combo_pop_tween = create_tween()
+	_combo_pop_tween.set_trans(Tween.TRANS_BACK)
+	_combo_pop_tween.set_ease(Tween.EASE_OUT)
+	_combo_pop_tween.tween_property(combo_block, "scale", Vector2.ONE, 0.22)
+
+
+func _fade_combo_out() -> void:
+	if _combo_fade_tween and _combo_fade_tween.is_valid():
+		_combo_fade_tween.kill()
+	_combo_fade_tween = create_tween()
+	_combo_fade_tween.tween_property(combo_block, "modulate:a", 0.0, 0.45)
 
 
 ## --- HP: tween + pulse baixo ---------------------------------------------
@@ -151,8 +240,10 @@ func _refresh_breath(value: float, max_value: float) -> void:
 	_breath_full = is_full
 	if _breath_full:
 		_start_breath_glow()
+		_start_ultimate_flourish()
 	else:
 		_stop_breath_glow()
+		_stop_ultimate_flourish()
 
 
 func _start_breath_glow() -> void:
@@ -177,6 +268,34 @@ func _stop_breath_glow() -> void:
 	breath_bar.modulate = Color.WHITE
 
 
+## Flourish extra no ícone de respiração (além do glow do painel acima):
+## pulse de escala + tingido dourado enquanto o ultimate está pronto.
+func _start_ultimate_flourish() -> void:
+	if _ult_pulse_tween and _ult_pulse_tween.is_valid():
+		return
+	var icon := get_node_or_null("%BreathIcon") as CanvasItem
+	if icon == null:
+		return
+	_ult_pulse_tween = create_tween()
+	_ult_pulse_tween.set_loops()
+	_ult_pulse_tween.set_trans(Tween.TRANS_SINE)
+	_ult_pulse_tween.set_ease(Tween.EASE_IN_OUT)
+	_ult_pulse_tween.tween_property(icon, "scale", Vector2(1.22, 1.22), 0.42)
+	_ult_pulse_tween.parallel().tween_property(icon, "modulate", Color(1.35, 1.08, 0.5, 1.0), 0.42)
+	_ult_pulse_tween.tween_property(icon, "scale", Vector2(1.0, 1.0), 0.42)
+	_ult_pulse_tween.parallel().tween_property(icon, "modulate", Color(1, 1, 1, 1), 0.42)
+
+
+func _stop_ultimate_flourish() -> void:
+	if _ult_pulse_tween and _ult_pulse_tween.is_valid():
+		_ult_pulse_tween.kill()
+	_ult_pulse_tween = null
+	var icon := get_node_or_null("%BreathIcon") as CanvasItem
+	if icon:
+		icon.set("scale", Vector2.ONE)
+		icon.set("modulate", Color(1, 1, 1, 1))
+
+
 ## --- Moedas: pop de escala ao mudar --------------------------------------
 
 func _refresh_coins(run_total: int, animate: bool) -> void:
@@ -190,9 +309,12 @@ func _refresh_coins(run_total: int, animate: bool) -> void:
 func _pop(node: Control) -> void:
 	if node == null:
 		return
-	var prev: Variant = node.get_meta("_pop_tween", null)
-	if prev is Tween and (prev as Tween).is_valid():
-		(prev as Tween).kill()
+	# get_meta(key, null) NÃO suprime o erro "meta ausente" no Godot 4 (null é
+	# o mesmo sentinel de "sem default") — precisa do has_meta() antes.
+	if node.has_meta("_pop_tween"):
+		var prev: Variant = node.get_meta("_pop_tween")
+		if prev is Tween and (prev as Tween).is_valid():
+			(prev as Tween).kill()
 	_center_pivot(node)
 	node.scale = Vector2.ONE
 	var tw: Tween = create_tween()
@@ -220,6 +342,10 @@ func _bind_icons() -> void:
 	if br_icon == null:
 		br_icon = find_child("BreathIcon", true, false) as CanvasItem
 	_set_icon_texture(br_icon, TEX_BREATH)
+	if br_icon is TextureRect:
+		# Pivot centrado — necessário pro pulse de ultimate escalar sem deslocar.
+		var trect: TextureRect = br_icon as TextureRect
+		trect.pivot_offset = trect.custom_minimum_size * 0.5
 	if coins_icon and ResourceLoader.exists(TEX_COIN):
 		coins_icon.texture = load(TEX_COIN) as Texture2D
 
@@ -258,6 +384,32 @@ func _style_chrome() -> void:
 		panel.shadow_size = 4
 		block.add_theme_stylebox_override("panel", panel)
 		block.modulate = Color(1, 1, 1, 1)
+
+
+## Painel do combo counter — borda dourada mais forte que os blocos de status
+## (é um "flourish", quer chamar mais atenção quando aparece).
+func _style_combo() -> void:
+	combo_block.modulate = Color(1, 1, 1, 0)
+	# Pivot centrado — o pop de escala precisa crescer a partir do centro,
+	# não do canto superior esquerdo (default do Control).
+	combo_block.pivot_offset = combo_block.size * 0.5
+	var panel := find_child("ComboPanel", true, false) as Control
+	if panel:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Palette.with_alpha(Palette.INK, 0.82)
+		style.border_color = Palette.with_alpha(Palette.GOLD, 0.85)
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(10)
+		style.content_margin_left = 10
+		style.content_margin_right = 10
+		style.content_margin_top = 6
+		style.content_margin_bottom = 8
+		style.shadow_color = Color(0, 0, 0, 0.35)
+		style.shadow_size = 4
+		panel.add_theme_stylebox_override("panel", style)
+	combo_label.add_theme_font_size_override("font_size", 26)
+	combo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	combo_label.add_theme_constant_override("outline_size", 3)
 
 
 func _style_bars() -> void:
