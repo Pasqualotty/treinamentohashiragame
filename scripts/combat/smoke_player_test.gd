@@ -110,17 +110,41 @@ func _initialize() -> void:
 				ok = false
 				messages.append("Hurtbox child ausente")
 
-			# Visual: Sprite2D (canônico atual) ou AnimatedSprite2D legado.
-			var vis: Node = player.get_node_or_null("Sprite2D")
+			# Visual: AnimatedSprite2D multi-frame combat (preferido) ou Sprite2D legado.
+			var vis: Node = player.get_node_or_null("AnimatedSprite2D")
 			if vis == null:
-				vis = player.get_node_or_null("%Sprite2D")
-			if vis == null:
-				vis = player.find_child("Sprite2D", true, false)
+				vis = player.get_node_or_null("%AnimatedSprite2D")
 			if vis == null:
 				vis = player.find_child("AnimatedSprite2D", true, false)
 			if vis == null:
+				vis = player.get_node_or_null("Sprite2D")
+			if vis == null:
+				vis = player.find_child("Sprite2D", true, false)
+			if vis == null:
 				ok = false
-				messages.append("Sprite visual ausente no player canônico (Sprite2D)")
+				messages.append("Sprite visual ausente no player canônico")
+			elif vis is AnimatedSprite2D:
+				var aspr := vis as AnimatedSprite2D
+				if aspr.sprite_frames == null:
+					ok = false
+					messages.append("SpriteFrames nulo no AnimatedSprite2D")
+				else:
+					var sf: SpriteFrames = aspr.sprite_frames
+					for need_anim: String in ["idle", "run", "attack"]:
+						if not sf.has_animation(need_anim):
+							ok = false
+							messages.append("SpriteFrames sem anim '%s'" % need_anim)
+						elif sf.get_frame_count(need_anim) < 1:
+							ok = false
+							messages.append("anim '%s' sem frames" % need_anim)
+					print(
+						"OK player AnimatedSprite2D idle=%d run=%d attack=%d"
+						% [
+							sf.get_frame_count("idle") if sf.has_animation("idle") else 0,
+							sf.get_frame_count("run") if sf.has_animation("run") else 0,
+							sf.get_frame_count("attack") if sf.has_animation("attack") else 0,
+						]
+					)
 			elif vis is Sprite2D:
 				var spr := vis as Sprite2D
 				if spr.texture == null:
@@ -128,13 +152,6 @@ func _initialize() -> void:
 					messages.append("Sprite2D sem texture")
 				else:
 					print("OK player Sprite2D texture=", spr.texture.resource_path)
-			elif vis is AnimatedSprite2D:
-				var aspr := vis as AnimatedSprite2D
-				if aspr.sprite_frames == null:
-					ok = false
-					messages.append("SpriteFrames nulo no AnimatedSprite2D")
-				else:
-					print("OK player AnimatedSprite2D frames")
 			else:
 				ok = false
 				messages.append("Visual tipo inválido: %s" % vis.get_class())
@@ -211,11 +228,13 @@ func _initialize() -> void:
 				ok = false
 				messages.append("sandbox Player script nÃ£o Ã© player.gd: %s" % path)
 			# Confirma visual no player do sandbox
-			var svis: Node = p.get_node_or_null("Sprite2D")
-			if svis == null:
-				svis = p.find_child("Sprite2D", true, false)
+			var svis: Node = p.get_node_or_null("AnimatedSprite2D")
 			if svis == null:
 				svis = p.find_child("AnimatedSprite2D", true, false)
+			if svis == null:
+				svis = p.get_node_or_null("Sprite2D")
+			if svis == null:
+				svis = p.find_child("Sprite2D", true, false)
 			if svis == null:
 				ok = false
 				messages.append("sandbox Player sem Sprite visual")
