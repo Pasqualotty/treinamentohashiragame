@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2e1oem6yc1"
-path="res://.godot/imported/tanjiro_attack_slash.png-ec17af4d42050ee1d66ed7b7ced4021d.ctex"
+uid="uid://bxmujot65v8a2"
+path="res://.godot/imported/01.png-44c63558384655e434bde5ce9dbf21d0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/player/combat/tanjiro_attack_slash.png"
-dest_files=["res://.godot/imported/tanjiro_attack_slash.png-ec17af4d42050ee1d66ed7b7ced4021d.ctex"]
+source_file="res://assets/characters/player/combat/attack/01.png"
+dest_files=["res://.godot/imported/01.png-44c63558384655e434bde5ce9dbf21d0.ctex"]
 
 [params]
 

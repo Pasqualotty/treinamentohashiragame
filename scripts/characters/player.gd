@@ -1,19 +1,19 @@
-extends CharacterBody2D
+﻿extends CharacterBody2D
 ## Player canonico unificado (movimento + combate MVP).
 ## Cena: scenes/characters/player/player.tscn
 ##
 ## State machine: idle / run / jump / dash / attack_basic / skill_1 / skill_2 /
 ## ultimate / hurt / dead.
 ##
-## InputMap (so actions — sem is_key_pressed):
-##   move_left/right · jump · advance(dash) · attack_basic · skill_1 · skill_2 · ultimate
+## InputMap (so actions â€” sem is_key_pressed):
+##   move_left/right Â· jump Â· advance(dash) Â· attack_basic Â· skill_1 Â· skill_2 Â· ultimate
 ##
 ## Teclas playtest (project.godot):
-##   A/D ou setas · Espaco pulo · Shift/F dash · Z/J atk · X/K skill1 · C/L skill2 · V/I ult
+##   A/D ou setas Â· Espaco pulo Â· Shift/F dash Â· Z/J atk Â· X/K skill1 Â· C/L skill2 Â· V/I ult
 ##
 ## Regras GDD:
 ##   - Pulo 1x + coyote + input buffer; dash c/ cooldown **sem** i-frames
-##   - Hits → Game.add_breath_from_hit; ultimate → Game.consume_ultimate + i-frames curtos
+##   - Hits â†’ Game.add_breath_from_hit; ultimate â†’ Game.consume_ultimate + i-frames curtos
 ##   - Skills placeholder: "Corte em Arco" / "Investida"
 ##   - Juice: hit flash / knockback / hitstop / camera shake via CombatFeel
 ##   - Feel: accel/friction, attack cancel leve no recovery, hurt recovery firme
@@ -39,15 +39,37 @@ signal state_changed(new_state: State)
 
 @export var stats: PlayerStats
 
-@onready var sprite: Sprite2D = %Sprite2D
+@onready var sprite: AnimatedSprite2D = %AnimatedSprite2D
 @onready var hitbox: Hitbox = %Hitbox
 @onready var hurtbox: Hurtbox = %Hurtbox
 @onready var hitbox_shape: CollisionShape2D = %HitboxShape
 
-const TEX_IDLE: Texture2D = preload("res://assets/characters/player/tanjiro_idle_side.png")
-const TEX_RUN: Texture2D = preload("res://assets/characters/player/combat/tanjiro_run.png")
-const TEX_ATTACK: Texture2D = preload("res://assets/characters/player/combat/tanjiro_attack_slash.png")
-const TEX_ATTACK_B: Texture2D = preload("res://assets/characters/player/hub_idle/06.png")
+## Altura visual alvo em px (side-scroller legÃ­vel em 1280Ã—720 / mobile).
+const TARGET_VISUAL_HEIGHT: float = 96.0
+const ANIM_IDLE: StringName = &"idle"
+const ANIM_RUN: StringName = &"run"
+const ANIM_ATTACK: StringName = &"attack"
+const ANIM_HURT: StringName = &"hurt"
+
+## Multi-frame combat (chroma limpo) â€” paths sob assets/characters/player/combat/
+const IDLE_FRAME_PATHS: Array[String] = [
+	"res://assets/characters/player/combat/idle_side/00.png",
+	"res://assets/characters/player/combat/idle_side/01.png",
+	"res://assets/characters/player/combat/idle_side/02.png",
+]
+const RUN_FRAME_PATHS: Array[String] = [
+	"res://assets/characters/player/combat/run/00.png",
+	"res://assets/characters/player/combat/run/01.png",
+	"res://assets/characters/player/combat/run/02.png",
+]
+const ATTACK_FRAME_PATHS: Array[String] = [
+	"res://assets/characters/player/combat/attack/00.png",
+	"res://assets/characters/player/combat/attack/01.png",
+	"res://assets/characters/player/combat/attack/02.png",
+]
+const HURT_FRAME_PATHS: Array[String] = [
+	"res://assets/characters/player/combat/hurt/00.png",
+]
 
 var _state: State = State.IDLE
 ## 1.0 = direita, -1.0 = esquerda.
@@ -58,7 +80,7 @@ var _dash_time_left: float = 0.0
 var _air_dash_used: bool = false
 var _was_on_floor: bool = false
 
-## Input buffers (s) — jump / attack_basic / dash (advance).
+## Input buffers (s) â€” jump / attack_basic / dash (advance).
 var _buf_jump: float = 0.0
 var _buf_attack: float = 0.0
 var _buf_dash: float = 0.0
@@ -77,13 +99,15 @@ var _default_hitbox_size: Vector2 = Vector2(40.0, 30.0)
 var _flash_left: float = 0.0
 var _base_modulate: Color = Color.WHITE
 var _run_bob_t: float = 0.0
+var _base_sprite_scale: float = 0.18
+var _sprite_base_y: float = -48.0
 const FLASH_HURT: Color = Color(1.5, 0.45, 0.45, 1.0)
 const FLASH_TIME: float = 0.1
 
 
 func _ready() -> void:
 	add_to_group("player")
-	# Física estável no chão (evita "patinar" / não grudar no tile).
+	# FÃ­sica estÃ¡vel no chÃ£o (evita "patinar" / nÃ£o grudar no tile).
 	floor_snap_length = 12.0
 	floor_max_angle = deg_to_rad(50.0)
 	safe_margin = 0.12
@@ -124,11 +148,8 @@ func _ready() -> void:
 	if sprite:
 		_base_modulate = Color.WHITE
 		sprite.centered = true
-		# ~64–72px de altura em 1280×720 (legível sem virar wall).
-		sprite.scale = Vector2(0.14, 0.14)
-		sprite.position = Vector2(0, -48)
-		sprite.texture = TEX_IDLE
 		sprite.z_index = 2
+		_setup_sprite_frames()
 	_apply_facing_visual()
 	_sync_sprite_to_state()
 	hp_changed.emit(hp, stats.max_hp)
@@ -298,7 +319,7 @@ func _capture_input_buffers() -> void:
 func _try_consume_buffers() -> void:
 	if _state == State.DEAD or _state == State.HURT or _state == State.DASH:
 		return
-	# Ordem: dash > jump > attack (mobilidade primeiro — feel responsivo).
+	# Ordem: dash > jump > attack (mobilidade primeiro â€” feel responsivo).
 	if _buf_dash > 0.0:
 		if try_dash():
 			return
@@ -319,14 +340,14 @@ func _process_locomotion(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + stats.gravity * delta, stats.max_fall_speed)
 	else:
-		# Snap sutil: se está no chão e sem input vertical, zera residual.
+		# Snap sutil: se estÃ¡ no chÃ£o e sem input vertical, zera residual.
 		if velocity.y > 0.0:
 			velocity.y = 0.0
 
 	var axis: float = Input.get_axis("move_left", "move_right")
 	_apply_horizontal_feel(axis, delta)
 
-	# Buffers já capturados em _capture; fallback just_pressed se buffer zeroed.
+	# Buffers jÃ¡ capturados em _capture; fallback just_pressed se buffer zeroed.
 	# (capture + consume cobrem jump/dash/attack)
 
 
@@ -335,7 +356,7 @@ func _apply_horizontal_feel(axis: float, delta: float) -> void:
 	if not is_zero_approx(axis):
 		_facing = signf(axis)
 		var accel: float = stats.move_accel if stats.move_accel > 0.0 else stats.move_speed * 12.0
-		# Se mudou de direção, freia um pouco mais rápido (snap de virada).
+		# Se mudou de direÃ§Ã£o, freia um pouco mais rÃ¡pido (snap de virada).
 		if signf(velocity.x) != 0.0 and signf(velocity.x) != signf(axis):
 			accel *= 1.35
 		velocity.x = move_toward(velocity.x, target, accel * delta)
@@ -363,7 +384,7 @@ func _process_hurt(delta: float) -> void:
 	_hurt_timer -= delta
 	if _hurt_timer <= 0.0:
 		_set_state(State.IDLE if is_on_floor() else State.JUMP)
-		# Após recovery, tenta buffers de mobilidade (jump/dash) se ainda vivos.
+		# ApÃ³s recovery, tenta buffers de mobilidade (jump/dash) se ainda vivos.
 		_try_consume_buffers()
 
 
@@ -389,7 +410,9 @@ func _process_action(delta: float) -> void:
 		if hitbox and hitbox.is_active():
 			hitbox.disable()
 
-	# Cancel leve: jump/dash no fim do recovery (basic e skills, não ultimate).
+	# Frame de ataque alinhado Ã  janela de hit (windup / active / recovery).
+	_sync_attack_frame_to_action()
+	# Cancel leve: jump/dash no fim do recovery (basic e skills, nÃ£o ultimate).
 	if _can_cancel_attack_to_mobility():
 		if _buf_dash > 0.0 and try_dash():
 			return
@@ -408,7 +431,7 @@ func _try_start_attack_basic() -> bool:
 		return false
 	if _is_attack_locked():
 		return false
-	# Basic pode no ar — skills/ult ainda preferem chão.
+	# Basic pode no ar â€” skills/ult ainda preferem chÃ£o.
 	_begin_action(
 		State.ATTACK_BASIC,
 		stats.attack_startup,
@@ -504,11 +527,13 @@ func _begin_action(
 	hit_size: Vector2,
 	offset_x: float
 ) -> void:
-	_set_state(new_state)
+	# Timer/fases ANTES de _set_state: _sync_attack_frame_to_action usa esses valores
+	# no frame 0 do golpe (evita pose residual do ataque anterior).
 	_action_timer = 0.0
 	_action_startup = startup
 	_action_active = active
 	_action_recovery = recovery
+	_set_state(new_state)
 	velocity.x = 0.0
 	_hitbox_base_x = offset_x
 	_configure_hitbox(damage, knockback, hit_size, offset_x)
@@ -679,7 +704,7 @@ func _is_attack_locked() -> bool:
 
 
 func _can_cancel_attack_to_mobility() -> bool:
-	## Janela leve no recovery de basic/skills (não ultimate).
+	## Janela leve no recovery de basic/skills (nÃ£o ultimate).
 	if _state not in [State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2]:
 		return false
 	var total: float = _action_startup + _action_active + _action_recovery
@@ -691,7 +716,7 @@ func _can_cancel_attack_to_mobility() -> bool:
 	var into_recovery: float = _action_timer - recovery_start
 	var ratio: float = stats.attack_cancel_ratio if stats else 0.45
 	ratio = clampf(ratio, 0.0, 1.0)
-	# Cancel só na fração final do recovery (ex.: últimos 45%).
+	# Cancel sÃ³ na fraÃ§Ã£o final do recovery (ex.: Ãºltimos 45%).
 	var cancel_from: float = _action_recovery * (1.0 - ratio)
 	return into_recovery >= cancel_from
 
@@ -704,58 +729,154 @@ func _set_state(new_state: State) -> void:
 	_sync_sprite_to_state()
 
 
-func _sync_sprite_to_state() -> void:
+func _setup_sprite_frames() -> void:
 	if sprite == null:
+		return
+	var frames: SpriteFrames = SpriteFrames.new()
+	_add_anim_from_paths(frames, ANIM_IDLE, IDLE_FRAME_PATHS, 5.0, true)
+	_add_anim_from_paths(frames, ANIM_RUN, RUN_FRAME_PATHS, 10.0, true)
+	_add_anim_from_paths(frames, ANIM_ATTACK, ATTACK_FRAME_PATHS, 12.0, false)
+	_add_anim_from_paths(frames, ANIM_HURT, HURT_FRAME_PATHS, 1.0, false)
+	sprite.sprite_frames = frames
+	sprite.centered = true
+	# Escala por altura da primeira textura disponÃ­vel (pÃ©s no chÃ£o via position.y).
+	var sample: Texture2D = _first_texture(frames)
+	if sample != null and sample.get_height() > 0:
+		_base_sprite_scale = TARGET_VISUAL_HEIGHT / float(sample.get_height())
+	else:
+		_base_sprite_scale = 0.18
+	_sprite_base_y = -TARGET_VISUAL_HEIGHT * 0.5
+	sprite.scale = Vector2(_base_sprite_scale, _base_sprite_scale)
+	sprite.position = Vector2(0.0, _sprite_base_y)
+	sprite.play(ANIM_IDLE)
+
+
+func _add_anim_from_paths(
+	frames: SpriteFrames,
+	anim_name: StringName,
+	paths: Array[String],
+	fps: float,
+	loop: bool
+) -> void:
+	if frames.has_animation(anim_name):
+		frames.remove_animation(anim_name)
+	frames.add_animation(anim_name)
+	frames.set_animation_speed(anim_name, fps)
+	frames.set_animation_loop(anim_name, loop)
+	for path: String in paths:
+		if not ResourceLoader.exists(path):
+			push_warning("Player: frame ausente %s" % path)
+			continue
+		var tex: Texture2D = load(path) as Texture2D
+		if tex == null:
+			push_warning("Player: falha ao load %s" % path)
+			continue
+		frames.add_frame(anim_name, tex)
+
+
+func _first_texture(frames: SpriteFrames) -> Texture2D:
+	for anim: StringName in [ANIM_IDLE, ANIM_RUN, ANIM_ATTACK, ANIM_HURT]:
+		if frames.has_animation(anim) and frames.get_frame_count(anim) > 0:
+			return frames.get_frame_texture(anim, 0)
+	return null
+
+
+func _sync_sprite_to_state() -> void:
+	if sprite == null or sprite.sprite_frames == null:
 		return
 	match _state:
 		State.RUN, State.DASH:
-			sprite.texture = TEX_RUN
-		State.ATTACK_BASIC:
-			sprite.texture = TEX_ATTACK
-		State.SKILL_1, State.SKILL_2, State.ULTIMATE:
-			sprite.texture = TEX_ATTACK_B
+			_play_anim(ANIM_RUN)
+		State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE:
+			# Ataque: controlamos frame por fase de hitbox (nÃ£o auto-play solto).
+			_play_anim(ANIM_ATTACK, false)
+			sprite.pause()
+			_sync_attack_frame_to_action()
 		State.HURT:
-			sprite.texture = TEX_IDLE
+			_play_anim(ANIM_HURT, false)
 		State.DEAD:
-			sprite.texture = TEX_IDLE
+			_play_anim(ANIM_HURT, false)
 			sprite.modulate = Color(0.5, 0.5, 0.55, 0.9)
+		State.JUMP:
+			# MantÃ©m pose de corrida/idle sem loop agressivo no ar.
+			if sprite.animation != ANIM_RUN:
+				_play_anim(ANIM_IDLE)
+			sprite.pause()
+			if sprite.sprite_frames.get_frame_count(sprite.animation) > 0:
+				sprite.frame = 0
 		_:
-			sprite.texture = TEX_IDLE
+			_play_anim(ANIM_IDLE)
 			if _flash_left <= 0.0:
 				sprite.modulate = _base_modulate
 	_apply_facing_visual()
 
 
+func _play_anim(anim: StringName, restart: bool = true) -> void:
+	if sprite == null or sprite.sprite_frames == null:
+		return
+	if not sprite.sprite_frames.has_animation(anim):
+		return
+	if sprite.animation != anim or restart:
+		sprite.play(anim)
+	elif not sprite.is_playing():
+		sprite.play(anim)
+
+
+func _sync_attack_frame_to_action() -> void:
+	## Alinha frame de ataque: 0=startup, 1=active (hit), 2=recovery.
+	if sprite == null or sprite.sprite_frames == null:
+		return
+	if _state not in [State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE]:
+		return
+	if not sprite.sprite_frames.has_animation(ANIM_ATTACK):
+		return
+	var count: int = sprite.sprite_frames.get_frame_count(ANIM_ATTACK)
+	if count <= 0:
+		return
+	if sprite.animation != ANIM_ATTACK:
+		sprite.play(ANIM_ATTACK)
+	sprite.pause()
+	var frame_i: int = 0
+	if _action_timer >= _action_startup + _action_active:
+		frame_i = mini(2, count - 1)
+	elif _action_timer >= _action_startup:
+		frame_i = mini(1, count - 1)
+	else:
+		frame_i = 0
+	sprite.frame = frame_i
+
+
 func _update_run_bob(delta: float) -> void:
 	if sprite == null:
 		return
-	var base_y: float = -48.0
+	var base_y: float = _sprite_base_y
+	var s: float = _base_sprite_scale
 	if _state == State.RUN and is_on_floor():
 		_run_bob_t += delta * 14.0
-		# Bob + leve squash de corrida (feel de peso).
-		sprite.position.y = base_y + sin(_run_bob_t) * 2.5
-		var squash: float = 1.0 + sin(_run_bob_t * 2.0) * 0.04
-		sprite.scale = Vector2(0.14 * (2.0 - squash), 0.14 * squash)
+		# Bob sutil â€” frames multi jÃ¡ carregam o motion de corrida.
+		sprite.position.y = base_y + sin(_run_bob_t) * 2.0
+		sprite.scale = Vector2(s, s)
 	elif _state == State.JUMP:
 		sprite.position.y = base_y - 6.0
-		sprite.scale = Vector2(0.13, 0.15)
+		sprite.scale = Vector2(s * 0.96, s * 1.04)
 	elif _state == State.DASH:
 		sprite.position.y = base_y
-		sprite.scale = Vector2(0.16, 0.12)
+		sprite.scale = Vector2(s * 1.08, s * 0.92)
 	elif _state in [State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE]:
 		sprite.position.y = base_y
-		sprite.scale = Vector2(0.145, 0.14)
+	sprite.scale = Vector2(s, s)
 	elif _state == State.HURT:
 		sprite.position.y = base_y + 2.0
-		sprite.scale = Vector2(0.145, 0.135)
+		sprite.scale = Vector2(s * 1.02, s * 0.96)
 	else:
 		_run_bob_t = 0.0
 		sprite.position.y = base_y
-		sprite.scale = Vector2(0.14, 0.14)
+		sprite.scale = Vector2(s, s)
 
 
 func _apply_facing_visual() -> void:
 	if sprite:
-		sprite.flip_h = _facing < 0.0
+		# Assets de combate olham para a ESQUERDA; flip quando facing > 0 (direita).
+		sprite.flip_h = _facing > 0.0
 	if hitbox and not hitbox.is_active():
 		hitbox.position.x = _hitbox_base_x * _facing
