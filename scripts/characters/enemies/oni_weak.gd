@@ -199,6 +199,9 @@ func _on_hurt(hit_data: HitData) -> void:
 	velocity.y = hit_data.knockback.y
 	_start_flash()
 	_refresh_label()
+	if is_instance_valid(Fx):
+		var spark_pos: Vector2 = hurtbox.global_position if hurtbox else global_position + Vector2(0.0, -28.0)
+		Fx.spark(spark_pos, Fx.COLOR_CRIMSON, 8)
 	# Hit SFX fica no player (fonte do hit); oni so reage visualmente.
 	print("[Oni] hurt dmg=%d hp=%d/%d" % [hit_data.damage, hp, max_hp])
 	# Interrompe telegraph/ataque ao tomar hit.
@@ -226,9 +229,19 @@ func _on_defeated() -> void:
 	if hp_label:
 		hp_label.text = "HP 0/%d — KO" % max_hp
 	_spawn_coin_drop()
+	if is_instance_valid(Fx):
+		Fx.death_poof(global_position + Vector2(0.0, -28.0), Fx.COLOR_ASH)
+	if is_instance_valid(CombatFeel):
+		if CombatFeel.has_method("freeze_frame"):
+			CombatFeel.freeze_frame()
+		if CombatFeel.has_method("zoom_punch"):
+			CombatFeel.zoom_punch(CombatFeel.ZOOM_PUNCH_KILL, CombatFeel.ZOOM_PUNCH_DUR)
 	defeated.emit()
-	# Remove apos feedback curto.
+	# Remove apos feedback curto — dissolve visual acompanha o poof de cinzas.
 	var tree: SceneTree = get_tree()
+	if sprite and tree:
+		var tw: Tween = create_tween()
+		tw.tween_property(sprite, "modulate:a", 0.0, 0.3)
 	if tree:
 		await tree.create_timer(0.35).timeout
 	if is_instance_valid(self):

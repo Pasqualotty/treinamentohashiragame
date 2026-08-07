@@ -27,6 +27,7 @@ Game="*res://scripts/autoload/game.gd"
 Audio="*res://scripts/autoload/audio.gd"
 SceneRouter="*res://scripts/autoload/scene_router.gd"
 CombatFeel="*res://scripts/combat/combat_feel.gd"
+Fx="*res://scripts/autoload/fx.gd"
 
 [display]
 

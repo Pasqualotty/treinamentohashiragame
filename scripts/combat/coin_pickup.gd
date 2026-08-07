@@ -51,6 +51,9 @@ func _ready() -> void:
 
 func setup(amount: int) -> void:
 	value = maxi(0, amount)
+	# Chamado pelo spawner APÓS setar global_position — sparkle nasce no lugar certo.
+	if is_instance_valid(Fx):
+		Fx.spark(global_position, Fx.COLOR_GOLD, 6)
 
 
 func _process(delta: float) -> void:
@@ -101,6 +104,10 @@ func _on_body_entered(body: Node2D) -> void:
 
 
 func _collect() -> void:
+	# Guarda contra double-collect: queue_free agora é adiado (scale-pop tween),
+	# então uma 2ª chamada (ex.: fallback externo) não pode creditar de novo.
+	if _collected:
+		return
 	_collected = true
 	set_deferred("monitoring", false)
 	if value > 0:
@@ -108,4 +115,17 @@ func _collect() -> void:
 	if is_instance_valid(Audio):
 		Audio.play_sfx("coin", randf_range(0.95, 1.12))
 	print("[CoinPickup] +%d run_coins → %d" % [value, Game.coins_run])
-	queue_free()
+	if is_instance_valid(Fx):
+		Fx.spark(global_position, Fx.COLOR_GOLD, 8)
+	_play_collect_pop()
+
+
+func _play_collect_pop() -> void:
+	## Pequeno arco/scale-pop ao coletar antes de sumir (feel de "moeda feliz").
+	var tw: Tween = create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(self, "scale", scale * 1.35, 0.08) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(self, "position:y", position.y - 14.0, 0.12).set_ease(Tween.EASE_OUT)
+	tw.tween_property(self, "modulate:a", 0.0, 0.14).set_delay(0.05)
+	tw.chain().tween_callback(queue_free)
