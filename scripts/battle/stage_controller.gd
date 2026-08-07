@@ -76,6 +76,7 @@ func _ready() -> void:
 
 	_build_back_button()
 	_build_controls_hint()
+	_build_stage_intro_hint()
 
 	if use_waves:
 		_start_waves()
@@ -139,6 +140,10 @@ func _on_waves_finished() -> void:
 
 func _set_goal_locked(locked: bool) -> void:
 	if _goal == null:
+		return
+	# Prefer API do StageGoal (pulse/glow + FECHADA legível).
+	if _goal.has_method("set_locked"):
+		_goal.call("set_locked", locked)
 		return
 	_goal.monitoring = not locked
 	_goal.visible = true
@@ -227,15 +232,96 @@ func _complete_stage() -> void:
 	if _completed or _dead:
 		return
 	_completed = true
+	var banked_amount: int = int(Game.coins_run)
 	Game.bank_run_coins()
 	Game.mark_stage_cleared(stage_id)
 	if is_instance_valid(Audio):
 		Audio.play_sfx("stage_clear")
 	if is_instance_valid(CombatFeel):
 		CombatFeel.shake(5.0, 0.15)
-	print("[StageController] CLEAR %s coins_banked" % stage_id)
-	await get_tree().create_timer(0.9).timeout
+	print("[StageController] CLEAR %s coins_banked=%d" % [stage_id, banked_amount])
+	await _play_clear_ceremony(banked_amount)
 	SceneRouter.to_world_map()
+
+
+## Banner CLEAR + flash de moedas bank + delay de cerimônia.
+func _play_clear_ceremony(banked_amount: int) -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "ClearCeremony"
+	layer.layer = 95
+	add_child(layer)
+
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.02, 0.04, 0.08, 0.0)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(dim)
+
+	var title := Label.new()
+	title.name = "ClearTitle"
+	title.set_anchors_preset(Control.PRESET_CENTER)
+	title.offset_left = -320.0
+	title.offset_top = -80.0
+	title.offset_right = 320.0
+	title.offset_bottom = 0.0
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.text = "CLEAR!"
+	title.add_theme_font_size_override("font_size", 64)
+	title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45, 1.0))
+	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	title.add_theme_color_override("font_outline_color", Color(0.2, 0.1, 0.0, 0.85))
+	title.add_theme_constant_override("shadow_offset_x", 3)
+	title.add_theme_constant_override("shadow_offset_y", 3)
+	title.add_theme_constant_override("outline_size", 5)
+	title.modulate.a = 0.0
+	title.scale = Vector2(0.55, 0.55)
+	title.pivot_offset = Vector2(320.0, 40.0)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(title)
+
+	var coins_lbl := Label.new()
+	coins_lbl.name = "CoinsBankFlash"
+	coins_lbl.set_anchors_preset(Control.PRESET_CENTER)
+	coins_lbl.offset_left = -280.0
+	coins_lbl.offset_top = 12.0
+	coins_lbl.offset_right = 280.0
+	coins_lbl.offset_bottom = 64.0
+	coins_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	coins_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if banked_amount > 0:
+		coins_lbl.text = "+%d moedas salvas" % banked_amount
+	else:
+		coins_lbl.text = "Fase concluída"
+	coins_lbl.add_theme_font_size_override("font_size", 28)
+	coins_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.35, 1.0))
+	coins_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	coins_lbl.add_theme_constant_override("shadow_offset_x", 2)
+	coins_lbl.add_theme_constant_override("shadow_offset_y", 2)
+	coins_lbl.modulate.a = 0.0
+	coins_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(coins_lbl)
+
+	# Pop CLEAR + dim + flash moedas.
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(dim, "color:a", 0.55, 0.22)
+	tw.tween_property(title, "modulate:a", 1.0, 0.18)
+	tw.tween_property(title, "scale", Vector2(1.12, 1.12), 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.set_parallel(false)
+	tw.tween_property(title, "scale", Vector2.ONE, 0.12)
+	tw.tween_property(coins_lbl, "modulate:a", 1.0, 0.18)
+	# Pulse dourado nas moedas (bank flash).
+	tw.tween_property(coins_lbl, "modulate", Color(1.25, 1.15, 0.55, 1.0), 0.12)
+	tw.tween_property(coins_lbl, "modulate", Color(1.0, 0.88, 0.35, 1.0), 0.18)
+	tw.tween_interval(1.15)
+	tw.set_parallel(true)
+	tw.tween_property(title, "modulate:a", 0.0, 0.35)
+	tw.tween_property(coins_lbl, "modulate:a", 0.0, 0.35)
+	tw.tween_property(dim, "color:a", 0.0, 0.35)
+	await tw.finished
+	if is_instance_valid(layer):
+		layer.queue_free()
 
 
 func _return_to_map(count_as_victory: bool) -> void:
@@ -282,7 +368,61 @@ func _build_controls_hint() -> void:
 	var tw := create_tween()
 	tw.tween_interval(8.0)
 	tw.tween_property(lbl, "modulate:a", 0.0, 1.2)
-	tw.tween_callback(lbl.queue_free)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(lbl):
+			lbl.queue_free()
+		if is_instance_valid(layer) and layer.get_child_count() == 0:
+			layer.queue_free()
+	)
+
+
+## Hint de objetivo da fase no start (some com fade).
+func _build_stage_intro_hint() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "StageIntroHint"
+	layer.layer = 46
+	add_child(layer)
+
+	var panel := ColorRect.new()
+	panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	panel.offset_top = 200.0
+	panel.offset_bottom = 268.0
+	panel.color = Color(0.02, 0.05, 0.1, 0.0)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(panel)
+
+	var lbl := Label.new()
+	lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	lbl.offset_top = 204.0
+	lbl.offset_bottom = 264.0
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 26)
+	lbl.add_theme_color_override("font_color", Color(0.95, 0.97, 0.9, 1.0))
+	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	lbl.add_theme_constant_override("shadow_offset_x", 2)
+	lbl.add_theme_constant_override("shadow_offset_y", 2)
+	lbl.add_theme_constant_override("outline_size", 3)
+	if use_waves:
+		lbl.text = "Elimine as ondas · Saída abre no fim"
+	else:
+		lbl.text = "Derrote os onis e alcance a saída"
+	lbl.modulate.a = 0.0
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(lbl)
+
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(lbl, "modulate:a", 1.0, 0.35)
+	tw.tween_property(panel, "color:a", 0.5, 0.35)
+	tw.set_parallel(false)
+	tw.tween_interval(3.2)
+	tw.set_parallel(true)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.9)
+	tw.tween_property(panel, "color:a", 0.0, 0.9)
+	tw.set_parallel(false)
+	tw.tween_callback(layer.queue_free)
 
 
 func _show_pause_menu() -> void:
