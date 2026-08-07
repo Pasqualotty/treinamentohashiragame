@@ -28,7 +28,7 @@ extends Resource
 ## Freio no chão durante hurt (px/s²) — recovery legível sem “slide eterno”.
 @export var hurt_friction: float = 1400.0
 
-# --- Attack basic ---
+# --- Attack basic (hit 1 do combo — dano-base usado pelos upgrades da loja) ---
 @export var attack_damage: int = 5
 @export var attack_knockback: Vector2 = Vector2(180.0, -70.0)
 @export var attack_startup: float = 0.06
@@ -36,6 +36,35 @@ extends Resource
 @export var attack_recovery: float = 0.14
 @export var attack_hitbox_size: Vector2 = Vector2(40.0, 30.0)
 @export var attack_hitbox_offset_x: float = 28.0
+
+# --- Combo básico (3 hits): hit 2 e hit 3 encadeiam a partir do attack_basic ---
+## Fração do recovery do golpe atual (a partir do fim do active) em que um novo
+## attack_basic já encadeia pro próximo hit do combo, cortando o resto do recovery.
+## Mais alto = combo mais responsivo/generoso; mais baixo = mais "travado".
+@export var attack_combo_chain_ratio: float = 0.8
+## Janela (s) de tolerância após o golpe atual terminar (sem ter sido encadeado
+## via cancel) em que um attack_basic ainda avança o combo em vez de resetar
+## pro hit 1. Expira → combo volta a 0.
+@export var attack_combo_grace: float = 0.28
+
+## Hit 2: multiplicador sobre attack_damage (upgrades de loja continuam valendo
+## pro combo inteiro, já que escalam attack_damage).
+@export var attack_hit2_damage_mult: float = 1.2
+@export var attack_hit2_knockback: Vector2 = Vector2(210.0, -90.0)
+@export var attack_hit2_startup: float = 0.055
+@export var attack_hit2_active: float = 0.12
+@export var attack_hit2_recovery: float = 0.15
+@export var attack_hit2_hitbox_size: Vector2 = Vector2(44.0, 32.0)
+@export var attack_hit2_hitbox_offset_x: float = 30.0
+
+## Hit 3: FINALIZADOR — mais dano/knockback/hitbox, juice mais forte (ver player.gd).
+@export var attack_hit3_damage_mult: float = 2.0
+@export var attack_hit3_knockback: Vector2 = Vector2(340.0, -160.0)
+@export var attack_hit3_startup: float = 0.08
+@export var attack_hit3_active: float = 0.16
+@export var attack_hit3_recovery: float = 0.24
+@export var attack_hit3_hitbox_size: Vector2 = Vector2(66.0, 40.0)
+@export var attack_hit3_hitbox_offset_x: float = 34.0
 
 # --- Skill 1: Corte em Arco (placeholder GDD) ---
 @export var skill_1_display_name: String = "Corte em Arco"

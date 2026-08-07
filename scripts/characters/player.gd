@@ -17,6 +17,19 @@ extends CharacterBody2D
 ##   - Skills placeholder: "Corte em Arco" / "Investida"
 ##   - Juice: hit flash / knockback / hitstop / camera shake via CombatFeel
 ##   - Feel: accel/friction, attack cancel leve no recovery, hurt recovery firme
+##
+## Combo básico (3 hits): attack_basic dentro da janela de chain (mid-recovery,
+## `attack_combo_chain_ratio`) ou da janela de graça pós-golpe (`attack_combo_grace`)
+## encadeia hit1→hit2→hit3. Hit3 é o finalizador (mais dano/knockback + juice extra).
+## Qualquer outra ação (dash/jump/skill/ultimate/hurt) ou o fim da janela reseta o
+## combo pra 0. HUD escuta `combo_changed(count)` — não usar `state_changed` pra isso,
+## já que os 3 hits ficam todos no mesmo State.ATTACK_BASIC.
+##
+## Animação: sem frames novos (3 frames por anim) — expressividade vem de squash/
+## stretch/lean procedural em `_update_run_bob` (idle breathing, dash stretch,
+## windup/active/recovery do golpe, recoil no hurt, squash no pouso). Isso é
+## puramente cosmético (position/scale/rotation do sprite) e não interfere no
+## alinhamento de frame por fase de hitbox feito em `_sync_attack_frame_to_action`.
 
 enum State {
 	IDLE,
@@ -36,6 +49,8 @@ const DEFAULT_STATS: String = "res://resources/player/player_stats.tres"
 signal hp_changed(current: int, max_hp: int)
 signal died
 signal state_changed(new_state: State)
+## 0 = combo resetado; 1/2/3 = hit atual do combo básico (attack_basic). HUD (Frente J) escuta.
+signal combo_changed(count: int)
 
 @export var stats: PlayerStats
 
@@ -106,6 +121,16 @@ var _base_sprite_scale: float = 0.18
 var _sprite_base_y: float = -48.0
 const FLASH_HURT: Color = Color(1.5, 0.45, 0.45, 1.0)
 const FLASH_TIME: float = 0.1
+
+## Combo básico: 0 = sem combo; 1/2/3 = hit atual (ver signal combo_changed).
+var _combo_index: int = 0
+## Janela de graça (s) pós-golpe pra encadear o próximo hit sem ter cancelado
+## no mid-recovery. Conta em _tick_timers; ao chegar a 0, reseta o combo.
+var _combo_reset_timer: float = 0.0
+
+## Squash de pouso (procedural, sem frame novo) — timer decai em _update_run_bob.
+var _landing_squash_t: float = 0.0
+const LANDING_SQUASH_DUR: float = 0.16
 
 
 func _ready() -> void:
@@ -225,6 +250,7 @@ func try_jump() -> bool:
 		return false
 	if _can_cancel_attack_to_mobility():
 		_disable_hitbox()
+	_reset_combo()
 	velocity.y = stats.jump_velocity
 	_coyote_timer = 0.0
 	_buf_jump = 0.0
@@ -246,6 +272,7 @@ func try_dash() -> bool:
 	if _can_cancel_attack_to_mobility():
 		_disable_hitbox()
 
+	_reset_combo()
 	_set_state(State.DASH)
 	_dash_time_left = stats.dash_duration
 	_dash_cooldown_left = stats.dash_cooldown
@@ -278,6 +305,7 @@ func apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 		_enter_dead()
 		return
 
+	_reset_combo()
 	_set_state(State.HURT)
 	_hurt_timer = stats.hurt_stun
 	_invuln_timer = stats.hurt_invuln
@@ -427,6 +455,13 @@ func _process_action(delta: float) -> void:
 	var total: float = _action_startup + _action_active + _action_recovery
 	if _action_timer >= total:
 		_disable_hitbox()
+		if _state == State.ATTACK_BASIC and _combo_index > 0:
+			if _combo_index >= 3:
+				# Finalizador sempre fecha o combo — próximo attack_basic é hit1 novo.
+				_reset_combo()
+			else:
+				# Não foi encadeado no mid-recovery: abre a janela de graça.
+				_combo_reset_timer = stats.attack_combo_grace if stats else 0.28
 		_set_state(State.IDLE if is_on_floor() else State.JUMP)
 		_try_consume_buffers()
 
@@ -435,19 +470,93 @@ func _try_start_attack_basic() -> bool:
 	if _state == State.DASH or _state == State.DEAD or _state == State.HURT:
 		return false
 	if _is_attack_locked():
-		return false
+		# Só encadeia combo se já estamos no meio de um attack_basic e a janela
+		# de chain (mid-recovery) está aberta. Skills/ultimate seguem sem cancel.
+		if _state != State.ATTACK_BASIC or not _can_chain_combo():
+			return false
+		_advance_combo()
+		return true
 	# Basic pode no ar — skills/ult ainda preferem chão.
-	_begin_action(
-		State.ATTACK_BASIC,
-		stats.attack_startup,
-		stats.attack_active,
-		stats.attack_recovery,
-		stats.attack_damage,
-		stats.attack_knockback,
-		stats.attack_hitbox_size,
-		stats.attack_hitbox_offset_x
-	)
+	var next_hit: int = 1
+	if _combo_index > 0 and _combo_index < 3 and _combo_reset_timer > 0.0:
+		# Dentro da janela de graça pós-golpe: continua o combo em vez de resetar.
+		next_hit = _combo_index + 1
+	_start_combo_hit(next_hit)
 	return true
+
+
+func _can_chain_combo() -> bool:
+	## Janela de cancel do golpe atual pro próximo hit do combo: abre assim que
+	## o active termina (hit já conectou) e fecha em `attack_combo_chain_ratio`
+	## do recovery. Hit 3 (finalizador) nunca encadeia — fecha o combo.
+	if _state != State.ATTACK_BASIC or _combo_index <= 0 or _combo_index >= 3:
+		return false
+	if stats == null:
+		return false
+	var active_end: float = _action_startup + _action_active
+	if _action_timer < active_end:
+		return false
+	var recovery_elapsed: float = _action_timer - active_end
+	var ratio: float = clampf(stats.attack_combo_chain_ratio, 0.0, 1.0)
+	var chain_window: float = _action_recovery * ratio
+	return recovery_elapsed <= chain_window
+
+
+func _advance_combo() -> void:
+	_start_combo_hit(mini(_combo_index + 1, 3))
+
+
+func _start_combo_hit(hit: int) -> void:
+	var idx: int = clampi(hit, 1, 3)
+	_combo_index = idx
+	_combo_reset_timer = 0.0
+	combo_changed.emit(idx)
+	match idx:
+		2:
+			_begin_action(
+				State.ATTACK_BASIC,
+				stats.attack_hit2_startup,
+				stats.attack_hit2_active,
+				stats.attack_hit2_recovery,
+				int(round(float(stats.attack_damage) * stats.attack_hit2_damage_mult)),
+				stats.attack_hit2_knockback,
+				stats.attack_hit2_hitbox_size,
+				stats.attack_hit2_hitbox_offset_x
+			)
+		3:
+			_begin_action(
+				State.ATTACK_BASIC,
+				stats.attack_hit3_startup,
+				stats.attack_hit3_active,
+				stats.attack_hit3_recovery,
+				int(round(float(stats.attack_damage) * stats.attack_hit3_damage_mult)),
+				stats.attack_hit3_knockback,
+				stats.attack_hit3_hitbox_size,
+				stats.attack_hit3_hitbox_offset_x
+			)
+		_:
+			_begin_action(
+				State.ATTACK_BASIC,
+				stats.attack_startup,
+				stats.attack_active,
+				stats.attack_recovery,
+				stats.attack_damage,
+				stats.attack_knockback,
+				stats.attack_hitbox_size,
+				stats.attack_hitbox_offset_x
+			)
+
+
+func _reset_combo() -> void:
+	if _combo_index == 0:
+		return
+	_combo_index = 0
+	_combo_reset_timer = 0.0
+	combo_changed.emit(0)
+
+
+func get_combo_count() -> int:
+	return _combo_index
 
 
 func _try_start_skill_1() -> bool:
@@ -457,6 +566,7 @@ func _try_start_skill_1() -> bool:
 		return false
 	if not is_on_floor():
 		return false
+	_reset_combo()
 	_skill_1_cd = stats.skill_1_cooldown
 	_begin_action(
 		State.SKILL_1,
@@ -478,6 +588,7 @@ func _try_start_skill_2() -> bool:
 		return false
 	if not is_on_floor():
 		return false
+	_reset_combo()
 	_skill_2_cd = stats.skill_2_cooldown
 	_begin_action(
 		State.SKILL_2,
@@ -500,6 +611,7 @@ func _try_start_ultimate() -> bool:
 	if not is_on_floor():
 		return false
 
+	_reset_combo()
 	Game.consume_ultimate()
 	_invuln_timer = maxf(_invuln_timer, stats.ultimate_iframes)
 	if hurtbox:
@@ -558,6 +670,8 @@ func _begin_action(
 				slash_kind = &"skill"
 			State.ULTIMATE:
 				slash_kind = &"ultimate"
+			State.ATTACK_BASIC:
+				slash_kind = &"skill" if _combo_index == 3 else &"basic"
 			_:
 				slash_kind = &"basic"
 		var slash_pos: Vector2 = global_position + Vector2(offset_x * 0.55 * _facing, -28.0)
@@ -605,6 +719,9 @@ func _on_hitbox_hit(_hurtbox: Hurtbox, hit_data: HitData) -> void:
 		Game.add_breath_from_hit()
 	if is_instance_valid(Audio):
 		Audio.play_sfx("hit", randf_range(0.92, 1.1))
+	# Finalizador do combo (hit 3 do attack_basic): trata como golpe "skill"-tier
+	# pra juice — basic sozinho é fraco demais pro impacto que um finalizador merece.
+	var is_finisher: bool = _state == State.ATTACK_BASIC and _combo_index == 3
 	var kind: StringName = &"basic"
 	match _state:
 		State.SKILL_1, State.SKILL_2:
@@ -613,8 +730,12 @@ func _on_hitbox_hit(_hurtbox: Hurtbox, hit_data: HitData) -> void:
 			kind = &"ultimate"
 		_:
 			kind = &"basic"
+	if is_finisher:
+		kind = &"skill"
 	if is_instance_valid(CombatFeel):
 		CombatFeel.hit_impact_typed(kind, 1.0)
+		if is_finisher and CombatFeel.has_method("zoom_punch"):
+			CombatFeel.zoom_punch(CombatFeel.ZOOM_PUNCH_KILL, CombatFeel.ZOOM_PUNCH_DUR)
 	if is_instance_valid(Fx):
 		var spark_color: Color = Fx.COLOR_WHITE
 		var spark_amount: int = 12
@@ -628,6 +749,10 @@ func _on_hitbox_hit(_hurtbox: Hurtbox, hit_data: HitData) -> void:
 				is_crit = true
 			_:
 				spark_color = Fx.COLOR_WHITE
+		if is_finisher:
+			spark_color = Fx.COLOR_GOLD
+			spark_amount = 16
+			is_crit = true
 		var hit_pos: Vector2 = hitbox.global_position if hitbox else global_position
 		Fx.spark(hit_pos, spark_color, spark_amount)
 		Fx.damage_number(hit_pos + Vector2(0.0, -18.0), hit_data.damage if hit_data else 0, is_crit)
@@ -640,6 +765,7 @@ func _on_hurt(hit_data: HitData) -> void:
 
 
 func _enter_dead() -> void:
+	_reset_combo()
 	_set_state(State.DEAD)
 	velocity = Vector2.ZERO
 	_buf_jump = 0.0
@@ -679,8 +805,11 @@ func _update_state_after_move() -> void:
 func _update_coyote(delta: float) -> void:
 	var on_floor: bool = is_on_floor()
 	if on_floor:
-		if not _was_on_floor and _air_time > 0.08 and is_instance_valid(Fx):
-			Fx.dust(global_position)
+		if not _was_on_floor and _air_time > 0.08:
+			if is_instance_valid(Fx):
+				Fx.dust(global_position)
+			# Squash procedural de pouso (sem frame novo) — ver _update_run_bob.
+			_landing_squash_t = LANDING_SQUASH_DUR
 		_air_time = 0.0
 		_coyote_timer = stats.coyote_time
 		_air_dash_used = false
@@ -708,6 +837,10 @@ func _tick_timers(delta: float) -> void:
 		_buf_attack = maxf(_buf_attack - delta, 0.0)
 	if _buf_dash > 0.0:
 		_buf_dash = maxf(_buf_dash - delta, 0.0)
+	if _combo_reset_timer > 0.0:
+		_combo_reset_timer = maxf(_combo_reset_timer - delta, 0.0)
+		if _combo_reset_timer <= 0.0:
+			_reset_combo()
 
 
 func _update_hurtbox_invuln() -> void:
@@ -893,31 +1026,132 @@ func _sync_attack_frame_to_action() -> void:
 
 
 func _update_run_bob(delta: float) -> void:
+	## Juice procedural (posição/escala/rotação do sprite) — sem frame novo.
+	## Cada estado tem sua assinatura: idle respira, run balança, jump se estica
+	## levinho, dash estica na direção do movimento, ataque tem windup/active/
+	## follow-through (mais forte no finalizador do combo), hurt recua, e um
+	## squash de pouso se sobrepõe brevemente ao sair do ar.
 	if sprite == null:
 		return
+	if _landing_squash_t > 0.0:
+		_landing_squash_t = maxf(_landing_squash_t - delta, 0.0)
 	var base_y: float = _sprite_base_y
 	var s: float = _base_sprite_scale
-	if _state == State.RUN and is_on_floor():
-		_run_bob_t += delta * 14.0
-		# Bob sutil — frames multi já carregam o motion de corrida.
-		sprite.position.y = base_y + sin(_run_bob_t) * 2.0
-		sprite.scale = Vector2(s, s)
-	elif _state == State.JUMP:
-		sprite.position.y = base_y - 6.0
-		sprite.scale = Vector2(s * 0.96, s * 1.04)
-	elif _state == State.DASH:
-		sprite.position.y = base_y
-		sprite.scale = Vector2(s * 1.08, s * 0.92)
-	elif _state in [State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE]:
-		sprite.position.y = base_y
-		sprite.scale = Vector2(s, s)
-	elif _state == State.HURT:
-		sprite.position.y = base_y + 2.0
-		sprite.scale = Vector2(s * 1.02, s * 0.96)
+
+	match _state:
+		State.RUN:
+			if is_on_floor():
+				_run_bob_t += delta * 14.0
+				# Bob sutil — frames multi já carregam o motion de corrida.
+				sprite.position = Vector2(0.0, base_y + sin(_run_bob_t) * 2.0)
+				sprite.scale = Vector2(s, s) * _landing_squash_mult()
+				sprite.rotation = 0.0
+			else:
+				sprite.position = Vector2(0.0, base_y)
+				sprite.scale = Vector2(s, s)
+				sprite.rotation = 0.0
+		State.JUMP:
+			_run_bob_t = 0.0
+			sprite.position = Vector2(0.0, base_y - 6.0)
+			sprite.scale = Vector2(s * 0.96, s * 1.04)
+			sprite.rotation = 0.0
+		State.DASH:
+			_run_bob_t = 0.0
+			# Estica mais forte no arranque do dash, relaxa perto do fim (ease-out).
+			var dash_ratio: float = 0.0
+			if stats and stats.dash_duration > 0.0:
+				dash_ratio = clampf(_dash_time_left / stats.dash_duration, 0.0, 1.0)
+			sprite.position = Vector2(0.0, base_y)
+			sprite.scale = Vector2(s * lerpf(1.0, 1.16, dash_ratio), s * lerpf(1.0, 0.86, dash_ratio))
+			sprite.rotation = 0.0
+		State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE:
+			_run_bob_t = 0.0
+			_update_attack_juice(base_y, s)
+		State.HURT:
+			_run_bob_t = 0.0
+			_update_hurt_juice(base_y, s)
+		State.DEAD:
+			_run_bob_t = 0.0
+			sprite.position = Vector2(0.0, base_y)
+			sprite.scale = Vector2(s, s)
+			sprite.rotation = 0.0
+		_:
+			# IDLE: micro-motion de respiração — lenta e sutil, nunca no HURT/DEAD.
+			_run_bob_t += delta * 1.6
+			var breathe: float = sin(_run_bob_t)
+			sprite.position = Vector2(0.0, base_y + breathe * 1.1)
+			sprite.scale = Vector2(s * (1.0 - breathe * 0.006), s * (1.0 + breathe * 0.012)) \
+				* _landing_squash_mult()
+			sprite.rotation = 0.0
+
+
+## Multiplicador do squash de pouso (procedural) — forte no touchdown, relaxa
+## em LANDING_SQUASH_DUR. Só aplicado em estados de locomoção "quietos"
+## (idle/run); ataque/dash/hurt/jump já têm sua própria assinatura de escala.
+func _landing_squash_mult() -> Vector2:
+	if _landing_squash_t <= 0.0 or LANDING_SQUASH_DUR <= 0.0:
+		return Vector2.ONE
+	var p: float = _landing_squash_t / LANDING_SQUASH_DUR
+	var e: float = p * p
+	return Vector2(lerpf(1.0, 1.16, e), lerpf(1.0, 0.82, e))
+
+
+func _update_attack_juice(base_y: float, s: float) -> void:
+	## Antecipação no windup, extensão no active (impacto), follow-through no
+	## recovery. Finalizador (hit 3 do combo) usa um multiplicador maior (`punch`)
+	## pra ler como o golpe mais forte da sequência.
+	var startup: float = maxf(_action_startup, 0.0001)
+	var active: float = maxf(_action_active, 0.0001)
+	var recovery: float = maxf(_action_recovery, 0.0001)
+	var t: float = _action_timer
+	var is_finisher: bool = _state == State.ATTACK_BASIC and _combo_index == 3
+	var punch: float = 1.4 if is_finisher else 1.0
+
+	var stretch_x: float = 1.0
+	var stretch_y: float = 1.0
+	var offset_x: float = 0.0
+	var rot_deg: float = 0.0
+
+	if t < _action_startup:
+		# Antecipação: recolhe contra a direção do golpe antes do swing.
+		var p: float = clampf(t / startup, 0.0, 1.0)
+		var e: float = sin(p * PI * 0.5)
+		stretch_x = lerpf(1.0, 0.92, e)
+		stretch_y = lerpf(1.0, 1.06, e)
+		offset_x = -3.0 * e
+		rot_deg = -4.0 * e * punch
+	elif t < _action_startup + _action_active:
+		# Active: estocada/extensão no momento em que a hitbox está ligada.
+		var p2: float = clampf((t - _action_startup) / active, 0.0, 1.0)
+		var e2: float = sin(p2 * PI * 0.5)
+		stretch_x = lerpf(0.92, 1.0 + 0.14 * punch, e2)
+		stretch_y = lerpf(1.06, 1.0 - 0.10 * punch, e2)
+		offset_x = lerpf(-3.0, 5.0 * punch, e2)
+		rot_deg = lerpf(-4.0, 6.0 * punch, e2)
 	else:
-		_run_bob_t = 0.0
-		sprite.position.y = base_y
-		sprite.scale = Vector2(s, s)
+		# Recovery: follow-through relaxando de volta ao neutro.
+		var p3: float = clampf((t - _action_startup - _action_active) / recovery, 0.0, 1.0)
+		var e3: float = 1.0 - p3
+		stretch_x = lerpf(1.0, 1.0 + 0.14 * punch, e3)
+		stretch_y = lerpf(1.0, 1.0 - 0.10 * punch, e3)
+		offset_x = lerpf(0.0, 5.0 * punch, e3)
+		rot_deg = lerpf(0.0, 6.0 * punch, e3)
+
+	sprite.position = Vector2(offset_x * _facing, base_y)
+	sprite.scale = Vector2(s * stretch_x, s * stretch_y)
+	sprite.rotation = deg_to_rad(rot_deg * _facing)
+
+
+func _update_hurt_juice(base_y: float, s: float) -> void:
+	## Recoil/lean ao tomar hit: forte no impacto, relaxa ao longo do hurt_stun.
+	var stun: float = stats.hurt_stun if stats else 0.22
+	var p: float = clampf(1.0 - (_hurt_timer / maxf(stun, 0.0001)), 0.0, 1.0)
+	var e: float = pow(1.0 - p, 2.0)
+	var recoil_x: float = -10.0 * e
+	var rot_deg: float = -8.0 * e
+	sprite.position = Vector2(recoil_x * _facing, base_y + 2.0 * e)
+	sprite.scale = Vector2(s * (1.0 + 0.05 * e), s * (1.0 - 0.08 * e))
+	sprite.rotation = deg_to_rad(rot_deg * _facing)
 
 
 func _apply_facing_visual() -> void:
