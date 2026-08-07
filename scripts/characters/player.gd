@@ -72,11 +72,16 @@ const IDLE_FRAME_PATHS: Array[String] = [
 	"res://assets/characters/player/combat/idle_side/00.png",
 	"res://assets/characters/player/combat/idle_side/01.png",
 	"res://assets/characters/player/combat/idle_side/02.png",
+	"res://assets/characters/player/combat/idle_side/03.png",
+	"res://assets/characters/player/combat/idle_side/04.png",
+	"res://assets/characters/player/combat/idle_side/05.png",
+	"res://assets/characters/player/combat/idle_side/06.png",
 ]
 const RUN_FRAME_PATHS: Array[String] = [
 	"res://assets/characters/player/combat/run/00.png",
 	"res://assets/characters/player/combat/run/01.png",
 	"res://assets/characters/player/combat/run/02.png",
+	"res://assets/characters/player/combat/run/03.png",
 ]
 const ATTACK_FRAME_PATHS: Array[String] = [
 	"res://assets/characters/player/combat/attack/00.png",
@@ -907,8 +912,8 @@ func _setup_sprite_frames() -> void:
 	if sprite == null:
 		return
 	var frames: SpriteFrames = SpriteFrames.new()
-	_add_anim_from_paths(frames, ANIM_IDLE, IDLE_FRAME_PATHS, 5.0, true)
-	_add_anim_from_paths(frames, ANIM_RUN, RUN_FRAME_PATHS, 10.0, true)
+	_add_anim_from_paths(frames, ANIM_IDLE, IDLE_FRAME_PATHS, 11.0, true)
+	_add_anim_from_paths(frames, ANIM_RUN, RUN_FRAME_PATHS, 14.0, true)
 	_add_anim_from_paths(frames, ANIM_ATTACK, ATTACK_FRAME_PATHS, 12.0, false)
 	_add_anim_from_paths(frames, ANIM_HURT, HURT_FRAME_PATHS, 1.0, false)
 	sprite.sprite_frames = frames
