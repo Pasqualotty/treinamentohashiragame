@@ -22,6 +22,7 @@ const SFX_FILES := {
 const BGM_FILES := {
 	"hub": "hub_loop",
 	"stage": "stage_loop",
+	"boss": "boss_loop",
 }
 
 var volume_master: float = 1.0

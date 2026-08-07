@@ -196,6 +196,8 @@ func _style_stage_button(btn: Button, state: String) -> void:
 
 
 func _on_back_pressed() -> void:
+	if is_instance_valid(Audio):
+		Audio.play_sfx("ui_click")
 	SceneRouter.to_hub()
 
 
@@ -222,6 +224,8 @@ func _select_stage(index: int) -> void:
 		else:
 			status_label.text = "%s bloqueada — complete a fase anterior" % STAGE_LABELS[index]
 		return
+	if is_instance_valid(Audio):
+		Audio.play_sfx("ui_click")
 	var stage_id: String = STAGE_IDS[index]
 	var scene_path: String = STAGE_SCENES[index]
 	Game.pending_stage_id = stage_id
