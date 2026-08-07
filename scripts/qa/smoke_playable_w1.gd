@@ -88,6 +88,47 @@ func _run() -> void:
 		else:
 			print("OK player moves")
 
+	# Feel mínimo: stats de buffer/coyote/accel no player canônico.
+	if not players.is_empty():
+		var pnode: Node = players[0]
+		var st = pnode.get("stats") if pnode else null
+		if st == null:
+			push_error("player.stats ausente (feel)")
+			ok = false
+		else:
+			var coyote: float = float(st.get("coyote_time"))
+			var ibuf: float = float(st.get("input_buffer")) if "input_buffer" in st else -1.0
+			var accel: float = float(st.get("move_accel")) if "move_accel" in st else -1.0
+			print("feel coyote=", coyote, " input_buffer=", ibuf, " move_accel=", accel)
+			if coyote < 0.08 or coyote > 0.25:
+				push_error("coyote_time fora da faixa feel (got %s)" % coyote)
+				ok = false
+			if ibuf < 0.08 or ibuf > 0.20:
+				push_error("input_buffer fora de 100-150ms feel (got %s)" % ibuf)
+				ok = false
+			else:
+				print("OK input_buffer")
+			if accel < 500.0:
+				push_error("move_accel demasiado baixo (got %s)" % accel)
+				ok = false
+			else:
+				print("OK move_accel")
+		# CombatFeel API de hit tipado
+		var cf: Node = root.get_node_or_null("/root/CombatFeel")
+		if cf == null:
+			for c in root.get_children():
+				if c.name == "CombatFeel":
+					cf = c
+					break
+		if cf == null:
+			push_error("CombatFeel autoload ausente")
+			ok = false
+		elif not cf.has_method("hit_impact_typed") or not cf.has_method("reset_time_scale"):
+			push_error("CombatFeel sem hit_impact_typed/reset_time_scale")
+			ok = false
+		else:
+			print("OK CombatFeel feel API")
+
 	# Touch controls + wave director presentes?
 	var touch := scene.find_child("TouchRoot", true, false)
 	if touch == null:

@@ -13,11 +13,11 @@ func _initialize() -> void:
 	var stats: Resource = load("res://resources/player/player_stats.tres")
 	if stats == null:
 		ok = false
-		messages.append("player_stats.tres nÃ£o carregou")
+		messages.append("player_stats.tres nao carregou")
 	else:
 		if not ("max_hp" in stats) or int(stats.get("max_hp")) < 1:
 			ok = false
-			messages.append("PlayerStats.max_hp invÃ¡lido")
+			messages.append("PlayerStats.max_hp invalido")
 		if not ("move_speed" in stats):
 			ok = false
 			messages.append("PlayerStats.move_speed ausente")
@@ -32,6 +32,24 @@ func _initialize() -> void:
 		if not ("skill_2_display_name" in stats):
 			ok = false
 			messages.append("PlayerStats.skill_2_display_name ausente")
+		# Feel fields (frente feel-combat)
+		if not ("input_buffer" in stats):
+			ok = false
+			messages.append("PlayerStats.input_buffer ausente")
+		else:
+			var ib: float = float(stats.get("input_buffer"))
+			if ib < 0.08 or ib > 0.20:
+				ok = false
+				messages.append("input_buffer fora de 0.08-0.20 (got %s)" % ib)
+		if not ("move_accel" in stats):
+			ok = false
+			messages.append("PlayerStats.move_accel ausente")
+		if not ("coyote_time" in stats):
+			ok = false
+			messages.append("PlayerStats.coyote_time ausente")
+		if not ("attack_cancel_ratio" in stats):
+			ok = false
+			messages.append("PlayerStats.attack_cancel_ratio ausente")
 
 	# --- Scripts existem ---
 	var player_script: GDScript = load("res://scripts/characters/player.gd") as GDScript

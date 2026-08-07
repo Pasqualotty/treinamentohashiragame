@@ -12,10 +12,11 @@ extends CharacterBody2D
 ##   A/D ou setas · Espaco pulo · Shift/F dash · Z/J atk · X/K skill1 · C/L skill2 · V/I ult
 ##
 ## Regras GDD:
-##   - Pulo 1x + coyote; dash c/ cooldown **sem** i-frames
+##   - Pulo 1x + coyote + input buffer; dash c/ cooldown **sem** i-frames
 ##   - Hits → Game.add_breath_from_hit; ultimate → Game.consume_ultimate + i-frames curtos
 ##   - Skills placeholder: "Corte em Arco" / "Investida"
 ##   - Juice: hit flash / knockback / hitstop / camera shake via CombatFeel
+##   - Feel: accel/friction, attack cancel leve no recovery, hurt recovery firme
 
 enum State {
 	IDLE,
@@ -56,6 +57,11 @@ var _dash_cooldown_left: float = 0.0
 var _dash_time_left: float = 0.0
 var _air_dash_used: bool = false
 var _was_on_floor: bool = false
+
+## Input buffers (s) — jump / attack_basic / dash (advance).
+var _buf_jump: float = 0.0
+var _buf_attack: float = 0.0
+var _buf_dash: float = 0.0
 
 var hp: int = 100
 var _skill_1_cd: float = 0.0
@@ -134,6 +140,8 @@ func _physics_process(delta: float) -> void:
 
 	_tick_timers(delta)
 	_update_coyote(delta)
+	_capture_input_buffers()
+	_try_consume_buffers()
 
 	match _state:
 		State.DEAD:
@@ -187,12 +195,15 @@ func is_busy() -> bool:
 func try_jump() -> bool:
 	if _state == State.DASH or _state == State.DEAD or _state == State.HURT:
 		return false
-	if _is_attack_locked():
+	if _is_attack_locked() and not _can_cancel_attack_to_mobility():
 		return false
 	if not _can_jump():
 		return false
+	if _can_cancel_attack_to_mobility():
+		_disable_hitbox()
 	velocity.y = stats.jump_velocity
 	_coyote_timer = 0.0
+	_buf_jump = 0.0
 	_set_state(State.JUMP)
 	return true
 
@@ -201,16 +212,20 @@ func try_dash() -> bool:
 	## Dash curto na direcao que olha. Cooldown; 1 dash aereo. Sem i-frames.
 	if _state == State.DASH or _state == State.DEAD or _state == State.HURT:
 		return false
-	if _is_attack_locked():
+	if _is_attack_locked() and not _can_cancel_attack_to_mobility():
 		return false
 	if _dash_cooldown_left > 0.0:
 		return false
 	if not is_on_floor() and _air_dash_used:
 		return false
 
+	if _can_cancel_attack_to_mobility():
+		_disable_hitbox()
+
 	_set_state(State.DASH)
 	_dash_time_left = stats.dash_duration
 	_dash_cooldown_left = stats.dash_cooldown
+	_buf_dash = 0.0
 	if not is_on_floor():
 		_air_dash_used = true
 	velocity.x = _facing * stats.dash_speed
@@ -240,12 +255,14 @@ func apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 	_set_state(State.HURT)
 	_hurt_timer = stats.hurt_stun
 	_invuln_timer = stats.hurt_invuln
+	# Limpa buffers ofensivos no hit (evita atk "fantasma" no recovery).
+	_buf_attack = 0.0
 	velocity = knockback
 	_disable_hitbox()
 	if hurtbox:
 		hurtbox.invulnerable = true
 	if is_instance_valid(CombatFeel):
-		CombatFeel.shake(2.5, 0.08)
+		CombatFeel.hit_impact_typed(&"hurt", 1.0)
 
 
 func heal_full() -> void:
@@ -253,6 +270,45 @@ func heal_full() -> void:
 		return
 	hp = stats.max_hp
 	hp_changed.emit(hp, stats.max_hp)
+
+
+# ---------------------------------------------------------------------------
+# Input buffer
+# ---------------------------------------------------------------------------
+
+func _capture_input_buffers() -> void:
+	if _state == State.DEAD:
+		return
+	var buf: float = stats.input_buffer if stats else 0.12
+	if Input.is_action_just_pressed("jump"):
+		_buf_jump = buf
+	if Input.is_action_just_pressed("attack_basic"):
+		_buf_attack = buf
+	if Input.is_action_just_pressed("advance"):
+		_buf_dash = buf
+	# Skills/ult sem buffer longo (CD + ultimate gate); still just_pressed imediato.
+	if Input.is_action_just_pressed("ultimate"):
+		_try_start_ultimate()
+	if Input.is_action_just_pressed("skill_1"):
+		_try_start_skill_1()
+	if Input.is_action_just_pressed("skill_2"):
+		_try_start_skill_2()
+
+
+func _try_consume_buffers() -> void:
+	if _state == State.DEAD or _state == State.HURT or _state == State.DASH:
+		return
+	# Ordem: dash > jump > attack (mobilidade primeiro — feel responsivo).
+	if _buf_dash > 0.0:
+		if try_dash():
+			return
+	if _buf_jump > 0.0:
+		if try_jump():
+			return
+	if _buf_attack > 0.0:
+		if _try_start_attack_basic():
+			_buf_attack = 0.0
+			return
 
 
 # ---------------------------------------------------------------------------
@@ -268,32 +324,24 @@ func _process_locomotion(delta: float) -> void:
 			velocity.y = 0.0
 
 	var axis: float = Input.get_axis("move_left", "move_right")
+	_apply_horizontal_feel(axis, delta)
+
+	# Buffers já capturados em _capture; fallback just_pressed se buffer zeroed.
+	# (capture + consume cobrem jump/dash/attack)
+
+
+func _apply_horizontal_feel(axis: float, delta: float) -> void:
+	var target: float = axis * stats.move_speed
 	if not is_zero_approx(axis):
 		_facing = signf(axis)
-		velocity.x = axis * stats.move_speed
+		var accel: float = stats.move_accel if stats.move_accel > 0.0 else stats.move_speed * 12.0
+		# Se mudou de direção, freia um pouco mais rápido (snap de virada).
+		if signf(velocity.x) != 0.0 and signf(velocity.x) != signf(axis):
+			accel *= 1.35
+		velocity.x = move_toward(velocity.x, target, accel * delta)
 	else:
-		# Freio mais firme (feel responsivo no mobile/PC).
-		var brake: float = stats.move_speed * 8.0 * delta
-		velocity.x = move_toward(velocity.x, 0.0, maxf(brake, stats.move_speed * delta * 4.0))
-
-	if Input.is_action_just_pressed("jump"):
-		try_jump()
-	if Input.is_action_just_pressed("advance"):
-		try_dash()
-
-	# Combate — ultimate > skills > basic (basic também no ar).
-	if Input.is_action_just_pressed("ultimate"):
-		if _try_start_ultimate():
-			return
-	if Input.is_action_just_pressed("skill_1"):
-		if _try_start_skill_1():
-			return
-	if Input.is_action_just_pressed("skill_2"):
-		if _try_start_skill_2():
-			return
-	if Input.is_action_just_pressed("attack_basic"):
-		if _try_start_attack_basic():
-			return
+		var friction: float = stats.move_friction if stats.move_friction > 0.0 else stats.move_speed * 14.0
+		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 
 
 func _process_dash(delta: float) -> void:
@@ -309,11 +357,14 @@ func _process_hurt(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + stats.gravity * delta, stats.max_fall_speed)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, stats.move_speed * 2.0)
+		var fric: float = stats.hurt_friction if stats.hurt_friction > 0.0 else stats.move_speed * 5.0
+		velocity.x = move_toward(velocity.x, 0.0, fric * delta)
 
 	_hurt_timer -= delta
 	if _hurt_timer <= 0.0:
 		_set_state(State.IDLE if is_on_floor() else State.JUMP)
+		# Após recovery, tenta buffers de mobilidade (jump/dash) se ainda vivos.
+		_try_consume_buffers()
 
 
 func _process_action(delta: float) -> void:
@@ -338,14 +389,24 @@ func _process_action(delta: float) -> void:
 		if hitbox and hitbox.is_active():
 			hitbox.disable()
 
+	# Cancel leve: jump/dash no fim do recovery (basic e skills, não ultimate).
+	if _can_cancel_attack_to_mobility():
+		if _buf_dash > 0.0 and try_dash():
+			return
+		if _buf_jump > 0.0 and try_jump():
+			return
+
 	var total: float = _action_startup + _action_active + _action_recovery
 	if _action_timer >= total:
 		_disable_hitbox()
 		_set_state(State.IDLE if is_on_floor() else State.JUMP)
+		_try_consume_buffers()
 
 
 func _try_start_attack_basic() -> bool:
-	if _is_attack_locked() or _state == State.DASH or _state == State.DEAD or _state == State.HURT:
+	if _state == State.DASH or _state == State.DEAD or _state == State.HURT:
+		return false
+	if _is_attack_locked():
 		return false
 	# Basic pode no ar — skills/ult ainda preferem chão.
 	_begin_action(
@@ -492,7 +553,7 @@ func _disable_hitbox() -> void:
 
 
 func _on_hitbox_hit(_hurtbox: Hurtbox, _hit_data: HitData) -> void:
-	# Respiracao por hit que acerta (GDD) + juice.
+	# Respiracao por hit que acerta (GDD) + juice por tipo.
 	if stats:
 		Game.add_breath_from_hit(stats.breath_per_hit)
 	else:
@@ -500,8 +561,15 @@ func _on_hitbox_hit(_hurtbox: Hurtbox, _hit_data: HitData) -> void:
 	if is_instance_valid(Audio):
 		Audio.play_sfx("hit", randf_range(0.92, 1.1))
 	if is_instance_valid(CombatFeel):
-		var is_ult: bool = _state == State.ULTIMATE
-		CombatFeel.hit_impact(1.25 if is_ult else 1.0, is_ult)
+		var kind: StringName = &"basic"
+		match _state:
+			State.SKILL_1, State.SKILL_2:
+				kind = &"skill"
+			State.ULTIMATE:
+				kind = &"ultimate"
+			_:
+				kind = &"basic"
+		CombatFeel.hit_impact_typed(kind, 1.0)
 
 
 func _on_hurt(hit_data: HitData) -> void:
@@ -513,6 +581,9 @@ func _on_hurt(hit_data: HitData) -> void:
 func _enter_dead() -> void:
 	_set_state(State.DEAD)
 	velocity = Vector2.ZERO
+	_buf_jump = 0.0
+	_buf_attack = 0.0
+	_buf_dash = 0.0
 	_disable_hitbox()
 	if hurtbox:
 		hurtbox.invulnerable = true
@@ -565,6 +636,12 @@ func _tick_timers(delta: float) -> void:
 		_skill_2_cd = maxf(_skill_2_cd - delta, 0.0)
 	if _invuln_timer > 0.0:
 		_invuln_timer = maxf(_invuln_timer - delta, 0.0)
+	if _buf_jump > 0.0:
+		_buf_jump = maxf(_buf_jump - delta, 0.0)
+	if _buf_attack > 0.0:
+		_buf_attack = maxf(_buf_attack - delta, 0.0)
+	if _buf_dash > 0.0:
+		_buf_dash = maxf(_buf_dash - delta, 0.0)
 
 
 func _update_hurtbox_invuln() -> void:
@@ -599,6 +676,24 @@ func _is_attack_locked() -> bool:
 		State.SKILL_2,
 		State.ULTIMATE,
 	]
+
+
+func _can_cancel_attack_to_mobility() -> bool:
+	## Janela leve no recovery de basic/skills (não ultimate).
+	if _state not in [State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2]:
+		return false
+	var total: float = _action_startup + _action_active + _action_recovery
+	if total <= 0.0 or _action_recovery <= 0.0:
+		return false
+	var recovery_start: float = _action_startup + _action_active
+	if _action_timer < recovery_start:
+		return false
+	var into_recovery: float = _action_timer - recovery_start
+	var ratio: float = stats.attack_cancel_ratio if stats else 0.45
+	ratio = clampf(ratio, 0.0, 1.0)
+	# Cancel só na fração final do recovery (ex.: últimos 45%).
+	var cancel_from: float = _action_recovery * (1.0 - ratio)
+	return into_recovery >= cancel_from
 
 
 func _set_state(new_state: State) -> void:
@@ -650,6 +745,9 @@ func _update_run_bob(delta: float) -> void:
 	elif _state in [State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE]:
 		sprite.position.y = base_y
 		sprite.scale = Vector2(0.145, 0.14)
+	elif _state == State.HURT:
+		sprite.position.y = base_y + 2.0
+		sprite.scale = Vector2(0.145, 0.135)
 	else:
 		_run_bob_t = 0.0
 		sprite.position.y = base_y
