@@ -28,6 +28,14 @@ const NODE_RADIUS: float = 42.0
 
 var _stage_buttons: Array[Button] = []
 
+## Timer ambiente — anima glow do caminho e ring pulsante do próximo nó.
+var _t: float = 0.0
+
+## Animação de "viagem" ao confirmar uma fase (spark percorrendo o trecho final).
+var _traveling: bool = false
+var _travel_target_index: int = 0
+var _travel_progress: float = 0.0
+
 
 func _ready() -> void:
 	_stage_buttons = [stage1_btn, stage2_btn, stage3_btn, boss_btn]
@@ -37,6 +45,12 @@ func _ready() -> void:
 	status_label.text = "Mundo 1 — escolha uma fase no caminho"
 	if is_instance_valid(Audio):
 		Audio.play_bgm("hub")
+
+
+func _process(delta: float) -> void:
+	_t += delta
+	if map_canvas:
+		map_canvas.queue_redraw()
 
 
 func _notification(what: int) -> void:
@@ -62,6 +76,8 @@ func _layout_stage_buttons() -> void:
 func _paint_map(canvas: Control) -> void:
 	_draw_path(canvas)
 	_draw_node_rings(canvas)
+	if _traveling:
+		_draw_travel_spark(canvas)
 
 
 func _draw_path(canvas: Control) -> void:
@@ -82,6 +98,10 @@ func _draw_path(canvas: Control) -> void:
 		var unlocked: bool = _is_path_segment_unlocked(i)
 		var col := Palette.with_alpha(Palette.GOLD, 0.95) if unlocked else Color(0.35, 0.38, 0.4, 0.7)
 		canvas.draw_line(from, to, col, 3.0, true)
+		if unlocked:
+			# Glow ambiente pulsando — sugere energia fluindo pelo caminho aberto.
+			var glow_a: float = 0.16 + 0.14 * (sin(_t * 2.2 + i * 1.3) * 0.5 + 0.5)
+			canvas.draw_line(from, to, Palette.with_alpha(Palette.GOLD_BRIGHT, glow_a), 9.0, true)
 
 
 func _draw_node_rings(canvas: Control) -> void:
@@ -119,6 +139,44 @@ func _draw_node_rings(canvas: Control) -> void:
 			var c: Vector2 = center + Vector2(14, -10)
 			canvas.draw_line(a, b, Color(0.9, 1.0, 0.9, 1.0), 4.0, true)
 			canvas.draw_line(b, c, Color(0.9, 1.0, 0.9, 1.0), 4.0, true)
+		elif state == "available" or state == "boss_available":
+			# Ring pulsante — destaca claramente qual é o nó "atual" (próxima fase jogável).
+			var pulse: float = sin(_t * 2.6) * 0.5 + 0.5
+			var pulse_r: float = NODE_RADIUS + 9.0 + pulse * 6.0
+			var pulse_a: float = 0.6 - pulse * 0.3
+			var pulse_col: Color = ring if state == "available" else Palette.CRIMSON_BRIGHT
+			canvas.draw_arc(center, pulse_r, 0.0, TAU, 48, Palette.with_alpha(pulse_col, pulse_a), 2.0, true)
+		if i == 3 and (state == "boss_available" or state == "cleared"):
+			_draw_boss_seal(canvas, center, state)
+
+
+func _draw_boss_seal(canvas: Control, center: Vector2, state: String) -> void:
+	## Selo ceremonial rotativo em torno do nó do boss — raios finos girando devagar.
+	var col: Color = Palette.CRIMSON_BRIGHT if state == "boss_available" else Color(0.6, 0.9, 0.6, 0.9)
+	var seal_r: float = NODE_RADIUS + 16.0
+	var rot: float = _t * 0.6
+	var spikes: int = 8
+	for i in range(spikes):
+		var ang: float = rot + TAU * float(i) / float(spikes)
+		var dir := Vector2(cos(ang), sin(ang))
+		var p1: Vector2 = center + dir * seal_r
+		var p2: Vector2 = center + dir * (seal_r + 10.0)
+		canvas.draw_line(p1, p2, Palette.with_alpha(col, 0.85), 3.0, true)
+
+
+func _draw_travel_spark(canvas: Control) -> void:
+	var size: Vector2 = canvas.size if canvas.size.x > 1.0 else Vector2(1280, 560)
+	var scale_x: float = size.x / 1280.0
+	var scale_y: float = size.y / 560.0
+	var to_pos: Vector2 = NODE_POSITIONS[_travel_target_index]
+	var from_pos: Vector2 = to_pos
+	if _travel_target_index > 0:
+		from_pos = NODE_POSITIONS[_travel_target_index - 1]
+	var from_s := Vector2(from_pos.x * scale_x, from_pos.y * scale_y)
+	var to_s := Vector2(to_pos.x * scale_x, to_pos.y * scale_y)
+	var p: Vector2 = from_s.lerp(to_s, _travel_progress)
+	canvas.draw_circle(p, 16.0, Palette.with_alpha(Palette.GOLD_BRIGHT, 0.30))
+	canvas.draw_circle(p, 7.0, Palette.GOLD_BRIGHT)
 
 
 func _is_path_segment_unlocked(segment_index: int) -> bool:
@@ -230,4 +288,30 @@ func _select_stage(index: int) -> void:
 	var scene_path: String = STAGE_SCENES[index]
 	Game.pending_stage_id = stage_id
 	status_label.text = "Entrando em %s…" % STAGE_LABELS[index]
+	await _play_travel_animation(index)
 	SceneRouter.go_to(scene_path)
+
+
+## Flourish curto (spark percorrendo o caminho + bounce no nó) antes de trocar
+## de cena — dá a sensação de "viagem" até a fase escolhida.
+func _play_travel_animation(index: int) -> void:
+	var btn: Button = _stage_buttons[index] if index < _stage_buttons.size() else null
+	_travel_target_index = index
+	_travel_progress = 0.0
+	_traveling = true
+	var tw: Tween = create_tween()
+	tw.tween_method(_set_travel_progress, 0.0, 1.0, 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if btn:
+		btn.pivot_offset = btn.custom_minimum_size * 0.5
+		tw.parallel().tween_property(btn, "scale", Vector2(1.2, 1.2), 0.16) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await tw.finished
+	if btn:
+		btn.scale = Vector2.ONE
+	_traveling = false
+	if map_canvas:
+		map_canvas.queue_redraw()
+
+
+func _set_travel_progress(v: float) -> void:
+	_travel_progress = v

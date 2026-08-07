@@ -33,9 +33,24 @@ offset_bottom = 130.0
 grow_horizontal = 2
 theme_override_fonts/font = ExtResource("2_display")
 theme_override_font_sizes/font_size = 36
-theme_override_colors/font_color = Color(0.95, 0.85, 0.55, 1)
-text = "Creditos"
+theme_override_colors/font_color = Color(0.909804, 0.721569, 0.290196, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+text = "Créditos"
 horizontal_alignment = 1
+
+[node name="Divider" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -80.0
+offset_top = 136.0
+offset_right = 80.0
+offset_bottom = 138.0
+grow_horizontal = 2
+color = Color(0.909804, 0.721569, 0.290196, 0.55)
+mouse_filter = 2
 
 [node name="Body" type="Label" parent="."]
 layout_mode = 1
@@ -52,7 +67,7 @@ grow_horizontal = 2
 grow_vertical = 1
 theme_override_font_sizes/font_size = 18
 theme_override_constants/line_spacing = -6
-theme_override_colors/font_color = Color(0.9, 0.9, 0.88, 1)
+theme_override_colors/font_color = Color(1, 0.964706, 0.917647, 1)
 text = "Treinamento Hashira
 Pasqualotti Studio
 

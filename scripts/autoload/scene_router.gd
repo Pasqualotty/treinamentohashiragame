@@ -9,6 +9,7 @@ const HUB := "res://scenes/main_menu/hub.tscn"
 const WORLD_MAP := "res://scenes/world/world_map.tscn"
 const SHOP := "res://scenes/ui/shop.tscn"
 const CREDITS := "res://scenes/ui/credits.tscn"
+const SETTINGS := "res://scenes/ui/settings.tscn"
 
 const TransitionScript := preload("res://scripts/ui/transition.gd")
 
@@ -69,3 +70,7 @@ func to_shop() -> void:
 
 func to_credits() -> void:
 	go_to(CREDITS)
+
+
+func to_settings() -> void:
+	go_to(SETTINGS)

@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/main_menu/hub.gd" id="1_hub"]
 [ext_resource type="FontFile" path="res://assets/fonts/Cinzel-Bold.ttf" id="2_display"]
+[ext_resource type="Script" path="res://scripts/ui/showcase_glow.gd" id="3_glow"]
 
 [node name="Hub" type="Control"]
 layout_mode = 3
@@ -60,7 +61,11 @@ offset_bottom = 56.0
 grow_horizontal = 2
 theme_override_constants/separation = 16
 
-[node name="ProfileLabel" type="Label" parent="TopBar"]
+[node name="ProfileBadge" type="PanelContainer" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ProfileLabel" type="Label" parent="TopBar/ProfileBadge"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.95, 0.92, 0.85, 1)
@@ -70,7 +75,10 @@ theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 20
 text = "👤 Caçador"
 
-[node name="CoinsLabel" type="Label" parent="TopBar"]
+[node name="CoinsBadge" type="PanelContainer" parent="TopBar"]
+layout_mode = 2
+
+[node name="CoinsLabel" type="Label" parent="TopBar/CoinsBadge"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
@@ -124,6 +132,21 @@ offset_right = 300.0
 offset_bottom = -92.0
 grow_horizontal = 2
 grow_vertical = 0
+
+[node name="PlatformGlow" type="Control" parent="CenterShowcase"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -170.0
+offset_top = -50.0
+offset_right = 170.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("3_glow")
 
 [node name="CharacterName" type="Label" parent="CenterShowcase"]
 unique_name_in_owner = true
