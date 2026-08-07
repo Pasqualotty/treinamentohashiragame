@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d136lix2n6orf"
-path="res://.godot/imported/02.png-7c3cf6fbd4b616884a008c81381a89ff.ctex"
+uid="uid://b65d4ibgd0ffn"
+path="res://.godot/imported/04.png-4a672685d3ed2a212b98cdd1165dd2a0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/player/combat/run/02.png"
-dest_files=["res://.godot/imported/02.png-7c3cf6fbd4b616884a008c81381a89ff.ctex"]
+source_file="res://assets/characters/player/combat/run/04.png"
+dest_files=["res://.godot/imported/04.png-4a672685d3ed2a212b98cdd1165dd2a0.ctex"]
 
 [params]
 
