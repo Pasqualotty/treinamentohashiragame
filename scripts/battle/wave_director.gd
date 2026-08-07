@@ -13,11 +13,16 @@ signal waves_finished
 
 const ONI_WEAK := preload("res://scenes/characters/enemies/oni_weak.tscn")
 const ONI_ELITE := preload("res://scenes/characters/enemies/oni_elite.tscn")
+const ONI_RANGED := preload("res://scenes/characters/enemies/oni_ranged.tscn")
+const ONI_CHARGER := preload("res://scenes/characters/enemies/oni_charger.tscn")
+const ONI_BOSS := preload("res://scenes/characters/enemies/oni_boss.tscn")
 
-## stage_id → lista de ondas; cada onda = array de "weak"|"elite"
+## stage_id → lista de ondas; cada onda = array de "weak"|"elite"|"ranged"|"charger"|"boss"
 @export var stage_id: String = "w1_01"
 @export var spawn_y: float = 500.0
 @export var spawn_xs: PackedFloat32Array = PackedFloat32Array([520.0, 720.0, 920.0, 1100.0])
+## Posição X usada especificamente pra spawn do "boss" (onda final de w1_boss).
+@export var boss_spawn_x: float = 760.0
 @export var delay_before_first: float = 0.6
 @export var delay_between_waves: float = 1.1
 @export var auto_start: bool = true
@@ -105,18 +110,37 @@ func _spawn_wave(pack: Array) -> void:
 	var idx: int = 0
 	for kind_v: Variant in pack:
 		var kind: String = str(kind_v)
-		var scene: PackedScene = ONI_ELITE if kind == "elite" else ONI_WEAK
+		var scene: PackedScene = _scene_for_kind(kind)
 		var oni: Node = scene.instantiate()
 		parent.add_child(oni)
 		if oni is Node2D:
-			var x: float = spawn_xs[idx % spawn_xs.size()]
-			# Espalha um pouco para não empilhar.
-			x += float(idx) * 28.0
+			var x: float
+			if kind == "boss":
+				# Boss spawna numa posição fixa e legível — não empilha com spawn_xs.
+				x = boss_spawn_x
+			else:
+				x = spawn_xs[idx % spawn_xs.size()]
+				# Espalha um pouco para não empilhar.
+				x += float(idx) * 28.0
 			(oni as Node2D).global_position = Vector2(x, spawn_y)
 		if oni.has_signal("defeated"):
 			oni.connect("defeated", _on_oni_defeated.bind(oni), CONNECT_ONE_SHOT)
 		_alive.append(oni)
 		idx += 1
+
+
+func _scene_for_kind(kind: String) -> PackedScene:
+	match kind:
+		"elite":
+			return ONI_ELITE
+		"ranged":
+			return ONI_RANGED
+		"charger":
+			return ONI_CHARGER
+		"boss":
+			return ONI_BOSS
+		_:
+			return ONI_WEAK
 
 
 func _on_oni_defeated(oni: Node) -> void:
@@ -300,10 +324,13 @@ func _waves_for_stage(id: String) -> Array:
 				["weak", "elite", "elite"],
 			]
 		"w1_boss":
+			# 2 ondas de aquecimento (apresentam ranged/charger) + BOSS como onda
+			# final. `_wait_wave_clear` já espera _died/hp<=0 do boss antes de
+			# liberar `waves_finished` — sem lógica extra necessária aqui.
 			return [
-				["weak", "weak"],
-				["elite", "weak", "elite"],
-				["elite", "elite", "elite"],
+				["weak", "weak", "ranged"],
+				["charger", "elite", "ranged"],
+				["boss"],
 			]
 		_:
 			return [
