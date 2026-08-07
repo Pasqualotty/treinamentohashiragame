@@ -6,7 +6,7 @@
 [ext_resource type="Script" path="res://scripts/combat/hurtbox.gd" id="5_hurtbox"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
-size = Vector2(40, 72)
+size = Vector2(48, 96)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hit"]
 size = Vector2(40, 30)
@@ -23,13 +23,13 @@ stats = ExtResource("3_stats")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 unique_name_in_owner = true
-position = Vector2(0, -48)
+position = Vector2(0, -70)
 centered = true
 z_index = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 unique_name_in_owner = true
-position = Vector2(0, -36)
+position = Vector2(0, -48)
 shape = SubResource("RectangleShape2D_body")
 
 [node name="Hitbox" type="Area2D" parent="."]

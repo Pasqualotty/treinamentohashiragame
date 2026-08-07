@@ -45,7 +45,8 @@ signal state_changed(new_state: State)
 @onready var hitbox_shape: CollisionShape2D = %HitboxShape
 
 ## Altura visual alvo em px (side-scroller legível em 1280×720 / mobile).
-const TARGET_VISUAL_HEIGHT: float = 96.0
+## ~140px: personagem legível sem “formiga” no meio da tela.
+const TARGET_VISUAL_HEIGHT: float = 140.0
 const ANIM_IDLE: StringName = &"idle"
 const ANIM_RUN: StringName = &"run"
 const ANIM_ATTACK: StringName = &"attack"
@@ -784,6 +785,9 @@ func _first_texture(frames: SpriteFrames) -> Texture2D:
 func _sync_sprite_to_state() -> void:
 	if sprite == null or sprite.sprite_frames == null:
 		return
+	# Nunca deixa o sprite “lavado” / sem cor fora do flash de dano.
+	if _flash_left <= 0.0 and _state != State.DEAD:
+		sprite.modulate = _base_modulate
 	match _state:
 		State.RUN, State.DASH:
 			_play_anim(ANIM_RUN)
@@ -796,18 +800,16 @@ func _sync_sprite_to_state() -> void:
 			_play_anim(ANIM_HURT, false)
 		State.DEAD:
 			_play_anim(ANIM_HURT, false)
-			sprite.modulate = Color(0.5, 0.5, 0.55, 0.9)
+			sprite.modulate = Color(0.55, 0.55, 0.6, 0.95)
 		State.JUMP:
-			# Mantém pose de corrida/idle sem loop agressivo no ar.
+			# Pose de corrida congelada no ar (sem piscar idle/run).
 			if sprite.animation != ANIM_RUN:
-				_play_anim(ANIM_IDLE)
+				_play_anim(ANIM_RUN, false)
 			sprite.pause()
 			if sprite.sprite_frames.get_frame_count(sprite.animation) > 0:
-				sprite.frame = 0
+				sprite.frame = mini(1, sprite.sprite_frames.get_frame_count(sprite.animation) - 1)
 		_:
 			_play_anim(ANIM_IDLE)
-			if _flash_left <= 0.0:
-				sprite.modulate = _base_modulate
 	_apply_facing_visual()
 
 
@@ -816,10 +818,14 @@ func _play_anim(anim: StringName, restart: bool = true) -> void:
 		return
 	if not sprite.sprite_frames.has_animation(anim):
 		return
-	if sprite.animation != anim or restart:
-		sprite.play(anim)
-	elif not sprite.is_playing():
-		sprite.play(anim)
+	# Evita restart a cada frame (causa “pisca” / flash branco).
+	if sprite.animation == anim and sprite.is_playing() and not restart:
+		return
+	if sprite.animation == anim and not restart:
+		if not sprite.is_playing() and anim != ANIM_ATTACK:
+			sprite.play(anim)
+		return
+	sprite.play(anim)
 
 
 func _sync_attack_frame_to_action() -> void:

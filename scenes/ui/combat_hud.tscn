@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/combat_hud.gd" id="1_hud"]
 [ext_resource type="Texture2D" path="res://assets/ui/icons/coin.png" id="2_coin"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/hp_heart.png" id="3_heart"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/breath_orb.png" id="4_breath"]
 
 [node name="CombatHud" type="CanvasLayer"]
 layer = 10
@@ -44,11 +46,14 @@ layout_mode = 2
 theme_override_constants/separation = 8
 mouse_filter = 2
 
-[node name="HpIcon" type="ColorRect" parent="Root/TopSafe/TopRow/HpBlock/HpHeader"]
-custom_minimum_size = Vector2(18, 18)
+[node name="HpIcon" type="TextureRect" parent="Root/TopSafe/TopRow/HpBlock/HpHeader"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
 size_flags_vertical = 4
-color = Color(0.85, 0.18, 0.22, 1)
+texture = ExtResource("3_heart")
+expand_mode = 1
+stretch_mode = 5
 mouse_filter = 2
 
 [node name="HpTitle" type="Label" parent="Root/TopSafe/TopRow/HpBlock/HpHeader"]
@@ -91,11 +96,14 @@ layout_mode = 2
 theme_override_constants/separation = 8
 mouse_filter = 2
 
-[node name="BreathIcon" type="ColorRect" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]
-custom_minimum_size = Vector2(18, 18)
+[node name="BreathIcon" type="TextureRect" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
 size_flags_vertical = 4
-color = Color(0.357, 0.553, 0.937, 1)
+texture = ExtResource("4_breath")
+expand_mode = 1
+stretch_mode = 5
 mouse_filter = 2
 
 [node name="BreathTitle" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathHeader"]

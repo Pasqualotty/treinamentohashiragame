@@ -1,32 +1,25 @@
 extends CanvasLayer
-## Controles de combate — mouse + multi-touch + teclado.
-## Esquerda: VirtualJoystick (move_* strength) + Dash/Pulo.
-## Direita: TouchScreenButton labeled (multi-touch nativo) + polish press + SFX ui_click.
-## PC: project.godot pointing/emulate_touch_from_mouse=true.
+## Controles touch premium: stick + botões com ÍCONES (não bolha colorida vazia).
+## Layout polegar: espaços generosos, clusters sem sobreposição.
 
 @export var hide_on_desktop: bool = false
 @export var design_size: Vector2 = Vector2(1280, 720)
-@export var safe_margin: float = 24.0
-@export var size_main: float = 100.0
-@export var size_sec: float = 84.0
-@export var size_pause: float = 58.0
-@export var stick_size: float = 148.0
+@export var safe_margin: float = 32.0
+@export var size_main: float = 108.0
+@export var size_sec: float = 88.0
+@export var size_pause: float = 56.0
+@export var stick_size: float = 156.0
 @export var stick_deadzone: float = 0.14
 
+const ICONS_DIR := "res://assets/ui/touch/icons"
 const LABELED_DIR := "res://assets/ui/touch/labeled"
-const PRESS_SCALE := 0.9
-const PRESS_MOD := Color(1.18, 1.12, 0.98, 1.0)
-const NORMAL_MOD := Color(1.0, 1.0, 1.0, 0.96)
-const MOVE_ACTIONS: PackedStringArray = [
-	"move_left", "move_right", "move_up", "move_down",
-]
-const COMBAT_ACTIONS: PackedStringArray = [
-	"advance", "jump", "attack_basic", "skill_1", "skill_2", "ultimate", "pause",
-]
+const PRESS_SCALE := 0.92
+const PRESS_MOD := Color(1.12, 1.08, 0.95, 1.0)
+const NORMAL_MOD := Color(1.0, 1.0, 1.0, 0.98)
 
 var _root: Control
 var _tex_cache: Dictionary = {}
-var _btn_nodes: Dictionary = {}  # action -> TouchScreenButton
+var _btn_nodes: Dictionary = {}
 var _stick: VirtualJoystick
 
 
@@ -36,13 +29,11 @@ func _ready() -> void:
 	if hide_on_desktop and not DisplayServer.is_touchscreen_available():
 		visible = false
 		return
-
 	_root = Control.new()
 	_root.name = "TouchRoot"
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
-
 	_build_left_cluster()
 	_build_right_cluster()
 	_build_pause()
@@ -58,46 +49,51 @@ func _notification(what: int) -> void:
 
 
 func _build_left_cluster() -> void:
+	## Stick canto inferior esquerdo; DASH acima do PULO, com gap confortável.
 	var m: float = safe_margin
 	var s_stick: float = stick_size
 	var s_sec: float = size_sec
-	var gap: float = 12.0
-	var bottom_y: float = design_size.y - m - s_stick
+	var gap: float = 20.0
+	var bottom: float = design_size.y - m
 
-	_add_virtual_stick(Vector2(m, bottom_y), s_stick)
+	_add_virtual_stick(Vector2(m, bottom - s_stick), s_stick)
 
-	# Dash / Pulo à direita do stick (polegar esquerdo alcança).
-	var side_x: float = m + s_stick + gap
-	var jump_y: float = design_size.y - m - s_sec
+	var side_x: float = m + s_stick + gap + 8.0
+	var jump_y: float = bottom - s_sec
 	var dash_y: float = jump_y - gap - s_sec
-	_add_action_button("advance", Vector2(side_x, dash_y), Vector2(s_sec + 10.0, s_sec))
-	_add_action_button("jump", Vector2(side_x, jump_y), Vector2(s_sec + 10.0, s_sec))
+	_add_action_button("advance", Vector2(side_x, dash_y), Vector2(s_sec, s_sec))
+	_add_action_button("jump", Vector2(side_x, jump_y), Vector2(s_sec, s_sec))
 
 
 func _build_right_cluster() -> void:
+	## ATK grande âncora; H1 acima, H2 à direita, ULT abaixo-esquerda do ATK.
 	var m: float = safe_margin
-	var s_atk: float = size_main + 8.0
+	var s_atk: float = size_main + 12.0
 	var s_sec: float = size_sec
-	var s_ult: float = size_sec + 6.0
+	var gap: float = 18.0
 	var right: float = design_size.x - m
 	var bottom: float = design_size.y - m
 
-	var atk_tl := Vector2(right - s_atk - 92.0, bottom - s_atk - 40.0)
+	var atk_tl := Vector2(right - s_atk - s_sec - gap, bottom - s_atk - 24.0)
 	_add_action_button("attack_basic", atk_tl, Vector2(s_atk, s_atk))
+
+	# H1 acima do ATK
 	_add_action_button(
 		"skill_1",
-		Vector2(right - s_sec, atk_tl.y - s_sec + 10.0),
+		Vector2(atk_tl.x + s_atk - s_sec * 0.35, atk_tl.y - s_sec - gap),
 		Vector2(s_sec, s_sec)
 	)
+	# H2 à direita do ATK
 	_add_action_button(
 		"skill_2",
-		Vector2(right - s_sec, atk_tl.y + 30.0),
+		Vector2(right - s_sec, atk_tl.y + s_atk * 0.25),
 		Vector2(s_sec, s_sec)
 	)
+	# ULT embaixo do ATK, levemente à esquerda
 	_add_action_button(
 		"ultimate",
-		Vector2(atk_tl.x + 6.0, bottom - s_ult),
-		Vector2(s_ult + 14.0, s_ult - 6.0)
+		Vector2(atk_tl.x - 4.0, bottom - s_sec - 4.0),
+		Vector2(s_sec + 10.0, s_sec)
 	)
 
 
@@ -105,7 +101,7 @@ func _build_pause() -> void:
 	var s: float = size_pause
 	_add_action_button(
 		"pause",
-		Vector2(design_size.x - safe_margin - s, safe_margin * 0.65),
+		Vector2(design_size.x - safe_margin - s, safe_margin * 0.55),
 		Vector2(s, s)
 	)
 
@@ -119,59 +115,34 @@ func _add_virtual_stick(top_left: Vector2, size: float) -> void:
 	stick.mouse_filter = Control.MOUSE_FILTER_STOP
 	stick.focus_mode = Control.FOCUS_NONE
 	stick.joystick_size = size * 0.92
-	stick.tip_size = size * 0.42
+	stick.tip_size = size * 0.4
 	stick.deadzone_ratio = stick_deadzone
 	stick.clampzone_ratio = 1.0
-	stick.joystick_mode = VirtualJoystick.JOYSTICK_DYNAMIC
+	stick.joystick_mode = VirtualJoystick.JOYSTICK_FIXED
 	stick.visibility_mode = VirtualJoystick.VISIBILITY_ALWAYS
 	stick.action_left = &"move_left"
 	stick.action_right = &"move_right"
 	stick.action_up = &"move_up"
 	stick.action_down = &"move_down"
 	_apply_stick_theme(stick, size)
-	stick.pressed.connect(_on_stick_pressed)
 	_root.add_child(stick)
 	_stick = stick
 
 
 func _apply_stick_theme(stick: VirtualJoystick, size: float) -> void:
-	var base_n := _make_circle_stylebox(
-		int(size),
-		Color(0.10, 0.12, 0.18, 0.55),
-		Color(0.85, 0.68, 0.22, 0.92),
-		4
-	)
-	var base_p := _make_circle_stylebox(
-		int(size),
-		Color(0.14, 0.16, 0.24, 0.72),
-		Color(1.0, 0.82, 0.30, 1.0),
-		5
-	)
-	var tip_px := int(size * 0.42)
-	var tip_n := _make_circle_stylebox(
-		tip_px,
-		Color(0.22, 0.38, 0.72, 0.88),
-		Color(0.75, 0.85, 1.0, 0.95),
-		3
-	)
-	var tip_p := _make_circle_stylebox(
-		tip_px,
-		Color(0.30, 0.48, 0.88, 0.95),
-		Color(1.0, 0.9, 0.45, 1.0),
-		3
-	)
+	# Base lacada escura + ouro (sem azul docinho).
+	var base_n := _make_circle_stylebox(int(size), Color(0.09, 0.08, 0.12, 0.72), Color(0.82, 0.66, 0.22, 0.95), 5)
+	var base_p := _make_circle_stylebox(int(size), Color(0.12, 0.11, 0.16, 0.85), Color(1.0, 0.8, 0.28, 1.0), 5)
+	var tip_px := int(size * 0.4)
+	var tip_n := _make_circle_stylebox(tip_px, Color(0.18, 0.2, 0.28, 0.92), Color(0.9, 0.78, 0.35, 0.95), 3)
+	var tip_p := _make_circle_stylebox(tip_px, Color(0.28, 0.26, 0.2, 0.95), Color(1.0, 0.88, 0.4, 1.0), 3)
 	stick.add_theme_stylebox_override("normal_joystick", base_n)
 	stick.add_theme_stylebox_override("pressed_joystick", base_p)
 	stick.add_theme_stylebox_override("normal_tip", tip_n)
 	stick.add_theme_stylebox_override("pressed_tip", tip_p)
 
 
-func _make_circle_stylebox(
-	px: int,
-	fill: Color,
-	border: Color,
-	border_w: int
-) -> StyleBoxTexture:
+func _make_circle_stylebox(px: int, fill: Color, border: Color, border_w: int) -> StyleBoxTexture:
 	var s: int = maxi(px, 16)
 	var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
 	var cx := s * 0.5
@@ -188,9 +159,7 @@ func _make_circle_stylebox(
 			elif d > r_in:
 				img.set_pixel(x, y, border)
 			else:
-				var t := clampf(d / maxf(r_in, 1.0), 0.0, 1.0)
-				var c := fill.lerp(fill.darkened(0.18), t * 0.35)
-				img.set_pixel(x, y, c)
+				img.set_pixel(x, y, fill)
 	var tex := ImageTexture.create_from_image(img)
 	var sb := StyleBoxTexture.new()
 	sb.texture = tex
@@ -198,60 +167,51 @@ func _make_circle_stylebox(
 
 
 func _add_action_button(action: String, top_left: Vector2, size: Vector2) -> void:
-	## TouchScreenButton = multi-touch real (stick + ATK ao mesmo tempo).
-	## PC via emulate_touch_from_mouse no project.godot.
 	var btn := TouchScreenButton.new()
 	btn.name = "Btn_%s" % action
 	btn.action = action
 	btn.visibility_mode = TouchScreenButton.VISIBILITY_ALWAYS
-	btn.texture_normal = _load_labeled(action, false)
-	btn.texture_pressed = _load_labeled(action, true)
+	btn.texture_normal = _load_icon(action, false)
+	btn.texture_pressed = _load_icon(action, true)
 	btn.modulate = NORMAL_MOD
-
-	# Centro no retângulo de layout; shape cobre a hitbox.
 	btn.position = top_left + size * 0.5
 	var shape := RectangleShape2D.new()
-	shape.size = size
+	shape.size = size * 1.05
 	btn.shape = shape
 	btn.shape_centered = true
-
-	# Escala visual da textura para caber no size alvo.
 	var tex: Texture2D = btn.texture_normal
 	if tex != null:
 		var ts: Vector2 = tex.get_size()
 		if ts.x > 0.0 and ts.y > 0.0:
 			btn.scale = Vector2(size.x / ts.x, size.y / ts.y)
 	btn.set_meta("base_scale", btn.scale)
-	btn.set_meta("hit_size", size)
-
 	btn.pressed.connect(_on_tsb_pressed.bind(action, btn))
 	btn.released.connect(_on_tsb_released.bind(action, btn))
-
 	_root.add_child(btn)
 	_btn_nodes[action] = btn
 
 
-func _load_labeled(action: String, pressed: bool) -> Texture2D:
+func _load_icon(action: String, pressed: bool) -> Texture2D:
 	var key := "%s_%s" % [action, "p" if pressed else "n"]
 	if _tex_cache.has(key):
 		return _tex_cache[key] as Texture2D
-	var path := "%s/%s%s.png" % [LABELED_DIR, action, "_pressed" if pressed else ""]
-	var tex: Texture2D = null
-	if ResourceLoader.exists(path):
-		tex = load(path) as Texture2D
-	if tex == null:
-		tex = _fallback_circle(
-			Color(0.75, 0.2, 0.25) if action == "attack_basic" else Color(0.2, 0.4, 0.75),
-			pressed
-		)
-	_tex_cache[key] = tex
-	return tex
+	var suffix := "_pressed" if pressed else ""
+	for base in [ICONS_DIR, LABELED_DIR]:
+		var path := "%s/%s%s.png" % [base, action, suffix]
+		if ResourceLoader.exists(path):
+			var tex := load(path) as Texture2D
+			if tex:
+				_tex_cache[key] = tex
+				return tex
+	var fb := _fallback_circle(Color(0.2, 0.22, 0.3), pressed)
+	_tex_cache[key] = fb
+	return fb
 
 
 func _fallback_circle(col: Color, pressed: bool) -> Texture2D:
 	var s := 128
 	var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
-	var c := col.darkened(0.25) if pressed else col
+	var c := col.darkened(0.2) if pressed else col
 	var cx := s * 0.5
 	var cy := s * 0.5
 	var r := s * 0.46
@@ -262,58 +222,34 @@ func _fallback_circle(col: Color, pressed: bool) -> Texture2D:
 			var d := sqrt(dx * dx + dy * dy)
 			if d > r:
 				img.set_pixel(x, y, Color(0, 0, 0, 0))
-			elif d > r - 4.0:
-				img.set_pixel(x, y, Color(0.8, 0.65, 0.2, 1))
+			elif d > r - 5.0:
+				img.set_pixel(x, y, Color(0.85, 0.68, 0.22, 1))
 			else:
 				img.set_pixel(x, y, c)
 	return ImageTexture.create_from_image(img)
 
 
-func _on_stick_pressed() -> void:
-	_play_ui_click(0.45)
-
-
 func _on_tsb_pressed(action: String, btn: TouchScreenButton) -> void:
-	_apply_press_visual(btn, true)
-	_play_ui_click(0.7)
-	# action= no TSB já faz Input.action_press; só polish/SFX aqui.
-	if action.is_empty():
-		return
+	var base: Vector2 = btn.get_meta("base_scale", btn.scale)
+	btn.scale = base * PRESS_SCALE
+	btn.modulate = PRESS_MOD
+	if is_instance_valid(Audio) and action != "move_left" and action != "move_right":
+		Audio.play_sfx("ui_click", randf_range(0.95, 1.05))
 
 
 func _on_tsb_released(_action: String, btn: TouchScreenButton) -> void:
-	_apply_press_visual(btn, false)
-
-
-func _apply_press_visual(btn: TouchScreenButton, pressed: bool) -> void:
-	if not is_instance_valid(btn):
-		return
-	var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE) as Vector2
-	if pressed:
-		btn.scale = base * PRESS_SCALE
-		btn.modulate = PRESS_MOD
-	else:
-		btn.scale = base
-		btn.modulate = NORMAL_MOD
-
-
-func _play_ui_click(volume_linear: float = 0.7) -> void:
-	if not is_instance_valid(Audio):
-		return
-	Audio.play_sfx("ui_click", randf_range(0.96, 1.05), volume_linear)
+	var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE)
+	btn.scale = base
+	btn.modulate = NORMAL_MOD
 
 
 func _release_all() -> void:
-	## Libera botões TSB e eixos do stick (evita run grudado ao sair do app).
-	for action: String in COMBAT_ACTIONS:
+	for action: String in ["move_left", "move_right", "move_up", "move_down"]:
 		if InputMap.has_action(action) and Input.is_action_pressed(action):
 			Input.action_release(action)
-		if _btn_nodes.has(action):
-			_apply_press_visual(_btn_nodes[action] as TouchScreenButton, false)
-	for action: String in MOVE_ACTIONS:
-		if InputMap.has_action(action) and Input.is_action_pressed(action):
-			Input.action_release(action)
-	# Esconde/recoloca stick para cancelar toque preso se o motor não soltou.
-	if is_instance_valid(_stick):
-		_stick.visible = false
-		_stick.visible = true
+	for action: Variant in _btn_nodes.keys():
+		var btn: TouchScreenButton = _btn_nodes[action] as TouchScreenButton
+		if btn:
+			var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE)
+			btn.scale = base
+			btn.modulate = NORMAL_MOD

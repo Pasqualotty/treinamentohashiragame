@@ -30,19 +30,22 @@ func _ready() -> void:
 		(shape.shape as CircleShape2D).radius = maxf((shape.shape as CircleShape2D).radius, 22.0)
 	elif shape and shape.shape is RectangleShape2D:
 		(shape.shape as RectangleShape2D).size = Vector2(40, 40)
+	z_index = 20
 	if sprite:
 		if sprite.texture == null:
 			sprite.texture = COIN_TEX
-		# Textura agora é 128px com alpha — escala fixa legível.
 		sprite.centered = true
-		sprite.scale = Vector2(0.38, 0.38)
-		sprite.z_index = 5
+		# ~48px na tela — óbvio de ver
+		sprite.scale = Vector2(0.55, 0.55)
+		sprite.z_index = 20
+		sprite.modulate = Color.WHITE
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
-	# Pop de spawn
-	scale = Vector2(0.6, 0.6)
+	# Sobe um pouco do chão pra não sumir atrás do ground
+	position.y -= 18.0
+	scale = Vector2(0.5, 0.5)
 	var tw := create_tween()
-	tw.tween_property(self, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(self, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	set_physics_process(true)
 
 

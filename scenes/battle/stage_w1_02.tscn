@@ -1,4 +1,4 @@
-﻿[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
 [ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
@@ -6,6 +6,9 @@
 [ext_resource type="Script" path="res://scripts/battle/stage_goal.gd" id="4_goal"]
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_village.png" id="9_bg"]
+
+[ext_resource type="Texture2D" path="res://assets/tiles/w1/ground_strip_side.png" id="10_ground"]
+[ext_resource type="Texture2D" path="res://assets/tiles/w1/platform_strip_side.png" id="11_plat"]
 
 [sub_resource type="RectangleShape2D" id="Rect_ground"]
 size = Vector2(2200, 48)
@@ -48,12 +51,12 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
 shape = SubResource("Rect_ground")
 
-[node name="Visual" type="ColorRect" parent="Ground"]
-offset_left = -1100.0
-offset_top = -24.0
-offset_right = 1100.0
-offset_bottom = 24.0
-color = Color(0.32, 0.26, 0.4, 1)
+[node name="Visual" type="Sprite2D" parent="Ground"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(1, 0.75)
+texture = ExtResource("10_ground")
+centered = true
 
 [node name="PlatformA" type="StaticBody2D" parent="."]
 position = Vector2(480, 430)
@@ -63,12 +66,18 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformA"]
 shape = SubResource("Rect_plat")
 
-[node name="Visual" type="ColorRect" parent="PlatformA"]
-offset_left = -100.0
-offset_top = -12.0
-offset_right = 100.0
-offset_bottom = 12.0
-color = Color(0.42, 0.34, 0.52, 1)
+
+    param($m)
+    $parent = if ($m.Value -match 'parent="([^"]+)"') { $Matches[1] } else { "Platform" }
+    @"
+[node name="Visual" type="Sprite2D" parent="$parent"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(0.9, 0.55)
+texture = ExtResource("11_plat")
+centered = true
+"@
+  
 
 [node name="PlatformB" type="StaticBody2D" parent="."]
 position = Vector2(900, 360)
@@ -78,12 +87,18 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformB"]
 shape = SubResource("Rect_plat_short")
 
-[node name="Visual" type="ColorRect" parent="PlatformB"]
-offset_left = -70.0
-offset_top = -12.0
-offset_right = 70.0
-offset_bottom = 12.0
-color = Color(0.45, 0.36, 0.55, 1)
+
+    param($m)
+    $parent = if ($m.Value -match 'parent="([^"]+)"') { $Matches[1] } else { "Platform" }
+    @"
+[node name="Visual" type="Sprite2D" parent="$parent"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(0.9, 0.55)
+texture = ExtResource("11_plat")
+centered = true
+"@
+  
 
 [node name="PlatformC" type="StaticBody2D" parent="."]
 position = Vector2(1300, 420)
@@ -93,12 +108,18 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformC"]
 shape = SubResource("Rect_plat")
 
-[node name="Visual" type="ColorRect" parent="PlatformC"]
-offset_left = -100.0
-offset_top = -12.0
-offset_right = 100.0
-offset_bottom = 12.0
-color = Color(0.4, 0.32, 0.5, 1)
+
+    param($m)
+    $parent = if ($m.Value -match 'parent="([^"]+)"') { $Matches[1] } else { "Platform" }
+    @"
+[node name="Visual" type="Sprite2D" parent="$parent"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(0.9, 0.55)
+texture = ExtResource("11_plat")
+centered = true
+"@
+  
 
 [node name="WallLeft" type="StaticBody2D" parent="."]
 position = Vector2(-20, 360)
@@ -181,3 +202,5 @@ offset_bottom = 48.0
 theme_override_colors/font_color = Color(0.92, 0.88, 0.98, 1)
 theme_override_font_sizes/font_size = 16
 text = ""
+
+

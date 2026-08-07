@@ -239,6 +239,9 @@ func _spawn_coin_drop() -> void:
 	## Não credita moedas aqui — só spawna pickup (anti double-count).
 	var parent_node: Node = get_parent()
 	if parent_node == null:
+		parent_node = get_tree().current_scene if get_tree() else null
+	if parent_node == null:
+		push_error("[Oni] sem parent pra drop de moeda")
 		return
 	var coin: Node = COIN_SCENE.instantiate()
 	if coin == null:
@@ -246,12 +249,17 @@ func _spawn_coin_drop() -> void:
 		return
 	parent_node.add_child(coin)
 	if coin is Node2D:
-		(coin as Node2D).global_position = global_position + Vector2(0.0, -12.0)
+		# Acima dos pés + levemente pra frente — visível sobre o chão.
+		(coin as Node2D).global_position = global_position + Vector2(facing * 12.0, -36.0)
+		(coin as Node2D).z_index = 25
 	if coin.has_method("setup"):
 		coin.call("setup", coin_reward)
 	elif "value" in coin:
 		coin.set("value", coin_reward)
-	print("[Oni] drop coin value=%d (crédito só no pickup)" % coin_reward)
+	print("[Oni] drop coin value=%d at %s" % [
+		coin_reward,
+		str((coin as Node2D).global_position) if coin is Node2D else "?",
+	])
 
 
 func _find_player() -> Node2D:
