@@ -1,14 +1,22 @@
 ﻿class_name PlayerStats
 extends Resource
-## Stats do player unificado (movimento + combate). Balance├ível via .tres / loja depois.
+## Stats do player unificado (movimento + combate). Balanceável via .tres / loja depois.
 
 # --- Movimento ---
 @export var move_speed: float = 220.0
 @export var jump_velocity: float = -420.0
 @export var gravity: float = 1400.0
 @export var max_fall_speed: float = 900.0
-## Tempo ap├│s sair do ch├úo em que ainda pode pular (s).
+## Tempo após sair do chão em que ainda pode pular (s).
 @export var coyote_time: float = 0.12
+## Aceleração horizontal (px/s²) — feel de peso sem lag de stick.
+@export var move_accel: float = 3200.0
+## Freio horizontal sem input (px/s²).
+@export var move_friction: float = 3800.0
+## Buffer de input jump/attack/dash (s). Faixa premium ~0.10–0.15.
+@export var input_buffer: float = 0.12
+## Fração final do recovery em que basic pode cancelar em dash/pulo (0–1).
+@export var attack_cancel_ratio: float = 0.45
 @export var dash_speed: float = 560.0
 @export var dash_duration: float = 0.14
 @export var dash_cooldown: float = 1.0
@@ -17,6 +25,8 @@ extends Resource
 @export var max_hp: int = 100
 @export var hurt_stun: float = 0.22
 @export var hurt_invuln: float = 0.45
+## Freio no chão durante hurt (px/s²) — recovery legível sem “slide eterno”.
+@export var hurt_friction: float = 1400.0
 
 # --- Attack basic ---
 @export var attack_damage: int = 5
