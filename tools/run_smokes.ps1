@@ -91,9 +91,9 @@ $godotCache = Join-Path $ProjectDir ".godot"
 $importedDir = Join-Path $godotCache "imported"
 if (-not (Test-Path -LiteralPath $importedDir)) {
     Write-Host "Cache .godot/imported ausente - rodando import headless..."
-    $importProc = Start-Process -FilePath $godot -ArgumentList @(
-        "--headless", "--path", $ProjectDir, "--import"
-    ) -WorkingDirectory $ProjectDir -PassThru -NoNewWindow -Wait
+    $importArgs = "--headless --path `"$ProjectDir`" --import"
+    $importProc = Start-Process -FilePath $godot -ArgumentList $importArgs `
+        -WorkingDirectory $ProjectDir -PassThru -NoNewWindow -Wait
     if (-not (Test-Path -LiteralPath $importedDir)) {
         Write-Host "AVISO: import nao gerou .godot/imported (exit $($importProc.ExitCode)). Smokes podem falhar."
         Write-Host "Abra o projeto uma vez no Editor ou copie .godot de um checkout que ja importou."
@@ -162,18 +162,15 @@ foreach ($s in $smokeList) {
     }
 
     Write-Host ">>> RUN $name ($script)"
-    $argList = @(
-        "--headless",
-        "--path", $ProjectDir,
-        "-s", $script
-    )
+    # PS 5.1: ArgumentList com array quebra paths com espaço. Cmdline = string unica.
+    $argString = "--headless --path `"$ProjectDir`" -s `"$script`""
 
     $stdoutLog = Join-Path $env:TEMP ("hashira-smoke-{0}-out.txt" -f $name)
     $stderrLog = Join-Path $env:TEMP ("hashira-smoke-{0}-err.txt" -f $name)
     if (Test-Path -LiteralPath $stdoutLog) { Remove-Item -LiteralPath $stdoutLog -Force }
     if (Test-Path -LiteralPath $stderrLog) { Remove-Item -LiteralPath $stderrLog -Force }
 
-    $proc = Start-Process -FilePath $godot -ArgumentList $argList `
+    $proc = Start-Process -FilePath $godot -ArgumentList $argString `
         -WorkingDirectory $ProjectDir `
         -PassThru -NoNewWindow `
         -RedirectStandardOutput $stdoutLog `
