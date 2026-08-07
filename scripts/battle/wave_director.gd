@@ -3,6 +3,7 @@ extends Node
 ## - Spawna packs sequenciais (weak / elite)
 ## - Espera limpar a onda antes da próxima
 ## - Emite waves_finished → StageController destrava a SAÍDA
+## - Banners de cerimônia (onda / clear / saída) com tween
 ##
 ## Uso: filho da fase, ou instanciado pelo StageController.
 
@@ -29,11 +30,16 @@ var _alive: Array[Node] = []
 var _running: bool = false
 var _finished: bool = false
 var _label: Label
+var _banner: Label
+var _banner_bg: ColorRect
+var _banner_layer: CanvasLayer
+var _banner_tween: Tween
 
 
 func _ready() -> void:
 	_waves = _waves_for_stage(stage_id)
 	_ensure_hud_label()
+	_ensure_banner()
 	if clear_scene_enemies_on_start:
 		_clear_preplaced_enemies()
 	if auto_start:
@@ -50,7 +56,8 @@ func _begin() -> void:
 	_running = true
 	if delay_before_first > 0.0:
 		_set_label("Prepare-se…")
-		await get_tree().create_timer(delay_before_first).timeout
+		await _flash_banner("PREPARE-SE", Color(1.0, 0.92, 0.7, 1.0), 0.85)
+		await get_tree().create_timer(maxf(0.0, delay_before_first - 0.85)).timeout
 	await _run_all_waves()
 
 
@@ -65,13 +72,18 @@ func _run_all_waves() -> void:
 		_spawn_wave(pack)
 		wave_started.emit(i + 1, total, pack.size())
 		_set_label("Onda %d / %d  ·  onis: %d" % [i + 1, total, pack.size()])
+		await _flash_banner("ONDA %d / %d" % [i + 1, total], Color(1.0, 0.88, 0.45, 1.0), 1.05)
 		await _wait_wave_clear()
 		if not is_inside_tree():
 			return
 		wave_cleared.emit(i + 1, total)
-		if i < total - 1 and delay_between_waves > 0.0:
+		if i < total - 1:
 			_set_label("Próxima onda…")
-			await get_tree().create_timer(delay_between_waves).timeout
+			await _flash_banner("ONDA LIMPA!", Color(0.55, 1.0, 0.7, 1.0), 0.9)
+			if delay_between_waves > 0.0:
+				await get_tree().create_timer(maxf(0.0, delay_between_waves - 0.35)).timeout
+		else:
+			await _flash_banner("ONDA LIMPA!", Color(0.55, 1.0, 0.7, 1.0), 0.75)
 	_finish()
 
 
@@ -79,6 +91,8 @@ func _finish() -> void:
 	_finished = true
 	_running = false
 	_set_label("SAÍDA ABERTA →")
+	# Banner de saída não bloqueia o sinal (fire-and-forget visual).
+	_flash_banner_async("SAÍDA ABERTA →", Color(0.45, 0.95, 1.0, 1.0), 1.35)
 	waves_finished.emit()
 	print("[WaveDirector] all waves done stage=%s" % stage_id)
 
@@ -190,9 +204,78 @@ func _ensure_hud_label() -> void:
 	layer.add_child(_label)
 
 
+func _ensure_banner() -> void:
+	_banner_layer = CanvasLayer.new()
+	_banner_layer.name = "WaveBanner"
+	_banner_layer.layer = 55
+	add_child(_banner_layer)
+
+	_banner_bg = ColorRect.new()
+	_banner_bg.name = "BannerBg"
+	_banner_bg.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_banner_bg.offset_top = 168.0
+	_banner_bg.offset_bottom = 248.0
+	_banner_bg.color = Color(0.02, 0.04, 0.08, 0.0)
+	_banner_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner_layer.add_child(_banner_bg)
+
+	_banner = Label.new()
+	_banner.name = "BannerLabel"
+	_banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_banner.offset_top = 172.0
+	_banner.offset_bottom = 244.0
+	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_banner.add_theme_font_size_override("font_size", 42)
+	_banner.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	_banner.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.75))
+	_banner.add_theme_constant_override("shadow_offset_x", 2)
+	_banner.add_theme_constant_override("shadow_offset_y", 2)
+	_banner.add_theme_constant_override("outline_size", 4)
+	_banner.modulate.a = 0.0
+	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner_layer.add_child(_banner)
+
+
 func _set_label(t: String) -> void:
 	if _label:
 		_label.text = t
+
+
+func _flash_banner_async(text: String, color: Color, hold: float = 1.0) -> void:
+	# Não espera — usado no finish para não atrasar unlock.
+	_flash_banner(text, color, hold)
+
+
+func _flash_banner(text: String, color: Color, hold: float = 1.0) -> void:
+	if _banner == null or not is_inside_tree():
+		return
+	if _banner_tween != null and is_instance_valid(_banner_tween):
+		_banner_tween.kill()
+	_banner.text = text
+	_banner.add_theme_color_override("font_color", color)
+	_banner.modulate = Color(1, 1, 1, 0)
+	_banner.scale = Vector2(0.72, 0.72)
+	# Pivot no centro horizontal da tela (approx).
+	_banner.pivot_offset = Vector2(_banner.size.x * 0.5, _banner.size.y * 0.5)
+	if _banner_bg:
+		_banner_bg.color = Color(0.02, 0.05, 0.1, 0.0)
+
+	_banner_tween = create_tween()
+	_banner_tween.set_parallel(true)
+	_banner_tween.tween_property(_banner, "modulate:a", 1.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_banner_tween.tween_property(_banner, "scale", Vector2(1.08, 1.08), 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if _banner_bg:
+		_banner_tween.tween_property(_banner_bg, "color:a", 0.55, 0.18)
+	_banner_tween.set_parallel(false)
+	_banner_tween.tween_property(_banner, "scale", Vector2.ONE, 0.12)
+	_banner_tween.tween_interval(maxf(0.15, hold - 0.45))
+	_banner_tween.set_parallel(true)
+	_banner_tween.tween_property(_banner, "modulate:a", 0.0, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	if _banner_bg:
+		_banner_tween.tween_property(_banner_bg, "color:a", 0.0, 0.28)
+	await _banner_tween.finished
 
 
 func _waves_for_stage(id: String) -> Array:
