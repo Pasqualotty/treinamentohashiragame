@@ -48,6 +48,17 @@ Dois **clusters radiais**, um por canto inferior: uma âncora grande com satéli
 distribuídos num arco de raio constante ao redor dela. Ângulos em graus na
 convenção de tela (0° = direita, 90° = baixo, 180° = esquerda, 270° = topo).
 
+> **Âncora sai do viewport real, não do design.** O projeto usa
+> `window/stretch/aspect="expand"`: o viewport *alarga* conforme o aspecto do
+> aparelho em vez de ganhar barras. Num 20:9 (2400×1080) o retângulo visível é
+> 1600×720; num tablet 4:3 (2048×1536) é 1280×960. Ancorar em `design_size`
+> deixaria o cluster a 352px da borda direita no celular e 272px acima do fundo no
+> tablet — e desalinhado do HUD, que ancora no viewport real. Os clusters saem de
+> `get_viewport().get_visible_rect().size` e reancoram no sinal `size_changed`
+> (rotação de tela). `design_size` fica só como fallback quando não há viewport
+> utilizável (janela dummy do headless). Tamanhos de botão e `safe_margin` são
+> absolutos em px: são distância de polegar, não proporção.
+
 | Cluster | Âncora | Satélites (ângulo @ raio) |
 |---|---|---|
 | Esquerdo | stick virtual 156px | `jump` 315° · `advance` 0° @ 152px |
@@ -78,8 +89,11 @@ Chrome da fase (`StageController`): botão **Mapa** no topo-esquerda (não cobre
 2. Segure teclas e clique nos botões — `Held` / `Just pressed` devem listar as actions.  
 3. Android: export debug (outra frente) + multi-touch real no aparelho.
 4. Headless: `tools/run_smokes.ps1` roda `scripts/qa/smoke_touch_layout.gd`, que
-   valida a geometria (sobreposição, faixa do HUD, margem) e confirma que um
-   toque no centro declarado dispara a action — ou seja, arte e hitbox alinhadas.
+   valida a geometria em **16:9, 20:9 e 4:3** (sobreposição, faixa do HUD, margem
+   e âncoras encostadas no canto do viewport) e confirma que um toque no centro
+   declarado dispara a action — ou seja, arte e hitbox alinhadas. Medir só em 16:9
+   é o ponto cego clássico: é a única resolução em que ancorar no design dá o
+   mesmo resultado que ancorar no viewport.
 
 ## Notas 4.7
 

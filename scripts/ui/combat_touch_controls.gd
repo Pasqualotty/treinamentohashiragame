@@ -12,9 +12,18 @@ extends CanvasLayer
 ## Regras duras do layout (afirmadas em res://scripts/qa/smoke_touch_layout.gd):
 ## nenhum par de alvos se sobrepõe (folga real entre bordas >= 12px), nada invade
 ## a faixa do HUD superior e tudo cabe dentro de [member safe_margin].
+##
+## As âncoras saem do retângulo visível REAL do viewport, não de [member design_size]:
+## o projeto usa `window/stretch/aspect="expand"`, que alarga o viewport em vez de
+## adicionar barras. Num 20:9 (2400x1080) o retângulo visível é 1600x720, e ancorar
+## no design deixaria o cluster 352px longe da borda — bem longe do descanso do
+## polegar, e desalinhado do HUD, que ancora no viewport real.
 
 @export var hide_on_desktop: bool = false
+## Fallback quando não há viewport utilizável (headless com janela dummy).
 @export var design_size: Vector2 = Vector2(1280, 720)
+## Inset absoluto a partir das bordas reais do viewport (é distância de polegar,
+## não proporção — não escala com a resolução).
 @export var safe_margin: float = 32.0
 ## Faixa superior reservada ao HUD de combate: nenhum controle pode invadi-la.
 @export var hud_band_height: float = 150.0
@@ -45,6 +54,10 @@ const ANGLE_ADVANCE := 0.0
 ## Respiro entre a faixa do HUD e o botão de pause.
 const PAUSE_HUD_GAP := 12.0
 
+## Abaixo disso o viewport não comporta o layout (janela dummy 64x64 do headless,
+## por exemplo) e vale mais cair no design do que espremer tudo num canto.
+const MIN_LAYOUT_SIZE := Vector2(640.0, 360.0)
+
 const PRESS_SCALE := 0.9
 ## Press mais quente/claro e idle mais discreto — diferença de estado nítida.
 const PRESS_MOD := Color(1.2, 1.14, 0.9, 1.0)
@@ -56,6 +69,7 @@ var _tex_cache: Dictionary = {}
 var _btn_nodes: Dictionary = {}
 var _layout_slots: Array[Dictionary] = []
 var _stick: VirtualJoystick
+var _applied_size: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -69,9 +83,10 @@ func _ready() -> void:
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
-	_build_left_cluster()
-	_build_right_cluster()
-	_build_pause()
+	var vp: Viewport = get_viewport()
+	if vp != null:
+		vp.size_changed.connect(_on_viewport_size_changed)
+	_rebuild_layout()
 
 
 func _exit_tree() -> void:
@@ -83,11 +98,54 @@ func _notification(what: int) -> void:
 		_release_all()
 
 
-## Geometria final dos alvos de toque, em coordenadas de design.
+## Geometria final dos alvos de toque, em coordenadas do viewport.
 ## Cada entrada: { "id": String, "center": Vector2, "radius": float }.
 ## Usado pelo smoke de layout (res://scripts/qa/smoke_touch_layout.gd).
 func get_layout_slots() -> Array[Dictionary]:
 	return _layout_slots.duplicate(true)
+
+
+## Retângulo em que o layout foi ancorado da última vez (viewport real ou fallback).
+func get_layout_size() -> Vector2:
+	return _applied_size
+
+
+# ---------------------------------------------------------------------------
+# ancoragem no viewport real
+# ---------------------------------------------------------------------------
+## Área de desenho real. Com `stretch/aspect="expand"` o viewport cresce junto com
+## o aspecto do aparelho, então é daqui que as âncoras têm de sair — igualzinho ao
+## HUD, que usa um Control em PRESET_FULL_RECT.
+func _resolve_layout_size() -> Vector2:
+	var vp: Viewport = get_viewport()
+	if vp != null:
+		var visible_size: Vector2 = vp.get_visible_rect().size
+		if visible_size.x >= MIN_LAYOUT_SIZE.x and visible_size.y >= MIN_LAYOUT_SIZE.y:
+			return visible_size
+	return design_size
+
+
+func _on_viewport_size_changed() -> void:
+	# Rotação de tela / resize: reancora. Sai cedo se o retângulo útil não mudou.
+	if _resolve_layout_size().is_equal_approx(_applied_size):
+		return
+	_rebuild_layout()
+
+
+func _rebuild_layout() -> void:
+	_release_all()
+	for child in _root.get_children():
+		_root.remove_child(child)
+		child.queue_free()
+	_btn_nodes.clear()
+	_layout_slots.clear()
+	_stick = null
+
+	var layout_size: Vector2 = _resolve_layout_size()
+	_applied_size = layout_size
+	_build_left_cluster(layout_size)
+	_build_right_cluster(layout_size)
+	_build_pause(layout_size)
 
 
 # ---------------------------------------------------------------------------
@@ -109,11 +167,11 @@ func _place_on_arc(anchor: Vector2, radius: float, slots: Array[Dictionary]) -> 
 # ---------------------------------------------------------------------------
 # clusters
 # ---------------------------------------------------------------------------
-func _build_left_cluster() -> void:
-	## Âncora = stick virtual encostado no canto inferior esquerdo.
+func _build_left_cluster(layout_size: Vector2) -> void:
+	## Âncora = stick virtual encostado no canto inferior esquerdo do viewport.
 	var anchor := Vector2(
 		safe_margin + stick_size * 0.5,
-		design_size.y - safe_margin - stick_size * 0.5
+		layout_size.y - safe_margin - stick_size * 0.5
 	)
 	_add_virtual_stick(anchor, stick_size)
 	var slots: Array[Dictionary] = [
@@ -123,13 +181,13 @@ func _build_left_cluster() -> void:
 	_place_on_arc(anchor, arc_radius_left, slots)
 
 
-func _build_right_cluster() -> void:
-	## Âncora = ataque básico encostado no canto inferior direito.
+func _build_right_cluster(layout_size: Vector2) -> void:
+	## Âncora = ataque básico encostado no canto inferior direito do viewport.
 	## (Substitui a grade ATK/ULT + fileira H1/H2 de 4b45939: o PO pediu arranjo
 	## radial explicitamente, com um círculo grande e menores orbitando em arco.)
 	var anchor := Vector2(
-		design_size.x - safe_margin - size_primary * 0.5,
-		design_size.y - safe_margin - size_primary * 0.5
+		layout_size.x - safe_margin - size_primary * 0.5,
+		layout_size.y - safe_margin - size_primary * 0.5
 	)
 	_add_action_button("attack_basic", anchor, size_primary)
 	var slots: Array[Dictionary] = [
@@ -140,10 +198,10 @@ func _build_right_cluster() -> void:
 	_place_on_arc(anchor, arc_radius_right, slots)
 
 
-func _build_pause() -> void:
+func _build_pause(layout_size: Vector2) -> void:
 	## Canto superior direito da área jogável, logo abaixo da faixa do HUD.
 	var center := Vector2(
-		design_size.x - safe_margin - size_pause * 0.5,
+		layout_size.x - safe_margin - size_pause * 0.5,
 		hud_band_height + PAUSE_HUD_GAP + size_pause * 0.5
 	)
 	_add_action_button("pause", center, size_pause)
