@@ -2,16 +2,28 @@ extends SceneTree
 ## Smoke E2E do boot: splash -> loading -> destino certo.
 ## Save sem nome tem que cair na tela de nome; save com nome vai direto pro hub.
 ## Uso: godot --headless --path . -s res://scripts/qa/smoke_boot_flow.gd
+##
+## Este smoke NUNCA escreve em user://save.json. `Game.set_save_path` desvia o
+## save para um arquivo temporário, apagado em todos os caminhos de saída — antes
+## o restore só rodava `if backup != ""` e, em máquina sem save prévio (CI, dev
+## novo), o teste deixava player_name="Tanjiro" gravado e a rodada seguinte já
+## caía direto no hub, exercitando outro caminho sem ninguém perceber.
 
 const SPLASH := "res://scenes/boot/splash_studio.tscn"
 const NAME_ENTRY := "res://scenes/ui/name_entry.tscn"
 const HUB := "res://scenes/main_menu/hub.tscn"
+## Save descartável do teste.
+const TEMP_SAVE := "user://smoke_boot_flow_save.json"
 ## Splash (2.2s) + cortinas de transição + barra de loading, com folga.
 const BOOT_TIMEOUT := 20.0
 const POLL := 0.25
 
 var _ok: bool = true
 var _messages: Array[String] = []
+
+var _game: Node = null
+var _temp_save_active: bool = false
+var _orig_name: String = ""
 
 
 func _initialize() -> void:
@@ -26,10 +38,7 @@ func _run() -> void:
 		_finish()
 		return
 
-	var save_path: String = str(game.get("SAVE_PATH"))
-	var backup: String = ""
-	if FileAccess.file_exists(save_path):
-		backup = FileAccess.get_file_as_string(save_path)
+	_use_temp_save(game)
 
 	# 1) Primeiro boot: sem nome no save -> onboarding.
 	game.set("player_name", "")
@@ -43,13 +52,38 @@ func _run() -> void:
 	else:
 		await _expect_boot_lands_on(HUB, "com nome -> hub")
 
-	# Devolve o save do usuário como estava.
-	if backup != "":
-		var f := FileAccess.open(save_path, FileAccess.WRITE)
-		f.store_string(backup)
-		f = null
-		game.call("load_game")
 	_finish()
+
+
+## --- Isolamento do save ---------------------------------------------------
+
+## Desvia o save para um arquivo temporário e parte de "máquina sem save".
+func _use_temp_save(game: Node) -> void:
+	_game = game
+	_orig_name = str(game.get("player_name"))
+	game.call("set_save_path", TEMP_SAVE)
+	_temp_save_active = true
+	_delete_temp_save()
+
+
+## Idempotente: pode ser chamado de qualquer caminho de saída.
+func _restore_save() -> void:
+	if not _temp_save_active:
+		return
+	_temp_save_active = false
+	_delete_temp_save()
+	if _game == null:
+		return
+	_game.call("set_save_path", "")
+	# Volta a memória ao estado do boot antes de reler o save real — se o save
+	# real não existir, `load_game` sai cedo e não desfaria nada sozinho.
+	_game.set("player_name", _orig_name)
+	_game.call("load_game")
+
+
+func _delete_temp_save() -> void:
+	if FileAccess.file_exists(TEMP_SAVE):
+		DirAccess.remove_absolute(TEMP_SAVE)
 
 
 func _expect_boot_lands_on(expected: String, label: String) -> void:
@@ -70,6 +104,8 @@ func _expect_boot_lands_on(expected: String, label: String) -> void:
 
 
 func _finish() -> void:
+	# Restaura ANTES de qualquer print/quit: vale para pass e para todo fail.
+	_restore_save()
 	print("=== smoke_boot_flow ===")
 	for m in _messages:
 		print("  - ", m)

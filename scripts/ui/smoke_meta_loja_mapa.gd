@@ -5,6 +5,9 @@ extends SceneTree
 const SHOP := "res://scenes/ui/shop.tscn"
 const MAP := "res://scenes/world/world_map.tscn"
 const CATALOG := "res://resources/upgrades/catalog.json"
+## Save descartável: este smoke escreve save várias vezes e não pode encostar no
+## save real do jogador (nem criá-lo em máquina/CI que ainda não tem um).
+const TEMP_SAVE := "user://smoke_meta_loja_mapa_save.json"
 
 
 func _initialize() -> void:
@@ -39,6 +42,9 @@ func _run() -> void:
 		ok = false
 		messages.append("autoload Game ausente em /root/Game")
 	else:
+		game.call("set_save_path", TEMP_SAVE)
+		if FileAccess.file_exists(TEMP_SAVE):
+			DirAccess.remove_absolute(TEMP_SAVE)
 		var prev_coins: int = int(game.get("coins_banked"))
 		var prev_up: Dictionary = (game.get("upgrades") as Dictionary).duplicate(true)
 		game.set("coins_banked", 500)
@@ -75,7 +81,7 @@ func _run() -> void:
 					messages.append("apply stats OK (max_hp=%.1f)" % max_hp)
 
 			game.call("save_game")
-			var save_path: String = "user://save.json"
+			var save_path: String = str(game.call("get_save_path"))
 			if not FileAccess.file_exists(save_path):
 				ok = false
 				messages.append("save.json não escrito em %s" % save_path)
@@ -101,7 +107,11 @@ func _run() -> void:
 
 		game.set("coins_banked", prev_coins)
 		game.set("upgrades", prev_up)
-		game.call("save_game")
+		# Devolve o save real e apaga o temporário: o estado em disco fica
+		# idêntico ao de antes do smoke, mesmo em máquina sem save nenhum.
+		game.call("set_save_path", "")
+		if FileAccess.file_exists(TEMP_SAVE):
+			DirAccess.remove_absolute(TEMP_SAVE)
 
 	# 3) Cenas carregam
 	for path in [SHOP, MAP]:
