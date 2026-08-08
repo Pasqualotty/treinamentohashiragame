@@ -70,6 +70,12 @@ var _blink_tween: Tween
 var _bg_tween: Tween
 var _kenburns_tween: Tween
 
+## Guarda de reentrancia da navegacao (mesma classe de bug da tela de nome): a
+## cortina do SceneRouter so bloqueia mouse, e mesmo o mouse escapa em duplo-clique
+## rapido antes de a cortina existir. Sem isto, o segundo toque cai no ramo
+## `is_busy()` do `go_to` e troca de cena na marra por cima da transicao.
+var _navigating: bool = false
+
 
 func _ready() -> void:
 	_load_idle_frames()
@@ -382,27 +388,45 @@ func _ui_click() -> void:
 
 ## --- Navegação ------------------------------------------------------------
 
+## Arma a guarda e devolve true só na primeira chamada. Todo handler que troca de
+## cena passa por aqui — dois toques rápidos não podem virar duas cenas.
+func _begin_navigation() -> bool:
+	if _navigating:
+		return false
+	_navigating = true
+	return true
+
+
 func _on_play_pressed() -> void:
+	if not _begin_navigation():
+		return
 	_ui_click()
 	SceneRouter.to_world_map()
 
 
 func _on_shop_pressed() -> void:
+	if not _begin_navigation():
+		return
 	_ui_click()
 	SceneRouter.to_shop()
 
 
 func _on_characters_pressed() -> void:
+	# Não navega: fica fora da guarda para o jogador poder clicar de novo.
 	_ui_click()
 	# MVP: so Tanjiro. Tela de elenco completa e pos-MVP.
 	character_name.text = "Tanjiro (unico no MVP)"
 
 
 func _on_settings_pressed() -> void:
+	if not _begin_navigation():
+		return
 	_ui_click()
 	SceneRouter.to_settings()
 
 
 func _on_profile_pressed() -> void:
+	if not _begin_navigation():
+		return
 	_ui_click()
 	SceneRouter.to_name_entry(true)

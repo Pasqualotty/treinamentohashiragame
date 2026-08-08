@@ -35,6 +35,12 @@ const RANDOM_NAMES: Array[String] = [
 ]
 
 var _edit_mode: bool = false
+## Guarda de reentrancia da navegacao. A cortina do SceneRouter tem
+## `mouse_filter = STOP`, o que barra clique mas NAO barra teclado: um segundo
+## Enter (ou duplo-toque no "Done" do teclado virtual do Android) dentro da janela
+## do fade caia no ramo `_transition.is_busy()` do `go_to` e instanciava o hub
+## duas vezes — corte seco seguido de fade, `_ready` e BGM em dobro.
+var _navigating: bool = false
 
 
 func _ready() -> void:
@@ -103,13 +109,27 @@ func _on_confirm_pressed() -> void:
 	_confirm()
 
 
-func _confirm() -> void:
+## Consome a intenção de confirmar. Retorna true só na PRIMEIRA chamada com nome
+## válido; as seguintes (Enter repetido dentro do fade) devolvem false. Separado
+## de `_confirm` para ser testável sem disparar troca de cena de verdade.
+func _claim_submit() -> bool:
+	if _navigating:
+		return false
 	# `set_player_name` sanitiza de novo e persiste; false = nome inválido.
+	# A guarda só arma DEPOIS do nome válido: nome ruim não pode travar a tela.
 	if not Game.set_player_name(name_input.text):
 		_validate()
-		return
+		return false
+	_navigating = true
+	return true
+
+
+func _confirm() -> bool:
+	if not _claim_submit():
+		return false
 	_ui_click()
 	SceneRouter.to_hub()
+	return true
 
 
 func _on_random_pressed() -> void:
@@ -125,6 +145,11 @@ func _on_random_pressed() -> void:
 
 
 func _on_cancel_pressed() -> void:
+	# Mesma guarda do confirmar: ESC repetido (ou ESC logo após o Enter) não pode
+	# disparar uma segunda troca de cena por cima da que já está no ar.
+	if _navigating:
+		return
+	_navigating = true
 	_ui_click()
 	SceneRouter.to_hub()
 

@@ -40,6 +40,10 @@ var pending_stage_id: String = "w1_01"
 
 var _catalog: Array[UpgradeDef] = []
 var _catalog_loaded: bool = false
+## Caminho efetivo do save. Em producao e sempre SAVE_PATH; smokes headless
+## apontam para um arquivo temporario (ver `set_save_path`) para nunca encostar
+## no save real do jogador — antes um smoke podia deixar o save do dev sujo.
+var _save_path: String = SAVE_PATH
 
 
 func _ready() -> void:
@@ -50,18 +54,56 @@ func _ready() -> void:
 
 # --- Nome do jogador ---
 
+## Espacos que o `split(" ")` nao enxerga: NBSP (U+00A0), OGHAM (U+1680), a faixa
+## tipografica U+2000-U+200A, NNBSP, MMSP e o ideografico. Viram espaco comum.
+static func _is_space_like(code: int) -> bool:
+	if code == 0x00A0 or code == 0x1680 or code == 0x202F or code == 0x205F or code == 0x3000:
+		return true
+	return code >= 0x2000 and code <= 0x200A
+
+
+## Formatadores de largura zero (categoria Unicode Cf): soft hyphen, ZWSP/ZWNJ/ZWJ,
+## marcas e overrides bidi, isolates bidi, word joiner e BOM. Nao renderizam nada —
+## passavam pelo filtro antigo (`>= 32`) e deixavam um nome invisivel burlar o gate
+## do onboarding (badge do hub em branco, `has_player_name()` mentindo true).
+static func _is_invisible_format(code: int) -> bool:
+	if code == 0x00AD or code == 0xFEFF:
+		return true
+	if code >= 0x200B and code <= 0x200F:
+		return true
+	if code >= 0x202A and code <= 0x202E:
+		return true
+	if code >= 0x2060 and code <= 0x2064:
+		return true
+	return code >= 0x2066 and code <= 0x2069
+
+
 ## Normaliza o que veio da UI: tira espacos das pontas, colapsa espacos internos,
-## remove caracteres de controle e corta no limite. Retorna "" se nao sobrar nada.
+## remove caracteres de controle e invisiveis, e corta no limite.
+## Retorna "" se nao sobrar nada VISIVEL — a checagem de vazio e sempre a ultima
+## etapa: validar antes de limpar era o furo que deixava ZWSP/NBSP passar.
 static func sanitize_player_name(raw: String) -> String:
 	var printable := ""
 	for c in raw:
-		# Descarta caracteres de controle (tab, quebra de linha, NUL de paste).
-		if c.unicode_at(0) >= 32:
-			printable += c
+		var code: int = c.unicode_at(0)
+		# C0 (tab, quebra de linha, NUL de paste), DEL (U+007F) e o bloco C1.
+		if code < 32 or (code >= 0x7F and code <= 0x9F):
+			continue
+		# Invisiveis Cf: descarta antes de qualquer contagem de "tem conteudo".
+		if _is_invisible_format(code):
+			continue
+		# NBSP e afins viram espaco comum para o colapso abaixo enxergar.
+		if _is_space_like(code):
+			printable += " "
+			continue
+		printable += c
 	var words: PackedStringArray = printable.split(" ", false)
 	var clean := " ".join(words).strip_edges()
 	if clean.length() > MAX_PLAYER_NAME_LEN:
 		clean = clean.substr(0, MAX_PLAYER_NAME_LEN).strip_edges()
+	# Recheca no fim, depois de TODA a limpeza (inclusive o corte pelo limite).
+	if clean.is_empty():
+		return ""
 	return clean
 
 
@@ -223,6 +265,17 @@ func build_player_stats() -> PlayerStats:
 
 # --- Save ---
 
+## Caminho de save em uso agora. Preferir isto a `SAVE_PATH` em testes.
+func get_save_path() -> String:
+	return _save_path
+
+
+## Redireciona o save para outro arquivo (uso exclusivo dos smokes headless).
+## Passar "" volta para o caminho padrao do jogador.
+func set_save_path(path: String) -> void:
+	_save_path = SAVE_PATH if path.is_empty() else path
+
+
 func save_game() -> void:
 	var data := {
 		"version": SAVE_VERSION,
@@ -232,7 +285,7 @@ func save_game() -> void:
 		"stages_cleared": stages_cleared,
 		"upgrades": upgrades,
 	}
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var f := FileAccess.open(_save_path, FileAccess.WRITE)
 	if f == null:
 		push_error("Save failed: %s" % FileAccess.get_open_error())
 		return
@@ -240,9 +293,9 @@ func save_game() -> void:
 
 
 func load_game() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(_save_path):
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var f := FileAccess.open(_save_path, FileAccess.READ)
 	if f == null:
 		return
 	var parsed: Variant = JSON.parse_string(f.get_as_text())
