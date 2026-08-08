@@ -1,25 +1,57 @@
 extends CanvasLayer
-## Controles touch premium: stick + botões com ÍCONES (não bolha colorida vazia).
-## Layout polegar: espaços generosos, clusters sem sobreposição.
+## Controles touch premium: stick + botões com arte própria por ação.
+##
+## Layout radial (não é grade): cada canto inferior é um cluster polar formado por
+## uma âncora grande e satélites distribuídos num arco de raio constante ao redor
+## dela. Todas as posições saem de [method _arc_point] — nada de somas manuais de
+## gap espalhadas pelo código.
+##
+## Convenção de ângulo (graus, coordenadas de tela do Godot com y para baixo):
+## 0° = direita · 90° = baixo · 180° = esquerda · 270° = topo.
 
 @export var hide_on_desktop: bool = false
 @export var design_size: Vector2 = Vector2(1280, 720)
 @export var safe_margin: float = 32.0
-@export var size_main: float = 108.0
-@export var size_sec: float = 88.0
-@export var size_pause: float = 56.0
+## Faixa superior reservada ao HUD de combate: nenhum controle pode invadi-la.
+@export var hud_band_height: float = 150.0
 @export var stick_size: float = 156.0
 @export var stick_deadzone: float = 0.14
 
+## Hierarquia de tamanho em três níveis.
+@export var size_primary: float = 132.0    ## âncora do cluster direito (ATK)
+@export var size_secondary: float = 104.0  ## ultimate, jump
+@export var size_tertiary: float = 88.0    ## skill_1, skill_2, advance
+@export var size_pause: float = 56.0       ## chrome discreto, fora dos clusters
+
+## Raio dos arcos. Constante por cluster — é o que dá a leitura radial.
+@export var arc_radius_right: float = 158.0
+@export var arc_radius_left: float = 152.0
+
 const ICONS_DIR := "res://assets/ui/touch/icons"
 const LABELED_DIR := "res://assets/ui/touch/labeled"
+
+## Arco direito: varre do topo para a esquerda, em passos regulares de 45°.
+const ANGLE_ULTIMATE := 270.0
+const ANGLE_SKILL_1 := 225.0
+const ANGLE_SKILL_2 := 180.0
+## Arco esquerdo: espelho do direito — varre do topo para a direita.
+const ANGLE_JUMP := 315.0
+const ANGLE_ADVANCE := 0.0
+
+## Folga mínima entre as bordas de dois alvos de toque quaisquer.
+const MIN_EDGE_GAP := 12.0
+## Respiro entre a faixa do HUD e o botão de pause.
+const PAUSE_HUD_GAP := 12.0
+
 const PRESS_SCALE := 0.92
-const PRESS_MOD := Color(1.12, 1.08, 0.95, 1.0)
-const NORMAL_MOD := Color(1.0, 1.0, 1.0, 0.98)
+const RELEASE_EASE_TIME := 0.14
+const PRESS_MOD := Color(1.05, 1.02, 0.96, 1.0)
+const NORMAL_MOD := Color(1.0, 1.0, 1.0, 0.88)
 
 var _root: Control
 var _tex_cache: Dictionary = {}
 var _btn_nodes: Dictionary = {}
+var _layout_slots: Array[Dictionary] = []
 var _stick: VirtualJoystick
 
 
@@ -48,68 +80,77 @@ func _notification(what: int) -> void:
 		_release_all()
 
 
+## Geometria final dos alvos de toque, em coordenadas de design.
+## Cada entrada: { "id": String, "center": Vector2, "radius": float }.
+## Usado pelo smoke de layout (res://scripts/qa/smoke_touch_layout.gd).
+func get_layout_slots() -> Array[Dictionary]:
+	return _layout_slots.duplicate(true)
+
+
+# ---------------------------------------------------------------------------
+# geometria polar
+# ---------------------------------------------------------------------------
+func _arc_point(anchor: Vector2, radius: float, angle_deg: float) -> Vector2:
+	var a: float = deg_to_rad(angle_deg)
+	return anchor + Vector2(cos(a), sin(a)) * radius
+
+
+## Posiciona uma lista de satélites num arco de raio constante ao redor da âncora.
+## Cada slot: { "action": String, "angle": float (graus), "size": float }.
+func _place_on_arc(anchor: Vector2, radius: float, slots: Array[Dictionary]) -> void:
+	for slot in slots:
+		var center: Vector2 = _arc_point(anchor, radius, float(slot["angle"]))
+		_add_action_button(String(slot["action"]), center, float(slot["size"]))
+
+
+# ---------------------------------------------------------------------------
+# clusters
+# ---------------------------------------------------------------------------
 func _build_left_cluster() -> void:
-	## Stick canto inferior esquerdo; DASH acima do PULO, com gap confortável.
-	var m: float = safe_margin
-	var s_stick: float = stick_size
-	var s_sec: float = size_sec
-	var gap: float = 20.0
-	var bottom: float = design_size.y - m
-
-	_add_virtual_stick(Vector2(m, bottom - s_stick), s_stick)
-
-	var side_x: float = m + s_stick + gap + 8.0
-	var jump_y: float = bottom - s_sec
-	var dash_y: float = jump_y - gap - s_sec
-	_add_action_button("advance", Vector2(side_x, dash_y), Vector2(s_sec, s_sec))
-	_add_action_button("jump", Vector2(side_x, jump_y), Vector2(s_sec, s_sec))
+	## Âncora = stick virtual encostado no canto inferior esquerdo.
+	var anchor := Vector2(
+		safe_margin + stick_size * 0.5,
+		design_size.y - safe_margin - stick_size * 0.5
+	)
+	_add_virtual_stick(anchor, stick_size)
+	var slots: Array[Dictionary] = [
+		{"action": "jump", "angle": ANGLE_JUMP, "size": size_secondary},
+		{"action": "advance", "angle": ANGLE_ADVANCE, "size": size_tertiary},
+	]
+	_place_on_arc(anchor, arc_radius_left, slots)
 
 
 func _build_right_cluster() -> void:
-	## ATK grande âncora; H1 acima, H2 à direita, ULT abaixo-esquerda do ATK.
-	var m: float = safe_margin
-	var s_atk: float = size_main + 12.0
-	var s_sec: float = size_sec
-	var gap: float = 18.0
-	var right: float = design_size.x - m
-	var bottom: float = design_size.y - m
-
-	var atk_tl := Vector2(right - s_atk - s_sec - gap, bottom - s_atk - 24.0)
-	_add_action_button("attack_basic", atk_tl, Vector2(s_atk, s_atk))
-
-	# H1 acima do ATK
-	_add_action_button(
-		"skill_1",
-		Vector2(atk_tl.x + s_atk - s_sec * 0.35, atk_tl.y - s_sec - gap),
-		Vector2(s_sec, s_sec)
+	## Âncora = ataque básico encostado no canto inferior direito.
+	var anchor := Vector2(
+		design_size.x - safe_margin - size_primary * 0.5,
+		design_size.y - safe_margin - size_primary * 0.5
 	)
-	# H2 à direita do ATK
-	_add_action_button(
-		"skill_2",
-		Vector2(right - s_sec, atk_tl.y + s_atk * 0.25),
-		Vector2(s_sec, s_sec)
-	)
-	# ULT embaixo do ATK, levemente à esquerda
-	_add_action_button(
-		"ultimate",
-		Vector2(atk_tl.x - 4.0, bottom - s_sec - 4.0),
-		Vector2(s_sec + 10.0, s_sec)
-	)
+	_add_action_button("attack_basic", anchor, size_primary)
+	var slots: Array[Dictionary] = [
+		{"action": "ultimate", "angle": ANGLE_ULTIMATE, "size": size_secondary},
+		{"action": "skill_1", "angle": ANGLE_SKILL_1, "size": size_tertiary},
+		{"action": "skill_2", "angle": ANGLE_SKILL_2, "size": size_tertiary},
+	]
+	_place_on_arc(anchor, arc_radius_right, slots)
 
 
 func _build_pause() -> void:
-	var s: float = size_pause
-	_add_action_button(
-		"pause",
-		Vector2(design_size.x - safe_margin - s, safe_margin * 0.55),
-		Vector2(s, s)
+	## Canto superior direito da área jogável, logo abaixo da faixa do HUD.
+	var center := Vector2(
+		design_size.x - safe_margin - size_pause * 0.5,
+		hud_band_height + PAUSE_HUD_GAP + size_pause * 0.5
 	)
+	_add_action_button("pause", center, size_pause)
 
 
-func _add_virtual_stick(top_left: Vector2, size: float) -> void:
+# ---------------------------------------------------------------------------
+# stick
+# ---------------------------------------------------------------------------
+func _add_virtual_stick(center: Vector2, size: float) -> void:
 	var stick := VirtualJoystick.new()
 	stick.name = "VirtualStick"
-	stick.position = top_left
+	stick.position = center - Vector2(size, size) * 0.5
 	stick.custom_minimum_size = Vector2(size, size)
 	stick.size = Vector2(size, size)
 	stick.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -127,15 +168,24 @@ func _add_virtual_stick(top_left: Vector2, size: float) -> void:
 	_apply_stick_theme(stick, size)
 	_root.add_child(stick)
 	_stick = stick
+	_layout_slots.append({"id": "virtual_stick", "center": center, "radius": size * 0.5})
 
 
 func _apply_stick_theme(stick: VirtualJoystick, size: float) -> void:
-	# Base lacada escura + ouro (sem azul docinho).
-	var base_n := _make_circle_stylebox(int(size), Color(0.09, 0.08, 0.12, 0.72), Color(0.82, 0.66, 0.22, 0.95), 5)
-	var base_p := _make_circle_stylebox(int(size), Color(0.12, 0.11, 0.16, 0.85), Color(1.0, 0.8, 0.28, 1.0), 5)
+	# Base lacada escura + ouro, mesma linguagem dos botões.
+	var base_n := _make_circle_stylebox(
+		int(size), Color(0.09, 0.08, 0.12, 0.72), Color(0.82, 0.66, 0.22, 0.95), 5
+	)
+	var base_p := _make_circle_stylebox(
+		int(size), Color(0.12, 0.11, 0.16, 0.85), Color(1.0, 0.8, 0.28, 1.0), 5
+	)
 	var tip_px := int(size * 0.4)
-	var tip_n := _make_circle_stylebox(tip_px, Color(0.18, 0.2, 0.28, 0.92), Color(0.9, 0.78, 0.35, 0.95), 3)
-	var tip_p := _make_circle_stylebox(tip_px, Color(0.28, 0.26, 0.2, 0.95), Color(1.0, 0.88, 0.4, 1.0), 3)
+	var tip_n := _make_circle_stylebox(
+		tip_px, Color(0.18, 0.2, 0.28, 0.92), Color(0.9, 0.78, 0.35, 0.95), 3
+	)
+	var tip_p := _make_circle_stylebox(
+		tip_px, Color(0.28, 0.26, 0.2, 0.95), Color(1.0, 0.88, 0.4, 1.0), 3
+	)
 	stick.add_theme_stylebox_override("normal_joystick", base_n)
 	stick.add_theme_stylebox_override("pressed_joystick", base_p)
 	stick.add_theme_stylebox_override("normal_tip", tip_n)
@@ -166,7 +216,10 @@ func _make_circle_stylebox(px: int, fill: Color, border: Color, border_w: int) -
 	return sb
 
 
-func _add_action_button(action: String, top_left: Vector2, size: Vector2) -> void:
+# ---------------------------------------------------------------------------
+# botões
+# ---------------------------------------------------------------------------
+func _add_action_button(action: String, center: Vector2, size: float) -> void:
 	var btn := TouchScreenButton.new()
 	btn.name = "Btn_%s" % action
 	btn.action = action
@@ -174,21 +227,35 @@ func _add_action_button(action: String, top_left: Vector2, size: Vector2) -> voi
 	btn.texture_normal = _load_icon(action, false)
 	btn.texture_pressed = _load_icon(action, true)
 	btn.modulate = NORMAL_MOD
-	btn.position = top_left + size * 0.5
-	var shape := RectangleShape2D.new()
-	shape.size = size * 1.05
+
+	# TouchScreenButton desenha a textura a partir da própria origem e, com
+	# shape_centered, centra a forma na textura. Logo a origem é o canto
+	# superior esquerdo do alvo, não o centro.
+	var tex_size := _texture_size(btn.texture_normal, size)
+	btn.scale = Vector2(size / tex_size.x, size / tex_size.y)
+	btn.position = center - Vector2(size, size) * 0.5
+
+	# Forma redonda igual à arte: o alvo de toque é exatamente o disco visível.
+	var shape := CircleShape2D.new()
+	shape.radius = minf(tex_size.x, tex_size.y) * 0.5
 	btn.shape = shape
 	btn.shape_centered = true
-	var tex: Texture2D = btn.texture_normal
-	if tex != null:
-		var ts: Vector2 = tex.get_size()
-		if ts.x > 0.0 and ts.y > 0.0:
-			btn.scale = Vector2(size.x / ts.x, size.y / ts.y)
+
 	btn.set_meta("base_scale", btn.scale)
 	btn.pressed.connect(_on_tsb_pressed.bind(action, btn))
-	btn.released.connect(_on_tsb_released.bind(action, btn))
+	btn.released.connect(_on_tsb_released.bind(btn))
 	_root.add_child(btn)
 	_btn_nodes[action] = btn
+	_layout_slots.append({"id": action, "center": center, "radius": size * 0.5})
+
+
+func _texture_size(tex: Texture2D, fallback: float) -> Vector2:
+	if tex == null:
+		return Vector2(fallback, fallback)
+	var ts: Vector2 = tex.get_size()
+	if ts.x <= 0.0 or ts.y <= 0.0:
+		return Vector2(fallback, fallback)
+	return ts
 
 
 func _load_icon(action: String, pressed: bool) -> Texture2D:
@@ -203,6 +270,7 @@ func _load_icon(action: String, pressed: bool) -> Texture2D:
 			if tex:
 				_tex_cache[key] = tex
 				return tex
+	push_warning("touch: ícone ausente para '%s' (pressed=%s)" % [action, pressed])
 	var fb := _fallback_circle(Color(0.2, 0.22, 0.3), pressed)
 	_tex_cache[key] = fb
 	return fb
@@ -229,7 +297,12 @@ func _fallback_circle(col: Color, pressed: bool) -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 
+# ---------------------------------------------------------------------------
+# feedback
+# ---------------------------------------------------------------------------
 func _on_tsb_pressed(action: String, btn: TouchScreenButton) -> void:
+	# Press é instantâneo: sem tween, sem latência percebida.
+	_kill_release_tween(btn)
 	var base: Vector2 = btn.get_meta("base_scale", btn.scale)
 	btn.scale = base * PRESS_SCALE
 	btn.modulate = PRESS_MOD
@@ -237,10 +310,28 @@ func _on_tsb_pressed(action: String, btn: TouchScreenButton) -> void:
 		Audio.play_sfx("ui_click", randf_range(0.95, 1.05))
 
 
-func _on_tsb_released(_action: String, btn: TouchScreenButton) -> void:
+func _on_tsb_released(btn: TouchScreenButton) -> void:
 	var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE)
-	btn.scale = base
 	btn.modulate = NORMAL_MOD
+	_kill_release_tween(btn)
+	if not btn.is_inside_tree():
+		btn.scale = base
+		return
+	# Release com ease-back: o botão "volta" com um leve overshoot.
+	var tween := btn.create_tween()
+	tween.tween_property(btn, "scale", base, RELEASE_EASE_TIME) \
+		.set_trans(Tween.TRANS_BACK) \
+		.set_ease(Tween.EASE_OUT)
+	btn.set_meta("release_tween", tween)
+
+
+func _kill_release_tween(btn: TouchScreenButton) -> void:
+	if not btn.has_meta("release_tween"):
+		return
+	var prev: Variant = btn.get_meta("release_tween")
+	if prev is Tween and (prev as Tween).is_valid():
+		(prev as Tween).kill()
+	btn.remove_meta("release_tween")
 
 
 func _release_all() -> void:
@@ -250,6 +341,6 @@ func _release_all() -> void:
 	for action: Variant in _btn_nodes.keys():
 		var btn: TouchScreenButton = _btn_nodes[action] as TouchScreenButton
 		if btn:
-			var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE)
-			btn.scale = base
+			_kill_release_tween(btn)
+			btn.scale = btn.get_meta("base_scale", Vector2.ONE)
 			btn.modulate = NORMAL_MOD
