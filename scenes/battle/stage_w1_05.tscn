@@ -1,14 +1,12 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=19 format=3]
 
 ; Mundo 1 - Fase 5: "Corredor da Vigilia".
 ; Layout longo e aberto (2400px): dois grupos de plataformas separados por uma
 ; arena de chao limpo no meio, onde o charger tem espaco para investir. E a fase
 ; que prepara o ritmo do boss - mais larga e menos vertical que a Fase 4.
 ;
-; CONVENCAO DE CHAO: a faixa visual do chao vai da superficie de colisao (536)
-; ate 1136 - bem abaixo do limit_bottom da camera (760) - para o parallax nunca
-; aparecer por baixo ("piso voando"). Implementado inline em GroundFill enquanto
-; nao existe um componente reutilizavel de chao.
+; O chao usa o componente GroundBand (Ground/Visual): band_width acompanha a
+; colisao e depth desce ate 80px abaixo do limit_bottom da camera.
 
 [ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
 [ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
@@ -17,7 +15,7 @@
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_forest.png" id="9_bg"]
 
-[ext_resource type="Texture2D" path="res://assets/tiles/w1/ground_strip_side.png" id="10_ground"]
+[ext_resource type="PackedScene" path="res://scenes/world/ground_band.tscn" id="10_gband"]
 [ext_resource type="Texture2D" path="res://assets/tiles/w1/platform_strip_side.png" id="11_plat"]
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/layers/soft_dot.tres" id="20_dot"]
@@ -58,16 +56,6 @@ colors = PackedColorArray(0.06, 0.04, 0.03, 0.55, 0.06, 0.04, 0.03, 0, 0.06, 0.0
 gradient = SubResource("Gradient_fg_w105")
 width = 320
 height = 720
-
-[sub_resource type="Gradient" id="Gradient_earth_w105"]
-offsets = PackedFloat32Array(0, 0.08, 0.35, 1)
-colors = PackedColorArray(0.2196, 0.1725, 0.1569, 1, 0.1608, 0.1255, 0.1176, 1, 0.1019, 0.0784, 0.0784, 1, 0.0392, 0.0353, 0.0392, 1)
-
-[sub_resource type="GradientTexture2D" id="GradTex_earth_w105"]
-gradient = SubResource("Gradient_earth_w105")
-width = 8
-height = 600
-fill_to = Vector2(0, 1)
 
 [node name="StageW105" type="Node2D"]
 script = ExtResource("1_ctrl")
@@ -184,19 +172,10 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
 shape = SubResource("Rect_ground")
 
-[node name="GroundFill" type="Sprite2D" parent="Ground"]
-z_index = -2
-position = Vector2(0, 276)
-scale = Vector2(300, 1)
-texture = SubResource("GradTex_earth_w105")
-centered = true
-
-[node name="Visual" type="Sprite2D" parent="Ground"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(1.5, 0.75)
-texture = ExtResource("10_ground")
-centered = true
+[node name="Visual" parent="Ground" instance=ExtResource("10_gband")]
+band_width = 2400.0
+surface_y = -24.0
+depth = 304.0
 
 [node name="WestLedgeLow" type="StaticBody2D" parent="."]
 position = Vector2(560, 492)
