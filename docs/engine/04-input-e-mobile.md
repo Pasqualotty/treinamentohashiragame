@@ -55,9 +55,20 @@ convenção de tela (0° = direita, 90° = baixo, 180° = esquerda, 270° = topo
 > deixaria o cluster a 352px da borda direita no celular e 272px acima do fundo no
 > tablet — e desalinhado do HUD, que ancora no viewport real. Os clusters saem de
 > `get_viewport().get_visible_rect().size` e reancoram no sinal `size_changed`
-> (rotação de tela). `design_size` fica só como fallback quando não há viewport
-> utilizável (janela dummy do headless). Tamanhos de botão e `safe_margin` são
+> (rotação de tela). `design_size` fica só como piso de sanidade para viewport
+> degenerado — na prática não é atingido, nem em `--headless` (lá a janela é dummy,
+> mas o retângulo visível é 1280×1280). Tamanhos de botão e `safe_margin` são
 > absolutos em px: são distância de polegar, não proporção.
+
+> **Rebuild não pode matar o teclado.** As `move_*` têm binding de teclado (A/D/W/S
+> + setas) *e* do stick. No rebuild por rotação, `Input.action_release()` só é
+> chamado se o **stick** estiver com o dedo em cima (rastreado pelos sinais
+> `pressed`/`released` do `VirtualJoystick`). Liberar incondicionalmente mataria a
+> tecla que o jogador está segurando — no Godot 4 `action_release` limpa
+> `device_states` e o *echo* da tecla não re-pressiona a action, então o personagem
+> ficaria parado até soltar e reapertar. Não liberar nunca também é errado: o
+> `TouchScreenButton` se solta sozinho no `NOTIFICATION_EXIT_TREE`, o
+> `VirtualJoystick` não, e a action ficaria presa. O smoke afirma os dois lados.
 
 | Cluster | Âncora | Satélites (ângulo @ raio) |
 |---|---|---|

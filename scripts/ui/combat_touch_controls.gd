@@ -20,7 +20,8 @@ extends CanvasLayer
 ## polegar, e desalinhado do HUD, que ancora no viewport real.
 
 @export var hide_on_desktop: bool = false
-## Fallback quando não há viewport utilizável (headless com janela dummy).
+## Fallback de último recurso, para viewport degenerado (ver [constant MIN_LAYOUT_SIZE]).
+## Não é o caminho normal em lugar nenhum, headless incluído.
 @export var design_size: Vector2 = Vector2(1280, 720)
 ## Inset absoluto a partir das bordas reais do viewport (é distância de polegar,
 ## não proporção — não escala com a resolução).
@@ -54,8 +55,9 @@ const ANGLE_ADVANCE := 0.0
 ## Respiro entre a faixa do HUD e o botão de pause.
 const PAUSE_HUD_GAP := 12.0
 
-## Abaixo disso o viewport não comporta o layout (janela dummy 64x64 do headless,
-## por exemplo) e vale mais cair no design do que espremer tudo num canto.
+## Piso de sanidade: abaixo disso o retângulo não comporta os clusters e vale mais
+## cair no design do que espremer tudo num canto. Na prática não é atingido — mesmo
+## em `--headless` o retângulo visível é 1280x1280 (a janela é dummy, o viewport não).
 const MIN_LAYOUT_SIZE := Vector2(640.0, 360.0)
 
 const PRESS_SCALE := 0.9
@@ -70,6 +72,11 @@ var _btn_nodes: Dictionary = {}
 var _layout_slots: Array[Dictionary] = []
 var _stick: VirtualJoystick
 var _applied_size: Vector2 = Vector2.ZERO
+var _stylebox_cache: Dictionary = {}
+## O stick está com o dedo em cima? Só ele "possui" move_* por parte do touch —
+## as mesmas actions têm binding de teclado, então liberar sem checar posse mata a
+## tecla que o jogador está segurando.
+var _stick_active: bool = false
 
 
 func _ready() -> void:
@@ -133,8 +140,17 @@ func _on_viewport_size_changed() -> void:
 
 
 func _rebuild_layout() -> void:
-	_release_all()
+	# Só libera move_* se o STICK estiver de posse delas. TouchScreenButton se solta
+	# sozinho no NOTIFICATION_EXIT_TREE; o VirtualJoystick não — sumindo no meio do
+	# arrasto, move_* ficaria preso pra sempre.
+	# Liberar incondicionalmente aqui seria pior: move_* também tem binding de teclado
+	# (A/D/W/S + setas) e o resize mataria a tecla que o jogador está segurando —
+	# no Godot 4 `action_release` limpa device_states e o echo não re-pressiona.
+	if _stick_active:
+		_release_move_actions()
 	for child in _root.get_children():
+		if child is TouchScreenButton:
+			_kill_btn_tween(child as TouchScreenButton)
 		_root.remove_child(child)
 		child.queue_free()
 	_btn_nodes.clear()
@@ -229,9 +245,20 @@ func _add_virtual_stick(center: Vector2, size: float) -> void:
 	stick.action_up = &"move_up"
 	stick.action_down = &"move_down"
 	_apply_stick_theme(stick, size)
+	# Posse das move_*: sem isso não dá pra distinguir stick de teclado num rebuild.
+	stick.pressed.connect(_on_stick_pressed)
+	stick.released.connect(_on_stick_released)
 	_root.add_child(stick)
 	_stick = stick
 	_layout_slots.append({"id": "virtual_stick", "center": center, "radius": size * 0.5})
+
+
+func _on_stick_pressed() -> void:
+	_stick_active = true
+
+
+func _on_stick_released(_arg: Variant = null) -> void:
+	_stick_active = false
 
 
 func _apply_stick_theme(stick: VirtualJoystick, size: float) -> void:
@@ -256,6 +283,11 @@ func _apply_stick_theme(stick: VirtualJoystick, size: float) -> void:
 
 
 func _make_circle_stylebox(px: int, fill: Color, border: Color, border_w: int) -> StyleBoxTexture:
+	# Cache: são ~56k iterações de pixel em GDScript por stylebox, e o rebuild por
+	# size_changed refaz os quatro. Os argumentos não mudam entre rebuilds.
+	var key := "%d|%s|%s|%d" % [px, fill.to_html(true), border.to_html(true), border_w]
+	if _stylebox_cache.has(key):
+		return _stylebox_cache[key] as StyleBoxTexture
 	var s: int = maxi(px, 16)
 	var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
 	var cx := s * 0.5
@@ -276,6 +308,7 @@ func _make_circle_stylebox(px: int, fill: Color, border: Color, border_w: int) -
 	var tex := ImageTexture.create_from_image(img)
 	var sb := StyleBoxTexture.new()
 	sb.texture = tex
+	_stylebox_cache[key] = sb
 	return sb
 
 
@@ -398,10 +431,21 @@ func _kill_btn_tween(btn: TouchScreenButton) -> void:
 		(tw as Tween).kill()
 
 
+## Perda total de input (saída de cena, foco perdido): aí sim libera tudo sem
+## ressalva — o teclado também já foi embora nesses casos.
 func _release_all() -> void:
+	_release_move_actions()
+	_reset_button_visuals()
+
+
+func _release_move_actions() -> void:
 	for action: String in ["move_left", "move_right", "move_up", "move_down"]:
 		if InputMap.has_action(action) and Input.is_action_pressed(action):
 			Input.action_release(action)
+	_stick_active = false
+
+
+func _reset_button_visuals() -> void:
 	for action: Variant in _btn_nodes.keys():
 		var btn: TouchScreenButton = _btn_nodes[action] as TouchScreenButton
 		if btn:
