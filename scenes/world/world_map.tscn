@@ -109,50 +109,6 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_canvas")
 
-[node name="Stage1Button" type="Button" parent="MapCanvas"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 100)
-layout_mode = 0
-offset_left = 150.0
-offset_top = 410.0
-offset_right = 250.0
-offset_bottom = 510.0
-text = "Fase 1"
-flat = true
-
-[node name="Stage2Button" type="Button" parent="MapCanvas"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 100)
-layout_mode = 0
-offset_left = 370.0
-offset_top = 250.0
-offset_right = 470.0
-offset_bottom = 350.0
-text = "Fase 2"
-flat = true
-
-[node name="Stage3Button" type="Button" parent="MapCanvas"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 100)
-layout_mode = 0
-offset_left = 650.0
-offset_top = 370.0
-offset_right = 750.0
-offset_bottom = 470.0
-text = "Fase 3"
-flat = true
-
-[node name="BossButton" type="Button" parent="MapCanvas"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 110)
-layout_mode = 0
-offset_left = 925.0
-offset_top = 205.0
-offset_right = 1035.0
-offset_bottom = 315.0
-text = "Boss"
-flat = true
-
 [node name="Legend" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 7
@@ -208,8 +164,4 @@ offset_bottom = -24.0
 grow_vertical = 0
 text = "Hub"
 
-[connection signal="pressed" from="MapCanvas/Stage1Button" to="." method="_on_stage_1_pressed"]
-[connection signal="pressed" from="MapCanvas/Stage2Button" to="." method="_on_stage_2_pressed"]
-[connection signal="pressed" from="MapCanvas/Stage3Button" to="." method="_on_stage_3_pressed"]
-[connection signal="pressed" from="MapCanvas/BossButton" to="." method="_on_boss_pressed"]
 [connection signal="pressed" from="BackButton" to="." method="_on_back_pressed"]

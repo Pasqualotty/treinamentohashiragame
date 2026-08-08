@@ -1,9 +1,18 @@
 extends SceneTree
 ## Smoke headless: valida que a fase W1 carrega, tem player, input map e waves.
+## Depois do check profundo na fase 1, roda um check de jogabilidade mínima nas
+## fases novas (4 e 5): player, ondas, inimigos e saída trancada.
 ## Uso:
 ##   godot --headless --path . -s res://scripts/qa/smoke_playable_w1.gd
 
 const STAGE := "res://scenes/battle/stage_w1_01.tscn"
+## Fases extras cobertas pelo check leve — as novas do Mundo 1.
+const EXTRA_STAGES := [
+	"res://scenes/battle/stage_w1_04.tscn",
+	"res://scenes/battle/stage_w1_05.tscn",
+]
+## Teto de frames esperando os spawns da primeira onda (banner + delay inicial).
+const SPAWN_WAIT_FRAMES := 600
 const REQUIRED_ACTIONS := [
 	"move_left", "move_right", "jump", "advance",
 	"attack_basic", "skill_1", "skill_2", "ultimate", "pause",
@@ -170,9 +179,60 @@ func _run() -> void:
 	else:
 		print("OK enemies present")
 
+	# Fases novas: check leve de jogabilidade (carrega, player, ondas, saída).
+	for extra: String in EXTRA_STAGES:
+		if not await _check_extra_stage(extra):
+			ok = false
+
 	if ok:
 		print("=== SMOKE PASS ===")
 		quit(0)
 	else:
 		print("=== SMOKE FAIL ===")
 		quit(1)
+
+
+## Check leve de uma fase: troca de cena, confere player/ondas/inimigos/saída.
+func _check_extra_stage(path: String) -> bool:
+	print("--- stage: ", path)
+	var err := change_scene_to_file(path)
+	if err != OK:
+		push_error("change_scene_to_file failed (%s): %s" % [path, err])
+		return false
+	for i in 20:
+		await process_frame
+	var scene := current_scene
+	if scene == null:
+		push_error("current_scene null after loading %s" % path)
+		return false
+
+	var ok := true
+	if get_nodes_in_group("player").is_empty():
+		push_error("no player in group (%s)" % path)
+		ok = false
+
+	var wd := scene.find_child("WaveDirector", true, false)
+	if wd == null:
+		push_error("WaveDirector missing (%s)" % path)
+		ok = false
+
+	var goal := scene.find_child("Goal", true, false)
+	if goal == null:
+		push_error("Goal missing (%s)" % path)
+		ok = false
+	elif goal.has_method("is_locked") and not bool(goal.call("is_locked")):
+		push_error("Goal já destrancado antes das ondas (%s)" % path)
+		ok = false
+
+	# Espera os spawns da onda 1 (banner de abertura + delay inicial).
+	var waited := 0
+	while waited < SPAWN_WAIT_FRAMES and get_nodes_in_group("enemy").is_empty():
+		await process_frame
+		waited += 1
+	var enemies := get_nodes_in_group("enemy")
+	if enemies.is_empty():
+		push_error("no enemies spawned by waves (%s)" % path)
+		ok = false
+	else:
+		print("OK ", path, " enemies=", enemies.size(), " frames=", waited)
+	return ok
