@@ -31,5 +31,11 @@ desktop.ini
 *.swp
 *~
 
+# Claude Code — worktrees de agente sao repos embutidos: sem esta regra,
+# um `git add -A` na raiz durante trabalho multi-frente commita gitlink
+# quebrado. Settings locais tambem nao vao pro repo.
+.claude/worktrees/
+.claude/settings.local.json
+
 export/*.idsig
 
