@@ -31,7 +31,6 @@ unique_name_in_owner = true
 position = Vector2(0, -32)
 scale = Vector2(0.17, 0.17)
 texture = ExtResource("2_tex")
-flip_h = true
 modulate = Color(1, 0.72, 0.72, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
