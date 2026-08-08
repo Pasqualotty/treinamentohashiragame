@@ -136,6 +136,12 @@ $smokeList = @(
         Script = "res://scripts/combat/smoke_player_test.gd"
         PassMarker = "SMOKE_PLAYER_TEST PASS"
         FailMarker = "SMOKE_PLAYER_TEST FAIL"
+    },
+    [pscustomobject]@{
+        Name = "smoke_touch_layout"
+        Script = "res://scripts/qa/smoke_touch_layout.gd"
+        PassMarker = "=== TOUCH LAYOUT PASS ==="
+        FailMarker = "=== TOUCH LAYOUT FAIL ==="
     }
 )
 
