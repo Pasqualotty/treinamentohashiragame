@@ -12,6 +12,10 @@ extends RefCounted
 ##   4. Registrar as ondas em `wave_director.gd::_waves_for_stage()`.
 ##
 ## O mapa não precisa de botão novo: os nós são instanciados a partir da lista.
+##
+## Este é também o ÚNICO ponto que lê o progresso do save (`cleared_ids`). Tudo
+## abaixo dele — `StageDef`, o mapa, os smokes — trabalha com a lista de IDs já
+## resolvida, para não existirem duas rotas de leitura do mesmo estado.
 
 const DEFAULT_WORLD_ID: String = "w1"
 
@@ -51,6 +55,10 @@ static func load_stages(world_id: String = DEFAULT_WORLD_ID) -> Array[StageDef]:
 		if def.stage_id == "":
 			push_error("WorldCatalog: StageDef sem stage_id em %s" % path)
 			continue
+		if def.map_position == Vector2.ZERO:
+			# `map_position` é obrigatória: sem ela o nó cairia na origem do
+			# canvas, empilhado com qualquer outro que também esqueceu.
+			push_error("WorldCatalog: %s sem map_position em %s" % [def.stage_id, path])
 		out.append(def)
 	return out
 
@@ -77,12 +85,38 @@ static func label_for(stage_id: String, world_id: String = DEFAULT_WORLD_ID) -> 
 	return def.node_label() if def != null else stage_id
 
 
+## Fases concluídas no save atual.
+##
+## Único ponto do jogo que lê `Game.stages_cleared` para fins de progressão. O
+## autoload é resolvido pela árvore em vez do identificador global porque em
+## `godot --headless -s <script>` os autoloads ainda não estão registrados
+## quando este script é compilado — o global quebraria a compilação dos smokes.
+## Falta de `Game` é erro alto, nunca uma lista vazia silenciosa.
+static func cleared_ids() -> Array[String]:
+	var out: Array[String] = []
+	var loop: MainLoop = Engine.get_main_loop()
+	if not (loop is SceneTree):
+		push_error("WorldCatalog: sem SceneTree — progresso indisponível")
+		return out
+	var game: Node = (loop as SceneTree).root.get_node_or_null("Game")
+	if game == null:
+		push_error("WorldCatalog: autoload Game ausente — progresso indisponível")
+		return out
+	var raw: Variant = game.get("stages_cleared")
+	if not (raw is Array):
+		push_error("WorldCatalog: Game.stages_cleared não é Array")
+		return out
+	for id_v: Variant in (raw as Array):
+		out.append(str(id_v))
+	return out
+
+
 ## Primeira fase liberada e ainda não concluída — o "próximo passo" do jogador.
 ## Retorna null quando o mundo inteiro já foi limpo.
-static func next_playable(world_id: String = DEFAULT_WORLD_ID) -> StageDef:
+static func next_playable(cleared: Array[String], world_id: String = DEFAULT_WORLD_ID) -> StageDef:
 	for def: StageDef in load_stages(world_id):
-		if StageDef.is_cleared(def.stage_id):
+		if cleared.has(def.stage_id):
 			continue
-		if def.is_unlocked():
+		if def.is_unlocked(cleared):
 			return def
 	return null

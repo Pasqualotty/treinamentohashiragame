@@ -6,6 +6,11 @@ extends Resource
 ## Este recurso é a fonte de verdade da progressão. O mapa (`world_map.gd`) gera
 ## os nós a partir daqui — não existem botões fixos na cena do mapa. Para criar
 ## uma fase nova basta adicionar um `.tres` novo e registrá-lo em `WorldCatalog`.
+##
+## É um objeto de dados PURO: não conhece o autoload `Game` nem a árvore de
+## cenas. Quem tem o estado de progresso passa a lista de fases concluídas como
+## argumento (`WorldCatalog.cleared_ids()`), o que mantém uma rota única de
+## leitura do save e deixa as regras testáveis sem montar cena.
 
 ## ID canônico usado no save (`Game.stages_cleared`) e pelo StageController.
 @export var stage_id: String = ""
@@ -19,37 +24,29 @@ extends Resource
 ## Rótulo curto mostrado no nó do mapa (ex.: "Fase 4", "Boss").
 @export var map_label: String = ""
 ## Posição do nó no mapa, em coordenadas de design (canvas 1280×560).
-## Zero = o mapa distribui o nó automaticamente ao longo do caminho.
+## Obrigatória: o mapa não inventa posição (ver `WorldCatalog.load_stages`).
 @export var map_position: Vector2 = Vector2.ZERO
 ## Nó de chefe: anel carmesim + selo rotativo no mapa.
 @export var is_boss: bool = false
 
 
-## Fase já concluída no save atual?
+## Todos os pré-requisitos estão em `cleared`?
 ##
-## Resolve o autoload `Game` pela árvore em vez de usar o identificador global:
-## em `godot --headless -s <script>` os autoloads ainda não estão registrados
-## quando este script é compilado, e o global quebraria a compilação dos smokes.
-static func is_cleared(id: String) -> bool:
-	var loop: MainLoop = Engine.get_main_loop()
-	if not (loop is SceneTree):
-		return false
-	var game: Node = (loop as SceneTree).root.get_node_or_null("Game")
-	if game == null:
-		return false
-	return bool(game.call("is_stage_cleared", id))
+## ATENÇÃO: isto responde só "os pré-requisitos foram cumpridos", NÃO "o jogador
+## pode entrar". Fase já concluída continua acessível mesmo que os requisitos
+## mudem depois (save legado) — essa decisão é do mapa, em `_node_state`.
+func is_unlocked(cleared: Array[String]) -> bool:
+	for req_id: String in requires_cleared:
+		if not cleared.has(req_id):
+			return false
+	return true
 
 
-## Todos os pré-requisitos já foram concluídos?
-func is_unlocked() -> bool:
-	return missing_requirements().is_empty()
-
-
-## IDs de pré-requisito que ainda faltam concluir (vazio = fase liberada).
-func missing_requirements() -> Array[String]:
+## IDs de pré-requisito que ainda faltam concluir (vazio = requisitos cumpridos).
+func missing_requirements(cleared: Array[String]) -> Array[String]:
 	var missing: Array[String] = []
 	for req_id: String in requires_cleared:
-		if not StageDef.is_cleared(req_id):
+		if not cleared.has(req_id):
 			missing.append(req_id)
 	return missing
 

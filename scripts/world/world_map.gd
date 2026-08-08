@@ -28,8 +28,9 @@ const MAX_MISSING_SHOWN: int = 2
 @onready var map_canvas: Control = %MapCanvas
 
 var _stages: Array[StageDef] = []
-## Posições resolvidas (coordenadas de design), 1:1 com `_stages`.
-var _node_positions: PackedVector2Array = PackedVector2Array()
+## Snapshot do progresso, lido UMA vez por refresh. Rota única de leitura do
+## save: nada aqui consulta o autoload direto (ver `WorldCatalog.cleared_ids`).
+var _cleared: Array[String] = []
 var _stage_buttons: Array[Button] = []
 
 ## Timer ambiente — anima glow do caminho e ring pulsante do próximo nó.
@@ -68,22 +69,7 @@ func _notification(what: int) -> void:
 
 func _load_catalog() -> void:
 	_stages = WorldCatalog.load_stages()
-	_node_positions = PackedVector2Array()
-	for i in range(_stages.size()):
-		_node_positions.append(_resolve_position(i))
-
-
-## Posição de design do nó `i`. StageDef sem `map_position` cai num serpenteado
-## automático — nenhuma fase nova nasce empilhada na origem.
-func _resolve_position(index: int) -> Vector2:
-	var def: StageDef = _stages[index]
-	if def.map_position != Vector2.ZERO:
-		return def.map_position
-	var count: int = maxi(_stages.size(), 2)
-	var t: float = float(index) / float(count - 1)
-	var x: float = lerpf(130.0, DESIGN_SIZE.x - 140.0, t)
-	var y: float = 470.0 if index % 2 == 0 else 300.0
-	return Vector2(x, y)
+	_cleared = WorldCatalog.cleared_ids()
 
 
 func _canvas_scale() -> Vector2:
@@ -93,7 +79,7 @@ func _canvas_scale() -> Vector2:
 
 func _screen_position(index: int) -> Vector2:
 	var s: Vector2 = _canvas_scale()
-	var p: Vector2 = _node_positions[index]
+	var p: Vector2 = _stages[index].map_position
 	return Vector2(p.x * s.x, p.y * s.y)
 
 
@@ -243,11 +229,24 @@ func _is_path_segment_unlocked(segment_index: int) -> bool:
 
 func _node_state(index: int) -> String:
 	var def: StageDef = _stages[index]
-	if Game.is_stage_cleared(def.stage_id):
+	# Fase concluída vem PRIMEIRO de propósito: quem já venceu nunca perde
+	# acesso, mesmo que `requires_cleared` mude depois (save legado).
+	if _cleared.has(def.stage_id):
 		return STATE_CLEARED
-	if not def.is_unlocked():
+	if not def.is_unlocked(_cleared):
 		return STATE_BOSS_LOCKED if def.is_boss else STATE_LOCKED
 	return STATE_BOSS_AVAILABLE if def.is_boss else STATE_AVAILABLE
+
+
+## O jogador pode entrar neste nó?
+##
+## Derivado de `_node_state` DE PROPÓSITO: se o gate repetisse a condição por
+## conta própria ele poderia divergir do que está desenhado — foi exatamente
+## esse bug (nó "✓ Boss" que recusava o toque em save legado). Um estado, uma
+## regra: o que aparece como acessível é acessível.
+func _is_enterable(index: int) -> bool:
+	var st: String = _node_state(index)
+	return st != STATE_LOCKED and st != STATE_BOSS_LOCKED
 
 
 func _refresh_nodes() -> void:
@@ -276,7 +275,7 @@ func _refresh_nodes() -> void:
 func _intro_text() -> String:
 	if _stages.is_empty():
 		return "Nenhuma fase disponível — catálogo vazio"
-	var next: StageDef = WorldCatalog.next_playable()
+	var next: StageDef = WorldCatalog.next_playable(_cleared)
 	if next == null:
 		return "Mundo 1 — tudo limpo! Rejogue qualquer fase"
 	return "Mundo 1 — próxima: %s" % next.node_label()
@@ -286,7 +285,7 @@ func _intro_text() -> String:
 func _locked_reason(index: int) -> String:
 	var def: StageDef = _stages[index]
 	var adj: String = "bloqueado" if def.is_boss else "bloqueada"
-	var missing: Array[String] = def.missing_requirements()
+	var missing: Array[String] = def.missing_requirements(_cleared)
 	if missing.is_empty():
 		return "%s %s" % [def.node_label(), adj]
 	var names := PackedStringArray()
@@ -347,7 +346,7 @@ func _select_stage(index: int) -> void:
 	if _traveling:
 		return
 	var def: StageDef = _stages[index]
-	if not def.is_unlocked():
+	if not _is_enterable(index):
 		status_label.text = _locked_reason(index)
 		return
 	if def.scene_path == "" or not ResourceLoader.exists(def.scene_path):
