@@ -152,14 +152,13 @@ def _build_shell(accent: Sequence[int], pressed: bool, halo: bool) -> Image.Imag
     # Bisel: normal = luz em cima; pressed = sombra em cima (inset).
     bevel = Image.new("RGBA", (SS, SS), (0, 0, 0, 0))
     bd = ImageDraw.Draw(bevel)
-    top_arc = _box(R_FACE - 14.0)
-    bottom_arc = _box(R_FACE - 14.0)
+    bevel_box = _box(R_FACE - 14.0)
     if pressed:
-        bd.arc(top_arc, 188, 352, fill=(0, 0, 0, 150), width=26)
-        bd.arc(bottom_arc, 12, 168, fill=(255, 255, 255, 60), width=12)
+        bd.arc(bevel_box, 188, 352, fill=(0, 0, 0, 150), width=26)
+        bd.arc(bevel_box, 12, 168, fill=(255, 255, 255, 60), width=12)
     else:
-        bd.arc(top_arc, 188, 352, fill=(255, 255, 255, 80), width=14)
-        bd.arc(bottom_arc, 12, 168, fill=(0, 0, 0, 120), width=20)
+        bd.arc(bevel_box, 188, 352, fill=(255, 255, 255, 80), width=14)
+        bd.arc(bevel_box, 12, 168, fill=(0, 0, 0, 120), width=20)
     base = Image.alpha_composite(base, bevel)
 
     if halo:

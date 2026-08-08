@@ -8,6 +8,10 @@ extends CanvasLayer
 ##
 ## Convenção de ângulo (graus, coordenadas de tela do Godot com y para baixo):
 ## 0° = direita · 90° = baixo · 180° = esquerda · 270° = topo.
+##
+## Regras duras do layout (afirmadas em res://scripts/qa/smoke_touch_layout.gd):
+## nenhum par de alvos se sobrepõe (folga real entre bordas >= 12px), nada invade
+## a faixa do HUD superior e tudo cabe dentro de [member safe_margin].
 
 @export var hide_on_desktop: bool = false
 @export var design_size: Vector2 = Vector2(1280, 720)
@@ -38,8 +42,6 @@ const ANGLE_SKILL_2 := 180.0
 const ANGLE_JUMP := 315.0
 const ANGLE_ADVANCE := 0.0
 
-## Folga mínima entre as bordas de dois alvos de toque quaisquer.
-const MIN_EDGE_GAP := 12.0
 ## Respiro entre a faixa do HUD e o botão de pause.
 const PAUSE_HUD_GAP := 12.0
 
