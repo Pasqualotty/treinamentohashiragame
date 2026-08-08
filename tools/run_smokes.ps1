@@ -126,6 +126,12 @@ $smokeList = @(
         FailMarker = "=== E2E FAIL ==="
     },
     [pscustomobject]@{
+        Name = "smoke_facing_ground"
+        Script = "res://scripts/qa/smoke_facing_ground.gd"
+        PassMarker = "=== FACING/GROUND PASS ==="
+        FailMarker = "=== FACING/GROUND FAIL ==="
+    },
+    [pscustomobject]@{
         Name = "smoke_meta_loja_mapa"
         Script = "res://scripts/ui/smoke_meta_loja_mapa.gd"
         PassMarker = "RESULT: PASS"

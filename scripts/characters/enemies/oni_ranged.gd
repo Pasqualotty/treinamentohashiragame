@@ -69,7 +69,8 @@ func _ready() -> void:
 	_home_x = global_position.x
 	if sprite:
 		_base_modulate = sprite.modulate
-		facing = -1.0 if sprite.flip_h else 1.0
+		# Arte base olha pra esquerda: flip_h da cena = "olhando pra direita".
+		facing = 1.0 if sprite.flip_h else -1.0
 		_patrol_dir = facing
 		_sprite_base_pos = sprite.position
 		_sprite_base_scale = sprite.scale
@@ -77,6 +78,7 @@ func _ready() -> void:
 		hurtbox.team = &"enemy"
 		if not hurtbox.hurt.is_connected(_on_hurt):
 			hurtbox.hurt.connect(_on_hurt)
+	_apply_facing()
 	_refresh_label()
 
 
@@ -362,8 +364,12 @@ func _dist_to(target: Node2D) -> float:
 
 
 func _apply_facing() -> void:
+	## `oni_weak_side.png` SEM flip já olha pra ESQUERDA:
+	##   facing = -1 (esquerda) -> flip_h = false
+	##   facing = +1 (direita)  -> flip_h = true
+	## A dedução inicial em `_ready()` é o inverso exato disto.
 	if sprite:
-		sprite.flip_h = facing < 0.0
+		sprite.flip_h = facing > 0.0
 
 
 func _start_flash() -> void:
