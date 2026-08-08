@@ -62,7 +62,8 @@ func _ready() -> void:
 	_home_x = global_position.x
 	if sprite:
 		_base_modulate = sprite.modulate
-		facing = -1.0 if sprite.flip_h else 1.0
+		# Arte base olha pra esquerda: flip_h da cena = "olhando pra direita".
+		facing = 1.0 if sprite.flip_h else -1.0
 		_patrol_dir = facing
 		_sprite_base_pos = sprite.position
 		_sprite_base_scale = sprite.scale
@@ -379,9 +380,14 @@ func _dist_to(target: Node2D) -> float:
 
 
 func _apply_facing() -> void:
+	## Invariante de orientação dos onis (vale pros 4 scripts de oni):
+	## `oni_weak_side.png` SEM flip já olha pra ESQUERDA. Logo:
+	##   facing = -1 (esquerda) -> flip_h = false
+	##   facing = +1 (direita)  -> flip_h = true
+	## A dedução inicial em `_ready()` é o inverso exato disto — mexer em um
+	## sem mexer no outro faz o oni andar pra um lado e "olhar" pro outro.
 	if sprite:
-		# Arte base olha pra esquerda (flip_h = true no dummy); facing>0 = direita.
-		sprite.flip_h = facing < 0.0
+		sprite.flip_h = facing > 0.0
 	if hitbox:
 		hitbox.position.x = _hitbox_base_x * facing
 
