@@ -27,6 +27,15 @@ extends Node2D
 ## Margem de erro em pixels: abaixo disso é ruído de float, não geometria.
 const EPS: float = 0.5
 
+## Teto de tiles desenhados. Alvo é mobile: uma textura pequena demais pra
+## `band_width` viraria milhares de quads. Se estourar, para de desenhar
+## textura — a base opaca de `fill_color` continua cobrindo, então a faixa fica
+## chapada em vez de deixar o fundo vazar.
+const MAX_TILES: int = 512
+
+var _tiles_drawn: int = 0
+var _budget_warned: bool = false
+
 ## Largura total da faixa, centrada na origem local.
 @export var band_width: float = 1600.0:
 	set(value):
@@ -94,6 +103,7 @@ func _draw() -> void:
 	var top_h: float = clampf(top_height, 0.0, depth)
 	var fill_top: float = surface_y + top_h
 	var fill_h: float = depth - top_h
+	_tiles_drawn = 0
 
 	# Base opaca cobrindo a faixa inteira antes de qualquer textura.
 	draw_rect(Rect2(-half, surface_y, band_width, depth), fill_color, true)
@@ -123,6 +133,8 @@ func _draw() -> void:
 	var fill_bottom: float = fill_top + fill_h
 	var y: float = fill_top
 	while y < fill_bottom - EPS:
+		if _tiles_drawn >= MAX_TILES:
+			break
 		var h: float = minf(row_h, fill_bottom - y)
 		var row_src: Rect2 = Rect2(src.position, Vector2(src.size.x, src.size.y * (h / row_h)))
 		var t: float = clampf((y - fill_top) / fill_h, 0.0, 1.0)
@@ -142,10 +154,23 @@ func _draw_tiled_row(y: float, h: float, src: Rect2, tint: Color) -> void:
 	var half: float = band_width * 0.5
 	var x: float = -half
 	while x < half - EPS:
+		if _tiles_drawn >= MAX_TILES:
+			_warn_budget()
+			return
 		var w: float = minf(tile_w, half - x)
 		var col_src: Rect2 = Rect2(
 			src.position,
 			Vector2(src.size.x * (w / tile_w), src.size.y),
 		)
 		draw_texture_rect_region(top_texture, Rect2(x, y, w, h), col_src, tint)
+		_tiles_drawn += 1
 		x += tile_w
+
+
+func _warn_budget() -> void:
+	if _budget_warned:
+		return
+	_budget_warned = true
+	push_warning(
+		"[GroundBand] textura estreita demais pra band_width=%.0f: estourou %d tiles. Use uma tira mais larga — a faixa vai ficar chapada em fill_color." % [band_width, MAX_TILES]
+	)

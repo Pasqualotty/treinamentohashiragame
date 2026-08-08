@@ -30,6 +30,8 @@ const ENEMY_SCENES: PackedStringArray = [
 	"res://scenes/characters/enemies/oni_boss.tscn",
 ]
 
+## Fase nova entra aqui — o teto de cobertura do chão só vale pro que estiver
+## nesta lista.
 const STAGES: PackedStringArray = [
 	"res://scenes/battle/stage_w1_01.tscn",
 	"res://scenes/battle/stage_w1_02.tscn",
