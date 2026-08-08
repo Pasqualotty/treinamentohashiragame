@@ -1,5 +1,5 @@
 extends Control
-## Loading com barra; depois → hub (estado padrão).
+## Loading com barra; depois → tela de nome (primeiro boot) ou hub.
 
 @onready var bar: ProgressBar = %ProgressBar
 @onready var status_label: Label = %StatusLabel
@@ -30,7 +30,11 @@ func _ready() -> void:
 	bar.value = 0.0
 	status_label.text = "Carregando…"
 	await _run_load()
-	SceneRouter.to_hub()
+	# Primeiro boot (ou save sem nome): pergunta o nome de caçador antes do hub.
+	if Game.has_player_name():
+		SceneRouter.to_hub()
+	else:
+		SceneRouter.to_name_entry()
 
 
 func _run_load() -> void:

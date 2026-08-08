@@ -10,8 +10,13 @@ const WORLD_MAP := "res://scenes/world/world_map.tscn"
 const SHOP := "res://scenes/ui/shop.tscn"
 const CREDITS := "res://scenes/ui/credits.tscn"
 const SETTINGS := "res://scenes/ui/settings.tscn"
+const NAME_ENTRY := "res://scenes/ui/name_entry.tscn"
 
 const TransitionScript := preload("res://scripts/ui/transition.gd")
+
+## Intencao de navegacao lida pela tela de nome (mesmo padrao de `Game.pending_stage_id`).
+## false = onboarding do primeiro boot; true = renomear a partir do hub (mostra Cancelar).
+var name_entry_edit_mode: bool = false
 
 var _transition: CanvasLayer
 
@@ -74,3 +79,9 @@ func to_credits() -> void:
 
 func to_settings() -> void:
 	go_to(SETTINGS)
+
+
+## `edit_mode` true quando o jogador ja tem nome e veio do hub para trocar.
+func to_name_entry(edit_mode: bool = false) -> void:
+	name_entry_edit_mode = edit_mode
+	go_to(NAME_ENTRY)

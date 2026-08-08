@@ -7,6 +7,8 @@ const SAVE_VERSION := 1
 const UPGRADE_CATALOG_PATH := "res://resources/upgrades/catalog.json"
 const DEFAULT_PLAYER_STATS := "res://resources/player/player_stats.tres"
 const DASH_COOLDOWN_FLOOR := 0.35
+## Limite do nome de cacador. Fonte unica: a tela de nome usa isto no LineEdit.
+const MAX_PLAYER_NAME_LEN := 14
 
 ## Emite o total banked (hub) OU o valor da run dependendo do caller.
 ## Hub ignora o payload e rel├¬ `coins_banked`. HUD de combate usa `run_coins_changed`.
@@ -15,8 +17,12 @@ signal coins_changed(total: int)
 signal run_coins_changed(run_total: int)
 signal breath_changed(value: float, max_value: float)
 signal upgrades_changed
+## Nome de cacador escolhido pelo jogador (onboarding ou renomeacao no hub).
+signal player_name_changed(new_name: String)
 
 var coins_banked: int = 0
+## Vazio = jogador ainda nao passou pelo onboarding de nome.
+var player_name: String = ""
 var current_character_id: String = "tanjiro"
 var stages_cleared: Array[String] = []
 var upgrades: Dictionary = {}  # id -> level
@@ -40,6 +46,41 @@ func _ready() -> void:
 	_ensure_catalog()
 	load_game()
 	call_deferred("_sync_audio_volumes")
+
+
+# --- Nome do jogador ---
+
+## Normaliza o que veio da UI: tira espacos das pontas, colapsa espacos internos,
+## remove caracteres de controle e corta no limite. Retorna "" se nao sobrar nada.
+static func sanitize_player_name(raw: String) -> String:
+	var printable := ""
+	for c in raw:
+		# Descarta caracteres de controle (tab, quebra de linha, NUL de paste).
+		if c.unicode_at(0) >= 32:
+			printable += c
+	var words: PackedStringArray = printable.split(" ", false)
+	var clean := " ".join(words).strip_edges()
+	if clean.length() > MAX_PLAYER_NAME_LEN:
+		clean = clean.substr(0, MAX_PLAYER_NAME_LEN).strip_edges()
+	return clean
+
+
+func has_player_name() -> bool:
+	return not player_name.is_empty()
+
+
+## Define o nome (ja sanitizado internamente) e persiste. Retorna false se o nome
+## for invalido — a UI usa isso para manter o botao de confirmar desabilitado.
+func set_player_name(raw: String) -> bool:
+	var clean := sanitize_player_name(raw)
+	if clean.is_empty():
+		return false
+	if clean == player_name:
+		return true
+	player_name = clean
+	player_name_changed.emit(player_name)
+	save_game()
+	return true
 
 
 func add_run_coins(amount: int) -> void:
@@ -186,6 +227,7 @@ func save_game() -> void:
 	var data := {
 		"version": SAVE_VERSION,
 		"coins_banked": coins_banked,
+		"player_name": player_name,
 		"current_character_id": current_character_id,
 		"stages_cleared": stages_cleared,
 		"upgrades": upgrades,
@@ -208,6 +250,8 @@ func load_game() -> void:
 		return
 	var data: Dictionary = parsed
 	coins_banked = int(data.get("coins_banked", 0))
+	# Save antigo (sem a chave) cai em "" e manda o jogador pro onboarding de nome.
+	player_name = sanitize_player_name(str(data.get("player_name", "")))
 	current_character_id = str(data.get("current_character_id", "tanjiro"))
 	var raw_upgrades: Variant = data.get("upgrades", {})
 	upgrades = {}
