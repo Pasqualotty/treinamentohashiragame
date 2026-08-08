@@ -1,9 +1,15 @@
 extends SceneTree
-## Smoke headless: geometria dos controles touch de combate.
+## Smoke headless: geometria dos controles touch de combate, em várias resoluções.
 ##
-## Valida que o layout radial não se sobrepõe, cabe na tela, respeita a margem
-## de segurança e não invade a faixa do HUD superior. Valida também que cada
-## ação tem arte própria carregada (normal + pressed, distintas entre si).
+## O projeto usa `window/stretch/aspect="expand"`, então o retângulo visível muda
+## de forma conforme o aparelho (2400x1080 vira 1600x720; 2048x1536 vira 1280x960).
+## Validar só em 16:9 é validar a única resolução em que ancorar no design dá o
+## mesmo resultado que ancorar no viewport — por isso o smoke roda o mesmo bloco de
+## asserts em 16:9, 20:9 e 4:3, e mede tudo contra `get_visible_rect()`, nunca
+## contra `design_size`.
+##
+## Além da geometria, confirma que um toque real dispara a ação: é o que prova que
+## a área de toque coincide com o disco desenhado.
 ##
 ## Uso: godot --headless --path . -s res://scripts/qa/smoke_touch_layout.gd
 
@@ -13,13 +19,24 @@ const EXPECTED_ACTIONS: PackedStringArray = [
 	"attack_basic", "ultimate", "skill_1", "skill_2", "jump", "advance", "pause",
 ]
 const ICON_SIZE := 256
-## Regra dura do layout, afirmada aqui de forma independente da implementação.
+
+## Regras duras do layout, afirmadas aqui de forma independente da implementação.
 const MIN_EDGE_GAP := 12.0
+## Tolerância ao comparar bordas com a margem de segurança.
+const EPS := 1.0
 ## Folga para o ease-back do release terminar entre um toque e o próximo.
-const RELEASE_SETTLE_SEC := 0.22
+const RELEASE_SETTLE_SEC := 0.18
+
+## Janelas de teste. O retângulo visível resultante vem do stretch do projeto.
+const RESOLUTIONS: Array[Dictionary] = [
+	{"label": "16:9 1280x720", "window": Vector2i(1280, 720)},
+	{"label": "20:9 2400x1080 (Android)", "window": Vector2i(2400, 1080)},
+	{"label": "4:3 2048x1536 (tablet)", "window": Vector2i(2048, 1536)},
+]
 
 var _failures: Array[String] = []
 var _notes: Array[String] = []
+var _ctx: String = ""
 
 
 func _initialize() -> void:
@@ -42,15 +59,32 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
+	# Arte não depende de resolução: confere uma vez só.
+	_ctx = "arte"
 	_check_icons()
-	var slots: Array = node.call("get_layout_slots")
-	_check_slots(node, slots)
-	_check_nodes(node)
 
-	# Headless abre uma janela dummy 64x64: sem isso, todo toque cai fora do viewport.
-	root.size = Vector2i(node.get("design_size"))
-	await process_frame
-	await _check_touch_alignment(slots)
+	for res: Dictionary in RESOLUTIONS:
+		_ctx = String(res["label"])
+		root.size = res["window"]
+		# Duas passadas: uma para o viewport reagir, outra para o rebuild assentar.
+		await process_frame
+		await process_frame
+
+		var viewport_size: Vector2 = root.get_visible_rect().size
+		_notes.append("%s -> viewport visivel %dx%d" % [_ctx, int(viewport_size.x), int(viewport_size.y)])
+
+		var applied: Vector2 = node.call("get_layout_size")
+		if not applied.is_equal_approx(viewport_size):
+			_fail(
+				"layout ancorado em %s mas o viewport visivel e %s (nao reancorou)"
+				% [applied, viewport_size]
+			)
+
+		var slots: Array = node.call("get_layout_slots")
+		_check_slots(node, slots, viewport_size)
+		_check_anchored_to_corners(node, slots, viewport_size)
+		_check_nodes(node)
+		await _check_touch_alignment(slots, root.get_final_transform())
 
 	node.queue_free()
 	await process_frame
@@ -58,7 +92,7 @@ func _run() -> void:
 
 
 # ---------------------------------------------------------------------------
-# checks
+# arte
 # ---------------------------------------------------------------------------
 func _check_icons() -> void:
 	## Arte própria por ação: normal + pressed existem, têm 256x256 e diferem.
@@ -112,13 +146,15 @@ func _mean_abs_diff(a: Texture2D, b: Texture2D) -> float:
 	return total / float(count)
 
 
-func _check_slots(node: CanvasLayer, slots: Array) -> void:
+# ---------------------------------------------------------------------------
+# geometria
+# ---------------------------------------------------------------------------
+func _check_slots(node: CanvasLayer, slots: Array, viewport_size: Vector2) -> void:
 	var expected_count: int = EXPECTED_ACTIONS.size() + 1  # + stick virtual
 	if slots.size() != expected_count:
 		_fail("get_layout_slots(): %d slots, esperado %d" % [slots.size(), expected_count])
 		return
 
-	var design: Vector2 = node.get("design_size")
 	var margin: float = float(node.get("safe_margin"))
 	var hud_band: float = float(node.get("hud_band_height"))
 
@@ -135,21 +171,21 @@ func _check_slots(node: CanvasLayer, slots: Array) -> void:
 			_fail("%s: raio inválido (%.1f)" % [id, radius])
 			continue
 
-		# Dentro da margem de segurança (logo, dentro da tela).
+		# Dentro da margem de segurança do viewport REAL (logo, dentro da tela).
 		var left: float = center.x - radius
 		var right: float = center.x + radius
 		var top: float = center.y - radius
 		var bottom: float = center.y + radius
-		if left < margin - 0.5 or top < margin - 0.5:
+		if left < margin - EPS or top < margin - EPS:
 			_fail("%s: fora da margem (topo-esq %.1f,%.1f < %.1f)" % [id, left, top, margin])
-		if right > design.x - margin + 0.5 or bottom > design.y - margin + 0.5:
+		if right > viewport_size.x - margin + EPS or bottom > viewport_size.y - margin + EPS:
 			_fail(
 				"%s: fora da margem (baixo-dir %.1f,%.1f > %.1f,%.1f)"
-				% [id, right, bottom, design.x - margin, design.y - margin]
+				% [id, right, bottom, viewport_size.x - margin, viewport_size.y - margin]
 			)
 
 		# Não invade a faixa do HUD superior.
-		if top < hud_band - 0.5:
+		if top < hud_band - EPS:
 			_fail("%s: invade a faixa do HUD (topo %.1f < %.1f)" % [id, top, hud_band])
 
 	for action in EXPECTED_ACTIONS:
@@ -176,7 +212,51 @@ func _check_slots(node: CanvasLayer, slots: Array) -> void:
 					"sobreposição/folga curta %s ↔ %s: %.1fpx (mín %.1f)"
 					% [a["id"], b["id"], gap, MIN_EDGE_GAP]
 				)
-	_notes.append("menor folga entre bordas: %.1fpx (%s)" % [worst_gap, worst_pair])
+	_notes.append("%s -> menor folga entre bordas: %.1fpx (%s)" % [_ctx, worst_gap, worst_pair])
+
+
+func _check_anchored_to_corners(node: CanvasLayer, slots: Array, viewport_size: Vector2) -> void:
+	## Âncoras ENCOSTADAS no canto do viewport, não só "dentro dele".
+	##
+	## É esta checagem que pega ancoragem em `design_size`: num viewport 1600x720 o
+	## cluster ficaria a 352px da borda direita e ainda assim estaria "dentro da
+	## margem". O ponto da frente é o descanso natural do polegar — o cluster tem de
+	## morar no canto de verdade.
+	var margin: float = float(node.get("safe_margin"))
+	var expected: Array[Dictionary] = [
+		{"id": "attack_basic", "edge": "direita", "actual_fn": "right"},
+		{"id": "attack_basic", "edge": "inferior", "actual_fn": "bottom"},
+		{"id": "virtual_stick", "edge": "esquerda", "actual_fn": "left"},
+		{"id": "virtual_stick", "edge": "inferior", "actual_fn": "bottom"},
+		{"id": "pause", "edge": "direita", "actual_fn": "right"},
+	]
+	for check: Dictionary in expected:
+		var slot: Dictionary = _find_slot(slots, String(check["id"]))
+		if slot.is_empty():
+			continue
+		var center: Vector2 = slot["center"]
+		var radius: float = float(slot["radius"])
+		var distance := 0.0
+		match String(check["actual_fn"]):
+			"right":
+				distance = viewport_size.x - (center.x + radius)
+			"bottom":
+				distance = viewport_size.y - (center.y + radius)
+			"left":
+				distance = center.x - radius
+		if absf(distance - margin) > EPS:
+			_fail(
+				"%s: borda %s a %.1fpx do viewport, esperado %.1f (âncora não seguiu o viewport)"
+				% [check["id"], check["edge"], distance, margin]
+			)
+
+
+func _find_slot(slots: Array, id: String) -> Dictionary:
+	for slot: Dictionary in slots:
+		if String(slot["id"]) == id:
+			return slot
+	_fail("slot ausente: %s" % id)
+	return {}
 
 
 func _check_nodes(node: CanvasLayer) -> void:
@@ -186,6 +266,7 @@ func _check_nodes(node: CanvasLayer) -> void:
 	if touch_root == null:
 		_fail("TouchRoot ausente")
 		return
+	var slots: Array = node.call("get_layout_slots")
 	for action in EXPECTED_ACTIONS:
 		var btn: TouchScreenButton = touch_root.get_node_or_null("Btn_%s" % action) as TouchScreenButton
 		if btn == null:
@@ -203,18 +284,28 @@ func _check_nodes(node: CanvasLayer) -> void:
 			continue
 		# A forma vive no espaço local do nó: raio efetivo = raio * escala.
 		var effective_radius: float = circle.radius * btn.scale.x
-		var declared: float = _slot_radius(node, action)
-		if absf(effective_radius - declared) > 1.0:
+		var slot: Dictionary = _find_slot(slots, action)
+		if slot.is_empty():
+			continue
+		var declared: float = float(slot["radius"])
+		if absf(effective_radius - declared) > EPS:
 			_fail(
 				"Btn_%s: raio de toque %.1f != raio declarado %.1f"
 				% [action, effective_radius, declared]
 			)
 
 
-func _check_touch_alignment(slots: Array) -> void:
+# ---------------------------------------------------------------------------
+# toque real
+# ---------------------------------------------------------------------------
+func _check_touch_alignment(slots: Array, to_window: Transform2D) -> void:
 	## Toque no centro declarado (e em 4 pontos internos) precisa disparar a ação.
 	## É o que prova que a área de toque coincide com o disco desenhado — um
 	## desalinhamento de meio botão passaria em qualquer checagem só geométrica.
+	##
+	## Os slots vêm em coordenadas de viewport; o evento de toque chega em
+	## coordenadas de janela. Com stretch ativo as duas escalas diferem (1.5x num
+	## 20:9), daí o transform.
 	for slot: Dictionary in slots:
 		var id: String = String(slot["id"])
 		if id == "virtual_stick" or not InputMap.has_action(id):
@@ -229,11 +320,11 @@ func _check_touch_alignment(slots: Array) -> void:
 			center + Vector2(0.0, -radius * 0.6),
 		]
 		for probe in probes:
-			var hit: bool = await _tap(id, probe)
+			var hit: bool = await _tap(id, to_window * probe)
 			if not hit:
-				_fail("%s: toque em %s não disparou a ação" % [id, probe])
+				_fail("%s: toque em %s (viewport) não disparou a ação" % [id, probe])
 				break
-	_notes.append("alinhamento arte/toque verificado nas %d acoes" % EXPECTED_ACTIONS.size())
+	_notes.append("%s -> alinhamento arte/toque ok nas %d acoes" % [_ctx, EXPECTED_ACTIONS.size()])
 
 
 func _tap(action: String, at: Vector2) -> bool:
@@ -256,18 +347,11 @@ func _tap(action: String, at: Vector2) -> bool:
 	return hit
 
 
-func _slot_radius(node: CanvasLayer, id: String) -> float:
-	for slot: Dictionary in node.call("get_layout_slots"):
-		if String(slot["id"]) == id:
-			return float(slot["radius"])
-	return -1.0
-
-
 # ---------------------------------------------------------------------------
 # relatório
 # ---------------------------------------------------------------------------
 func _fail(msg: String) -> void:
-	_failures.append(msg)
+	_failures.append("[%s] %s" % [_ctx, msg])
 
 
 func _report() -> void:
