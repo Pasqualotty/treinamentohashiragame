@@ -30,14 +30,13 @@ const ENEMY_SCENES: PackedStringArray = [
 	"res://scenes/characters/enemies/oni_boss.tscn",
 ]
 
-## Fase nova entra aqui — o teto de cobertura do chão só vale pro que estiver
-## nesta lista.
-const STAGES: PackedStringArray = [
-	"res://scenes/battle/stage_w1_01.tscn",
-	"res://scenes/battle/stage_w1_02.tscn",
-	"res://scenes/battle/stage_w1_03.tscn",
-	"res://scenes/battle/stage_w1_boss.tscn",
-]
+## Pasta varrida atrás das fases. Fase nova é coberta automaticamente, sem
+## precisar editar este arquivo — basta o nome começar com `STAGE_PREFIX`.
+const STAGES_DIR: String = "res://scenes/battle"
+
+## Prefixo que identifica uma fase jogável. Cenas de laboratório
+## (`sandbox_*.tscn`) e afins ficam de fora da varredura.
+const STAGE_PREFIX: String = "stage_"
 
 ## Tolerância pra comparar geometria em float.
 const EPS: float = 0.5
@@ -135,7 +134,17 @@ func _expected_flip(dir: float) -> bool:
 
 func _check_ground() -> void:
 	print("-- cobertura do chão vs. câmera --")
-	for path: String in STAGES:
+	var stages: PackedStringArray = _discover_stages(STAGES_DIR)
+	# Lista vazia passando de raspão é o mesmo bug que o smoke existe pra pegar:
+	# check que some em silêncio. Varredura sem resultado = falha.
+	if stages.is_empty():
+		_fail("nenhuma fase %s*.tscn encontrada em %s — varredura quebrada" % [
+			STAGE_PREFIX, STAGES_DIR,
+		])
+		return
+	print("  %d fase(s) descoberta(s) em %s" % [stages.size(), STAGES_DIR])
+
+	for path: String in stages:
 		var packed: PackedScene = load(path) as PackedScene
 		if packed == null:
 			_fail("load falhou: %s" % path)
@@ -153,7 +162,38 @@ func _check_ground() -> void:
 		await process_frame
 
 
+## Varre `dir_path` atrás das cenas de fase e devolve os caminhos ordenados
+## (saída determinística). Devolve vazio se a pasta não abrir — quem chama
+## trata isso como falha, nunca como "nada a checar".
+##
+## LIMITAÇÃO: só vale rodando a partir do código-fonte (dev/headless, que é o
+## único cenário deste smoke). Em build exportado os `.tscn` viram `.remap`/
+## `.scn`, então não reuse este helper em runtime de release.
+func _discover_stages(dir_path: String) -> PackedStringArray:
+	var found: PackedStringArray = PackedStringArray()
+	var dir: DirAccess = DirAccess.open(dir_path)
+	if dir == null:
+		print("  varredura falhou: DirAccess.open(%s) erro=%d" % [
+			dir_path, DirAccess.get_open_error(),
+		])
+		return found
+
+	for file_name: String in dir.get_files():
+		if not file_name.begins_with(STAGE_PREFIX):
+			continue
+		if not file_name.ends_with(".tscn"):
+			continue
+		found.append(dir_path.path_join(file_name))
+
+	found.sort()
+	return found
+
+
 func _assert_ground(path: String, stage: Node) -> void:
+	# Marca quantas falhas já existiam: a linha "OK" no fim só sai se ESTA fase
+	# passou em todos os checks.
+	var failures_before: int = _failed
+
 	var ground: Node2D = stage.get_node_or_null("Ground") as Node2D
 	if ground == null:
 		_fail("%s sem nó Ground" % path)
@@ -184,6 +224,10 @@ func _assert_ground(path: String, stage: Node) -> void:
 			_fail("%s: band_width=%.0f menor que a colisão (%.0f)" % [
 				path, band_width, rect.size.x,
 			])
+	else:
+		# Sem a colisão retangular os checks (1) e (2) sumiriam em silêncio e o
+		# smoke ainda imprimiria OK — justamente a regressão que ele protege.
+		_fail("%s: Ground/CollisionShape2D ausente ou não é RectangleShape2D — checks de sincronia (surface_y / band_width) pulados" % path)
 
 	# 3) Vertical: a faixa tem que passar do limite inferior da câmera.
 	var bottom_world: float = band.to_global(Vector2(0.0, float(band.call("bottom_y")))).y
@@ -206,6 +250,7 @@ func _assert_ground(path: String, stage: Node) -> void:
 			path, right_world, camera.limit_right,
 		])
 
-	print("  OK %s — chão até y=%.0f, %.0f px abaixo do limit_bottom=%d" % [
-		path, bottom_world, margin, camera.limit_bottom,
-	])
+	if _failed == failures_before:
+		print("  OK %s — chão até y=%.0f, %.0f px abaixo do limit_bottom=%d" % [
+			path, bottom_world, margin, camera.limit_bottom,
+		])
