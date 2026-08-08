@@ -78,9 +78,20 @@ func _go_to_with_transition(path: String) -> void:
 		_transition.set_busy(false)
 		_fail_navigation(path, err)
 		return
-	# Cena trocada: quem pediu já morreu, então um pedido novo é legítimo.
-	# Liberar aqui — e não depois do `open()` — evita prender o boot, onde a
-	# cena nova pode querer navegar assim que sobe.
+	# Solta a trava aqui, e não depois do `open()`, porque a janela de perigo
+	# fecha na troca — não no fim do fade. O que a trava protege é o intervalo em
+	# que a cena ANTIGA ainda está viva e ainda gera input (dois Enter, duplo
+	# toque): commitada a troca, ela já foi para deleção e não pede mais nada.
+	# Segurar durante os ~0.26s do `open()` não somaria segurança e bloquearia
+	# navegação legítima da cena nova — quem toca um botão do hub enquanto a
+	# cortina ainda abre está fazendo algo suportado.
+	#
+	# CUIDADO: isto NÃO habilita navegar de dentro do `_ready`/`ENTER_TREE` da
+	# cena que está entrando. `change_scene_to_file` reentrante nesse ponto
+	# CRASHA a engine (signal 11) no Godot 4.7.1 — limite do próprio Godot,
+	# reproduzível sem o SceneRouter no meio. Nenhuma cena de produção faz isso.
+	# Se precisar navegar logo ao subir, adie: `call_deferred` ou
+	# `await get_tree().process_frame` antes de chamar `go_to`.
 	_navigating = false
 	await get_tree().process_frame
 	await _transition.open()
