@@ -323,10 +323,26 @@ func _waves_for_stage(id: String) -> Array:
 				["elite", "weak", "weak", "weak"],
 				["weak", "elite", "elite"],
 			]
+		"w1_04":
+			# Apresenta o `ranged` num layout vertical: o player aprende a subir
+			# a escadaria sob fogo antes de encarar o mesmo tipo no boss.
+			return [
+				["weak", "ranged"],
+				["ranged", "weak", "weak"],
+				["elite", "ranged", "weak"],
+			]
+		"w1_05":
+			# Apresenta o `charger` na arena aberta e fecha misturando os quatro
+			# tipos — é o ensaio geral do ritmo do boss.
+			return [
+				["charger", "weak"],
+				["ranged", "charger", "weak"],
+				["elite", "charger", "ranged", "weak"],
+			]
 		"w1_boss":
-			# 2 ondas de aquecimento (apresentam ranged/charger) + BOSS como onda
-			# final. `_wait_wave_clear` já espera _died/hp<=0 do boss antes de
-			# liberar `waves_finished` — sem lógica extra necessária aqui.
+			# 2 ondas de aquecimento (revisitam ranged/charger, já apresentados
+			# nas fases 4 e 5) + BOSS como onda final. `_wait_wave_clear` já
+			# espera _died/hp<=0 do boss antes de liberar `waves_finished`.
 			return [
 				["weak", "weak", "ranged"],
 				["charger", "elite", "ranged"],
