@@ -1,0 +1,144 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/name_entry.gd" id="1_name_entry"]
+[ext_resource type="FontFile" path="res://assets/fonts/Cinzel-Bold.ttf" id="2_display"]
+[ext_resource type="Texture2D" path="res://assets/ui/hub/bg_frame_00.png" id="3_bg"]
+
+[node name="NameEntry" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+clip_contents = true
+script = ExtResource("1_name_entry")
+
+[node name="BgBase" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.058824, 0.070588, 0.094118, 1)
+mouse_filter = 2
+
+[node name="BgArt" type="TextureRect" parent="."]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_bg")
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
+
+[node name="BgDim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.058824, 0.070588, 0.094118, 0.74)
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+
+[node name="Rows" type="VBoxContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="TitleLabel" type="Label" parent="Center/Panel/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.909804, 0.721569, 0.290196, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("2_display")
+theme_override_font_sizes/font_size = 32
+text = "Qual é o seu nome, caçador?"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SubtitleLabel" type="Label" parent="Center/Panel/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.964706, 0.917647, 0.72)
+theme_override_font_sizes/font_size = 16
+text = "É assim que o dojo vai te chamar daqui pra frente."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="NameInput" type="LineEdit" parent="Center/Panel/Rows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+placeholder_text = "Ex.: Tanjiro"
+alignment = 1
+max_length = 14
+caret_blink = true
+
+[node name="HintLabel" type="Label" parent="Center/Panel/Rows"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.964706, 0.917647, 0.55)
+theme_override_font_sizes/font_size = 14
+text = "0/14 caracteres"
+horizontal_alignment = 1
+
+[node name="Actions" type="HBoxContainer" parent="Center/Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="RandomButton" type="Button" parent="Center/Panel/Rows/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Sortear nome"
+
+[node name="ConfirmButton" type="Button" parent="Center/Panel/Rows/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("2_display")
+theme_override_font_sizes/font_size = 22
+disabled = true
+text = "CONFIRMAR"
+
+[node name="CancelButton" type="Button" parent="Center/Panel/Rows"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+visible = false
+text = "Cancelar"
+
+[connection signal="text_changed" from="Center/Panel/Rows/NameInput" to="." method="_on_name_changed"]
+[connection signal="text_submitted" from="Center/Panel/Rows/NameInput" to="." method="_on_name_submitted"]
+[connection signal="pressed" from="Center/Panel/Rows/Actions/RandomButton" to="." method="_on_random_pressed"]
+[connection signal="pressed" from="Center/Panel/Rows/Actions/ConfirmButton" to="." method="_on_confirm_pressed"]
+[connection signal="pressed" from="Center/Panel/Rows/CancelButton" to="." method="_on_cancel_pressed"]

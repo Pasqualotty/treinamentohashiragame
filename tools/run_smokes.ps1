@@ -148,6 +148,18 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_touch_layout.gd"
         PassMarker = "=== TOUCH LAYOUT PASS ==="
         FailMarker = "=== TOUCH LAYOUT FAIL ==="
+    },
+    [pscustomobject]@{
+        Name = "smoke_hub_name_entry"
+        Script = "res://scripts/qa/smoke_hub_name_entry.gd"
+        PassMarker = "HUB_NAME_ENTRY PASS"
+        FailMarker = "HUB_NAME_ENTRY FAIL"
+    },
+    [pscustomobject]@{
+        Name = "smoke_boot_flow"
+        Script = "res://scripts/qa/smoke_boot_flow.gd"
+        PassMarker = "BOOT_FLOW PASS"
+        FailMarker = "BOOT_FLOW FAIL"
     }
 )
 
