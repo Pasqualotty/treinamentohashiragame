@@ -17,7 +17,11 @@ const ONI_RANGED := preload("res://scenes/characters/enemies/oni_ranged.tscn")
 const ONI_CHARGER := preload("res://scenes/characters/enemies/oni_charger.tscn")
 const ONI_BOSS := preload("res://scenes/characters/enemies/oni_boss.tscn")
 
-## stage_id → lista de ondas; cada onda = array de "weak"|"elite"|"ranged"|"charger"|"boss"
+## Tipos de oni aceitos numa onda. O smoke valida a tabela de `_waves_for_stage`
+## contra esta lista — typo vira falha de suíte, não um weak silencioso.
+const KINDS: PackedStringArray = ["weak", "elite", "ranged", "charger", "boss"]
+
+## stage_id → lista de ondas; cada onda = array de tipos de `KINDS`.
 @export var stage_id: String = "w1_01"
 @export var spawn_y: float = 500.0
 @export var spawn_xs: PackedFloat32Array = PackedFloat32Array([520.0, 720.0, 920.0, 1100.0])
@@ -131,6 +135,8 @@ func _spawn_wave(pack: Array) -> void:
 
 func _scene_for_kind(kind: String) -> PackedScene:
 	match kind:
+		"weak":
+			return ONI_WEAK
 		"elite":
 			return ONI_ELITE
 		"ranged":
@@ -139,8 +145,11 @@ func _scene_for_kind(kind: String) -> PackedScene:
 			return ONI_CHARGER
 		"boss":
 			return ONI_BOSS
-		_:
-			return ONI_WEAK
+	# Tipo desconhecido virava `weak` em silêncio: um typo na tabela de ondas
+	# passava despercebido. Continua caindo em `weak` para não travar a fase,
+	# mas reclama alto.
+	push_error("WaveDirector: tipo de oni desconhecido '%s' — usando weak" % kind)
+	return ONI_WEAK
 
 
 func _on_oni_defeated(oni: Node) -> void:
@@ -323,17 +332,33 @@ func _waves_for_stage(id: String) -> Array:
 				["elite", "weak", "weak", "weak"],
 				["weak", "elite", "elite"],
 			]
+		"w1_04":
+			# Apresenta o `ranged` num layout vertical: o player aprende a subir
+			# a escadaria sob fogo antes de encarar o mesmo tipo no boss.
+			return [
+				["weak", "ranged"],
+				["ranged", "weak", "weak"],
+				["elite", "ranged", "weak"],
+			]
+		"w1_05":
+			# Apresenta o `charger` na arena aberta e fecha misturando os quatro
+			# tipos — é o ensaio geral do ritmo do boss.
+			return [
+				["charger", "weak"],
+				["ranged", "charger", "weak"],
+				["elite", "charger", "ranged", "weak"],
+			]
 		"w1_boss":
-			# 2 ondas de aquecimento (apresentam ranged/charger) + BOSS como onda
-			# final. `_wait_wave_clear` já espera _died/hp<=0 do boss antes de
-			# liberar `waves_finished` — sem lógica extra necessária aqui.
+			# 2 ondas de aquecimento (revisitam ranged/charger, já apresentados
+			# nas fases 4 e 5) + BOSS como onda final. `_wait_wave_clear` já
+			# espera _died/hp<=0 do boss antes de liberar `waves_finished`.
 			return [
 				["weak", "weak", "ranged"],
 				["charger", "elite", "ranged"],
 				["boss"],
 			]
-		_:
-			return [
-				["weak", "weak"],
-				["weak", "elite"],
-			]
+	# Sem default silencioso: uma fase nova sem ondas (ou um `stage_id` renomeado
+	# num `.tres`) rodava com 2 ondas genéricas sem ninguém perceber. Agora falha
+	# alto, e o smoke exige entrada aqui para todo id do catálogo.
+	push_error("WaveDirector: fase sem ondas definidas em _waves_for_stage(): %s" % id)
+	return []

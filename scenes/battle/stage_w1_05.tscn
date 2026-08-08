@@ -1,0 +1,352 @@
+[gd_scene load_steps=19 format=3]
+
+; Mundo 1 - Fase 5: "Corredor da Vigilia".
+; Layout longo e aberto (2400px): dois grupos de plataformas separados por uma
+; arena de chao limpo no meio, onde o charger tem espaco para investir. E a fase
+; que prepara o ritmo do boss - mais larga e menos vertical que a Fase 4.
+;
+; O chao usa o componente GroundBand (Ground/Visual): band_width acompanha a
+; colisao e depth desce ate 80px abaixo do limit_bottom da camera.
+
+[ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
+[ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/characters/enemies/oni_weak.tscn" id="3_oni"]
+[ext_resource type="Script" path="res://scripts/battle/stage_goal.gd" id="4_goal"]
+
+[ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_forest.png" id="9_bg"]
+
+[ext_resource type="PackedScene" path="res://scenes/world/ground_band.tscn" id="10_gband"]
+[ext_resource type="Texture2D" path="res://assets/tiles/w1/platform_strip_side.png" id="11_plat"]
+
+[ext_resource type="Texture2D" path="res://assets/backgrounds/w1/layers/soft_dot.tres" id="20_dot"]
+
+[sub_resource type="RectangleShape2D" id="Rect_ground"]
+size = Vector2(2400, 48)
+
+[sub_resource type="RectangleShape2D" id="Rect_wall"]
+size = Vector2(40, 1100)
+
+[sub_resource type="RectangleShape2D" id="Rect_plat"]
+size = Vector2(200, 24)
+
+[sub_resource type="RectangleShape2D" id="Rect_plat_short"]
+size = Vector2(180, 24)
+
+[sub_resource type="RectangleShape2D" id="Rect_plat_long"]
+size = Vector2(220, 24)
+
+[sub_resource type="RectangleShape2D" id="Rect_goal"]
+size = Vector2(64, 96)
+
+[sub_resource type="Gradient" id="Gradient_sky_w105"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(0.0549, 0.0588, 0.0784, 1, 0.1451, 0.1098, 0.1059, 1, 0.2549, 0.1608, 0.1098, 1)
+
+[sub_resource type="GradientTexture2D" id="GradTex_sky_w105"]
+gradient = SubResource("Gradient_sky_w105")
+width = 8
+height = 1200
+fill_to = Vector2(0, 1)
+
+[sub_resource type="Gradient" id="Gradient_fg_w105"]
+offsets = PackedFloat32Array(0, 0.2, 0.8, 1)
+colors = PackedColorArray(0.06, 0.04, 0.03, 0.55, 0.06, 0.04, 0.03, 0, 0.06, 0.04, 0.03, 0, 0.06, 0.04, 0.03, 0.55)
+
+[sub_resource type="GradientTexture2D" id="GradTex_fg_w105"]
+gradient = SubResource("Gradient_fg_w105")
+width = 320
+height = 720
+
+[node name="StageW105" type="Node2D"]
+script = ExtResource("1_ctrl")
+stage_id = "w1_05"
+fall_death_y = 1050.0
+
+[node name="CanvasModulate" type="CanvasModulate" parent="."]
+color = Color(0.86, 0.8, 0.82, 1)
+
+[node name="ParallaxBG" type="ParallaxBackground" parent="."]
+
+[node name="SkyLayer" type="ParallaxLayer" parent="ParallaxBG"]
+motion_scale = Vector2(0.05, 0.05)
+motion_mirroring = Vector2(1280, 0)
+
+[node name="Sky" type="Sprite2D" parent="ParallaxBG/SkyLayer"]
+position = Vector2(640, 360)
+texture = SubResource("GradTex_sky_w105")
+
+[node name="MidLayer" type="ParallaxLayer" parent="ParallaxBG"]
+motion_scale = Vector2(0.55, 0.4)
+motion_mirroring = Vector2(1280, 0)
+
+[node name="MidArt" type="Sprite2D" parent="ParallaxBG/MidLayer"]
+position = Vector2(640, 360)
+texture = ExtResource("9_bg")
+
+[node name="AtmoLayer" type="ParallaxLayer" parent="ParallaxBG"]
+motion_scale = Vector2(0.7, 0.6)
+motion_mirroring = Vector2(1280, 0)
+
+[node name="Lanterns" type="CPUParticles2D" parent="ParallaxBG/AtmoLayer"]
+position = Vector2(640, 400)
+amount = 18
+lifetime = 6.5
+preprocess = 2.5
+randomness = 0.65
+texture = ExtResource("20_dot")
+emission_shape = 3
+emission_rect_extents = Vector2(660, 200)
+direction = Vector2(0, -1)
+spread = 180.0
+gravity = Vector2(0, -6)
+initial_velocity_min = 5.0
+initial_velocity_max = 16.0
+scale_amount_min = 0.14
+scale_amount_max = 0.34
+color = Color(1.0, 0.78, 0.42, 0.5)
+
+[node name="Mist" type="CPUParticles2D" parent="ParallaxBG/AtmoLayer"]
+position = Vector2(640, 500)
+amount = 6
+lifetime = 10.0
+preprocess = 4.0
+randomness = 0.5
+texture = ExtResource("20_dot")
+emission_shape = 3
+emission_rect_extents = Vector2(720, 70)
+direction = Vector2(1, 0)
+spread = 18.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 5.0
+initial_velocity_max = 12.0
+scale_amount_min = 1.8
+scale_amount_max = 3.0
+color = Color(0.7, 0.6, 0.55, 0.12)
+
+[node name="FgLayer" type="ParallaxLayer" parent="ParallaxBG"]
+motion_scale = Vector2(1.25, 1.0)
+motion_mirroring = Vector2(320, 0)
+
+[node name="FgBand" type="Sprite2D" parent="ParallaxBG/FgLayer"]
+position = Vector2(160, 360)
+texture = SubResource("GradTex_fg_w105")
+
+[node name="AmbientMoon" type="DirectionalLight2D" parent="."]
+color = Color(0.78, 0.74, 0.9, 1)
+energy = 0.42
+
+[node name="LanternGlowWest" type="PointLight2D" parent="."]
+position = Vector2(700, 420)
+texture = ExtResource("20_dot")
+texture_scale = 5.0
+color = Color(0.95, 0.66, 0.3, 1)
+energy = 0.65
+
+[node name="LanternGlowEast" type="PointLight2D" parent="."]
+position = Vector2(2040, 400)
+texture = ExtResource("20_dot")
+texture_scale = 5.0
+color = Color(0.95, 0.5, 0.35, 1)
+energy = 0.7
+
+[node name="ArenaGlow" type="PointLight2D" parent="."]
+position = Vector2(1440, 470)
+texture = ExtResource("20_dot")
+texture_scale = 6.0
+color = Color(0.5, 0.6, 0.95, 1)
+energy = 0.45
+
+[node name="Background" type="ColorRect" parent="."]
+offset_left = -100.0
+offset_top = -300.0
+offset_right = 2500.0
+offset_bottom = 1050.0
+color = Color(0.06, 0.05, 0.06, 0.35)
+mouse_filter = 2
+
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(1200, 560)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("Rect_ground")
+
+[node name="Visual" parent="Ground" instance=ExtResource("10_gband")]
+band_width = 2400.0
+surface_y = -24.0
+depth = 304.0
+
+[node name="WestLedgeLow" type="StaticBody2D" parent="."]
+position = Vector2(560, 492)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WestLedgeLow"]
+shape = SubResource("Rect_plat_long")
+
+[node name="Visual" type="Sprite2D" parent="WestLedgeLow"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(1.1, 0.86)
+texture = ExtResource("11_plat")
+centered = true
+
+[node name="WestLedgeHigh" type="StaticBody2D" parent="."]
+position = Vector2(820, 436)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WestLedgeHigh"]
+shape = SubResource("Rect_plat")
+
+[node name="Visual" type="Sprite2D" parent="WestLedgeHigh"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(1, 0.86)
+texture = ExtResource("11_plat")
+centered = true
+
+[node name="WestLedgeEnd" type="StaticBody2D" parent="."]
+position = Vector2(1120, 492)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WestLedgeEnd"]
+shape = SubResource("Rect_plat")
+
+[node name="Visual" type="Sprite2D" parent="WestLedgeEnd"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(1, 0.86)
+texture = ExtResource("11_plat")
+centered = true
+
+[node name="EastLedgeLow" type="StaticBody2D" parent="."]
+position = Vector2(1760, 492)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EastLedgeLow"]
+shape = SubResource("Rect_plat")
+
+[node name="Visual" type="Sprite2D" parent="EastLedgeLow"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(1, 0.86)
+texture = ExtResource("11_plat")
+centered = true
+
+[node name="EastLedgeMid" type="StaticBody2D" parent="."]
+position = Vector2(2000, 436)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EastLedgeMid"]
+shape = SubResource("Rect_plat_short")
+
+[node name="Visual" type="Sprite2D" parent="EastLedgeMid"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(0.9, 0.86)
+texture = ExtResource("11_plat")
+centered = true
+
+[node name="EastLedgeHigh" type="StaticBody2D" parent="."]
+position = Vector2(2240, 380)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="EastLedgeHigh"]
+shape = SubResource("Rect_plat")
+
+[node name="Visual" type="Sprite2D" parent="EastLedgeHigh"]
+z_index = -1
+position = Vector2(0, 0)
+scale = Vector2(1, 0.86)
+texture = ExtResource("11_plat")
+centered = true
+
+[node name="WallLeft" type="StaticBody2D" parent="."]
+position = Vector2(-20, 260)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WallLeft"]
+shape = SubResource("Rect_wall")
+
+[node name="WallRight" type="StaticBody2D" parent="."]
+position = Vector2(2420, 260)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WallRight"]
+shape = SubResource("Rect_wall")
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(140, 500)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+position = Vector2(0, -50)
+limit_left = 0
+limit_top = -160
+limit_right = 2400
+limit_bottom = 760
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+
+[node name="Enemy1" parent="." instance=ExtResource("3_oni")]
+position = Vector2(700, 500)
+
+[node name="Enemy2" parent="." instance=ExtResource("3_oni")]
+position = Vector2(1440, 500)
+
+[node name="Enemy3" parent="." instance=ExtResource("3_oni")]
+position = Vector2(2060, 500)
+
+[node name="Goal" type="Area2D" parent="."]
+position = Vector2(2320, 500)
+collision_layer = 0
+collision_mask = 3
+monitoring = true
+monitorable = false
+script = ExtResource("4_goal")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Goal"]
+shape = SubResource("Rect_goal")
+
+[node name="PortalGlow" type="ColorRect" parent="Goal"]
+offset_left = -48.0
+offset_top = -96.0
+offset_right = 48.0
+offset_bottom = 24.0
+color = Color(1, 0.55, 0.3, 0.25)
+mouse_filter = 2
+z_index = -1
+
+[node name="PortalVisual" type="ColorRect" parent="Goal"]
+offset_left = -32.0
+offset_top = -80.0
+offset_right = 32.0
+offset_bottom = 16.0
+color = Color(1, 0.62, 0.35, 0.8)
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Goal"]
+offset_left = -48.0
+offset_top = -110.0
+offset_right = 48.0
+offset_bottom = -86.0
+theme_override_colors/font_color = Color(1, 0.92, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "SAIDA"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="."]
+offset_left = 16.0
+offset_top = 100.0
+offset_right = 780.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(1, 0.94, 0.86, 1)
+theme_override_font_sizes/font_size = 16
+text = ""
