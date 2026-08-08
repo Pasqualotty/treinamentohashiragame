@@ -55,6 +55,8 @@ const ANGLE_ADVANCE := 0.0
 ## Respiro entre a faixa do HUD e o botão de pause.
 const PAUSE_HUD_GAP := 12.0
 
+const MOVE_ACTIONS: PackedStringArray = ["move_left", "move_right", "move_up", "move_down"]
+
 ## Piso de sanidade: abaixo disso o retângulo não comporta os clusters e vale mais
 ## cair no design do que espremer tudo num canto. Na prática não é atingido — mesmo
 ## em `--headless` o retângulo visível é 1280x1280 (a janela é dummy, o viewport não).
@@ -147,7 +149,7 @@ func _rebuild_layout() -> void:
 	# (A/D/W/S + setas) e o resize mataria a tecla que o jogador está segurando —
 	# no Godot 4 `action_release` limpa device_states e o echo não re-pressiona.
 	if _stick_active:
-		_release_move_actions()
+		_release_move_actions(true)
 	for child in _root.get_children():
 		if child is TouchScreenButton:
 			_kill_btn_tween(child as TouchScreenButton)
@@ -156,6 +158,11 @@ func _rebuild_layout() -> void:
 	_btn_nodes.clear()
 	_layout_slots.clear()
 	_stick = null
+	# A flag de posse morre AQUI, junto com o nó — nunca numa rotina de "solta tudo".
+	# No focus-out o stick sobrevive com o toque capturado: zerar a flag lá fazia o
+	# guard falhar em aberto (focus-out → dedo continua arrastando → resize → o
+	# release era pulado e move_* ficava presa pra sempre).
+	_stick_active = false
 
 	var layout_size: Vector2 = _resolve_layout_size()
 	_applied_size = layout_size
@@ -433,16 +440,44 @@ func _kill_btn_tween(btn: TouchScreenButton) -> void:
 
 ## Perda total de input (saída de cena, foco perdido): aí sim libera tudo sem
 ## ressalva — o teclado também já foi embora nesses casos.
+## Não zera [member _stick_active]: o nó do stick sobrevive ao focus-out com o
+## toque capturado, e a posse continua sendo dele.
 func _release_all() -> void:
-	_release_move_actions()
+	_release_move_actions(false)
 	_reset_button_visuals()
 
 
-func _release_move_actions() -> void:
-	for action: String in ["move_left", "move_right", "move_up", "move_down"]:
-		if InputMap.has_action(action) and Input.is_action_pressed(action):
-			Input.action_release(action)
-	_stick_active = false
+## Libera as move_*.
+##
+## [param respect_keyboard]: quando `true`, não encosta em action que uma tecla
+## física ainda segura. É o caso do rebuild, onde só o stick sai de cena — e é o
+## que resolve o caso misto (stick num eixo, tecla em outro), já que o
+## VirtualJoystick da 4.7 não expõe o próprio output para dar posse por eixo.
+## Em perda total de input passa `false`: ali o teclado também já se foi.
+func _release_move_actions(respect_keyboard: bool) -> void:
+	for action: String in MOVE_ACTIONS:
+		if not InputMap.has_action(action):
+			continue
+		if not Input.is_action_pressed(action):
+			continue
+		if respect_keyboard and _held_on_keyboard(action):
+			continue
+		Input.action_release(action)
+
+
+## Alguma tecla física mapeada nessa action está apertada agora? A fonte da verdade
+## é o teclado do SO, não estado espelhado — é isso que faz o guard falhar fechado:
+## mesmo com [member _stick_active] errado, tecla segurada nunca é morta.
+func _held_on_keyboard(action: String) -> bool:
+	for event: InputEvent in InputMap.action_get_events(action):
+		var key := event as InputEventKey
+		if key == null:
+			continue
+		if key.physical_keycode != 0 and Input.is_physical_key_pressed(key.physical_keycode):
+			return true
+		if key.keycode != 0 and Input.is_key_pressed(key.keycode):
+			return true
+	return false
 
 
 func _reset_button_visuals() -> void:

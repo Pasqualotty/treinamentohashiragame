@@ -69,6 +69,17 @@ convenção de tela (0° = direita, 90° = baixo, 180° = esquerda, 270° = topo
 > ficaria parado até soltar e reapertar. Não liberar nunca também é errado: o
 > `TouchScreenButton` se solta sozinho no `NOTIFICATION_EXIT_TREE`, o
 > `VirtualJoystick` não, e a action ficaria presa. O smoke afirma os dois lados.
+>
+> Duas invariantes que sustentam isso, cada uma com caso próprio no smoke:
+> 1. **A flag de posse morre junto com o nó, nunca numa rotina de "solta tudo".**
+>    O focus-out solta as actions mas o stick sobrevive com o toque capturado — se
+>    a posse morresse ali, um arrasto seguido de rotação deixaria a action presa.
+> 2. **Tecla física segurada nunca é liberada pelo rebuild.** Antes de soltar uma
+>    `move_*`, checa-se `Input.is_physical_key_pressed()` nos eventos do InputMap.
+>    Isso resolve o caso misto (stick num eixo, tecla em outro) e faz o guard falhar
+>    fechado: mesmo com a flag errada, o teclado não morre. É a única posse "por
+>    eixo" disponível — o `VirtualJoystick` da 4.7 não expõe o próprio output
+>    (conferido em `ClassDB`: só `joystick_mode`, tamanhos, deadzone e as actions).
 
 | Cluster | Âncora | Satélites (ângulo @ raio) |
 |---|---|---|
