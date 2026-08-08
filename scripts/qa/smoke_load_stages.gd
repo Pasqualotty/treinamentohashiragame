@@ -5,12 +5,25 @@ extends SceneTree
 ## do catálogo e que nenhum estado de save deixa o jogador sem fase jogável —
 ## inclusive o save legado que só conhece as 4 fases antigas.
 ##
+## PRINCÍPIO DOS TESTES DE PROGRESSÃO: este smoke NÃO reimplementa a regra de
+## desbloqueio. Ele aperta o `Button` de verdade e observa o efeito colateral
+## (`Game.pending_stage_id` + texto do status). Um teste que recalculasse o
+## estado por conta própria concordaria com o mapa por construção e seria cego
+## justamente pro bug que ele deveria pegar.
+##
+## A cobertura da faixa de chão fica em `smoke_facing_ground.gd`, que descobre
+## as fases por varredura e cobre todas — não duplicar aqui.
+##
 ## Uso: godot --headless --path . -s res://scripts/qa/smoke_load_stages.gd
 
 const MAP_SCENE: String = "res://scenes/world/world_map.tscn"
+const WAVE_SCRIPT: String = "res://scripts/battle/wave_director.gd"
 const EXPECTED_IDS: PackedStringArray = [
 	"w1_01", "w1_02", "w1_03", "w1_04", "w1_05", "w1_boss",
 ]
+
+## Estados em que o nó recusa a entrada (espelham `world_map.gd`).
+const BLOCKED_STATES: PackedStringArray = ["locked", "boss_locked"]
 
 var _failed: int = 0
 
@@ -29,8 +42,10 @@ func _run() -> void:
 	var defs: Array[StageDef] = WorldCatalog.load_stages()
 	_check_catalog(defs)
 	await _check_stage_scenes(defs)
+	_check_waves(defs)
 	await _check_world_map(defs)
-	_check_progression(defs)
+	await _check_progression(defs)
+	_check_no_dead_end(defs)
 
 	print("[smoke] IDs canônicos: %s" % ", ".join(EXPECTED_IDS))
 	if _failed > 0:
@@ -55,7 +70,7 @@ func _check_catalog(defs: Array[StageDef]) -> void:
 		if def.map_label == "":
 			_fail("%s sem map_label" % def.stage_id)
 		if def.map_position == Vector2.ZERO:
-			_fail("%s sem map_position" % def.stage_id)
+			_fail("%s sem map_position (obrigatória — o mapa não inventa posição)" % def.stage_id)
 		print("[smoke] OK StageDef %s label=%s pos=%s boss=%s" % [
 			def.stage_id, def.map_label, def.map_position, def.is_boss,
 		])
@@ -92,61 +107,62 @@ func _check_stage_scenes(defs: Array[StageDef]) -> void:
 			_fail("%s sem nó Goal" % def.stage_id)
 		else:
 			print("[smoke] OK cena %s (%s)" % [def.stage_id, def.scene_path])
-		_check_ground_band(node, def.stage_id)
 		node.queue_free()
 		await process_frame
 
 
-## Convenção de chão: onde a fase declara um `Ground/GroundFill`, a faixa visual
-## precisa ir da superfície de colisão até abaixo do `limit_bottom` da câmera —
-## senão o parallax aparece por baixo do piso ("piso voando").
-## Fases sem `GroundFill` são puladas (ainda usam só a tira fina).
-func _check_ground_band(stage: Node, stage_id: String) -> void:
-	var ground := stage.get_node_or_null("Ground") as Node2D
-	if ground == null:
+# --- Ondas ------------------------------------------------------------------
+
+## Toda fase do catálogo precisa de ondas próprias. Sem isto, uma fase nova (ou
+## um `stage_id` renomeado) rodaria com o default genérico do WaveDirector — que
+## agora nem existe mais, mas o teste garante que ninguém o traga de volta.
+func _check_waves(defs: Array[StageDef]) -> void:
+	var script := load(WAVE_SCRIPT) as GDScript
+	if script == null:
+		_fail("não carregou %s" % WAVE_SCRIPT)
 		return
-	var fill := ground.get_node_or_null("GroundFill") as Sprite2D
-	if fill == null or fill.texture == null:
-		return
-	var shape_node := ground.get_node_or_null("CollisionShape2D") as CollisionShape2D
-	if shape_node == null:
-		_fail("%s: Ground sem CollisionShape2D" % stage_id)
-		return
-	var rect := shape_node.shape as RectangleShape2D
-	if rect == null:
-		_fail("%s: Ground sem RectangleShape2D" % stage_id)
-		return
-	var camera := stage.get_node_or_null("Player/Camera2D") as Camera2D
-	if camera == null:
-		_fail("%s: sem Player/Camera2D para validar a faixa de chão" % stage_id)
+	var consts: Dictionary = script.get_script_constant_map()
+	var kinds: PackedStringArray = consts.get("KINDS", PackedStringArray())
+	if kinds.is_empty():
+		_fail("wave_director sem const KINDS — não dá pra validar os tipos de oni")
 		return
 
-	var surface_y: float = ground.position.y - rect.size.y * 0.5
-	var fill_center: Vector2 = ground.position + fill.position
-	var fill_size: Vector2 = Vector2(fill.texture.get_width(), fill.texture.get_height()) * fill.scale
-	var fill_top: float = fill_center.y - fill_size.y * 0.5
-	var fill_bottom: float = fill_center.y + fill_size.y * 0.5
-	var ground_left: float = ground.position.x - rect.size.x * 0.5
-	var ground_right: float = ground.position.x + rect.size.x * 0.5
-	var fill_left: float = fill_center.x - fill_size.x * 0.5
-	var fill_right: float = fill_center.x + fill_size.x * 0.5
+	var wd := Node.new()
+	wd.set_script(script)
 
-	if fill_top > surface_y + 1.0:
-		_fail("%s: faixa de chão começa em y=%.0f, abaixo da superfície y=%.0f" % [
-			stage_id, fill_top, surface_y,
-		])
-	elif fill_bottom < float(camera.limit_bottom):
-		_fail("%s: faixa de chão termina em y=%.0f, acima do limit_bottom=%d" % [
-			stage_id, fill_bottom, camera.limit_bottom,
-		])
-	elif fill_left > ground_left + 1.0 or fill_right < ground_right - 1.0:
-		_fail("%s: faixa de chão (%.0f..%.0f) não cobre a colisão (%.0f..%.0f)" % [
-			stage_id, fill_left, fill_right, ground_left, ground_right,
-		])
+	# Canário: id inexistente TEM que voltar vazio. Sem isto, bastaria alguém
+	# recolocar um `_:` genérico em `_waves_for_stage` para que toda checagem
+	# abaixo passasse a validar as ondas do default em vez das da fase — o teste
+	# viraria enfeite sem ninguém notar. (O push_error abaixo é esperado.)
+	print("[smoke] canário de ondas: o erro de 'fase sem ondas' a seguir é esperado")
+	var canary: Array = wd.call("_waves_for_stage", "__fase_inexistente__")
+	if not canary.is_empty():
+		_fail("_waves_for_stage tem default genérico: id inexistente devolveu %d ondas" % canary.size())
 	else:
-		print("[smoke] OK faixa de chão %s: y %.0f..%.0f (limit_bottom=%d)" % [
-			stage_id, fill_top, fill_bottom, camera.limit_bottom,
-		])
+		print("[smoke] OK sem default silencioso em _waves_for_stage")
+
+	for def: StageDef in defs:
+		var waves: Array = wd.call("_waves_for_stage", def.stage_id)
+		if waves.is_empty():
+			_fail("%s sem ondas em _waves_for_stage()" % def.stage_id)
+			continue
+		var total_onis: int = 0
+		var bad: bool = false
+		for wi in range(waves.size()):
+			var pack: Array = waves[wi] as Array
+			if pack.is_empty():
+				_fail("%s onda %d vazia" % [def.stage_id, wi + 1])
+				bad = true
+				continue
+			for kind_v: Variant in pack:
+				var kind: String = str(kind_v)
+				if not kinds.has(kind):
+					_fail("%s onda %d: tipo de oni desconhecido '%s'" % [def.stage_id, wi + 1, kind])
+					bad = true
+				total_onis += 1
+		if not bad:
+			print("[smoke] OK ondas %s: %d ondas, %d onis" % [def.stage_id, waves.size(), total_onis])
+	wd.free()
 
 
 # --- Mapa -------------------------------------------------------------------
@@ -156,59 +172,31 @@ func _check_world_map(defs: Array[StageDef]) -> void:
 	if packed == null:
 		_fail("load: %s" % MAP_SCENE)
 		return
-
-	# Estado determinístico (save novo) para o mapa nascer sempre igual.
-	var game: Node = root.get_node_or_null("Game")
-	var previous: Array = []
-	if game != null:
-		previous = (game.get("stages_cleared") as Array).duplicate()
-		var empty: Array[String] = []
-		game.set("stages_cleared", empty)
-
 	var map: Node = packed.instantiate()
 	if map == null:
 		_fail("instantiate: %s" % MAP_SCENE)
-		if game != null:
-			game.set("stages_cleared", previous)
 		return
 	root.add_child(map)
 	await process_frame
 
-	var canvas: Node = map.find_child("MapCanvas", true, false)
-	if canvas == null:
-		_fail("world_map sem MapCanvas")
+	var buttons: Array[Button] = _stage_buttons_of(map)
+	if buttons.size() != defs.size():
+		_fail("world_map criou %d nós para %d fases do catálogo" % [buttons.size(), defs.size()])
 	else:
-		var buttons: int = 0
-		for child: Node in canvas.get_children():
-			if child is Button:
-				buttons += 1
-		if buttons != defs.size():
-			_fail("world_map criou %d nós para %d fases do catálogo" % [buttons, defs.size()])
-		else:
-			print("[smoke] OK world_map com %d nós de fase" % buttons)
-
-	# Tocar num nó bloqueado precisa dar resposta: o status diz o que falta.
-	var boss_index: int = -1
-	for i in range(defs.size()):
-		if defs[i].is_boss:
-			boss_index = i
-			break
-	var status := map.find_child("StatusLabel", true, false) as Label
-	if boss_index < 0 or status == null:
-		_fail("world_map sem nó de boss ou sem StatusLabel")
-	else:
-		map.call("_select_stage", boss_index)
-		await process_frame
-		var text: String = status.text
-		if not text.contains("conclua"):
-			_fail("toque no boss bloqueado não explicou o motivo (status='%s')" % text)
-		else:
-			print("[smoke] OK feedback de nó bloqueado: '%s'" % text)
-
+		print("[smoke] OK world_map com %d nós de fase" % buttons.size())
 	map.queue_free()
 	await process_frame
-	if game != null:
-		game.set("stages_cleared", previous)
+
+
+func _stage_buttons_of(map: Node) -> Array[Button]:
+	var out: Array[Button] = []
+	var canvas: Node = map.find_child("MapCanvas", true, false)
+	if canvas == null:
+		return out
+	for child: Node in canvas.get_children():
+		if child is Button:
+			out.append(child as Button)
+	return out
 
 
 # --- Progressão -------------------------------------------------------------
@@ -219,61 +207,129 @@ func _check_progression(defs: Array[StageDef]) -> void:
 		_fail("autoload Game ausente")
 		return
 	var previous: Array = (game.get("stages_cleared") as Array).duplicate()
+	var previous_pending: String = str(game.get("pending_stage_id"))
 
-	_expect_states(game, defs, "save novo", [], [
-		"available", "locked", "locked", "locked", "locked", "locked",
+	await _expect_case(game, defs, "save novo", [], [
+		"available", "locked", "locked", "locked", "locked", "boss_locked",
 	])
 	# Save legado: só conhece as 4 fases antigas. Precisa cair na Fase 4 (nova)
 	# como próximo passo, e nunca ficar sem fase jogável.
-	_expect_states(game, defs, "save legado (01-03)", ["w1_01", "w1_02", "w1_03"], [
-		"cleared", "cleared", "cleared", "available", "locked", "locked",
+	await _expect_case(game, defs, "save legado (01-03)", ["w1_01", "w1_02", "w1_03"], [
+		"cleared", "cleared", "cleared", "available", "locked", "boss_locked",
 	])
-	# Save legado de quem já venceu o boss antigo: o boss continua acessível
-	# (concluído) e as fases novas entram na ordem certa.
-	_expect_states(game, defs, "save legado (01-03 + boss)", ["w1_01", "w1_02", "w1_03", "w1_boss"], [
+	# Save legado de quem venceu o boss sob a regra antiga (3 fases). O boss
+	# aparece concluído — e tem que ACEITAR o toque. Foi aqui que o mapa se
+	# contradizia: desenhava "✓ Boss" e recusava a entrada.
+	await _expect_case(game, defs, "save legado (01-03 + boss)", ["w1_01", "w1_02", "w1_03", "w1_boss"], [
 		"cleared", "cleared", "cleared", "available", "locked", "cleared",
 	])
-	_expect_states(game, defs, "tudo limpo", [
+	await _expect_case(game, defs, "tudo limpo", [
 		"w1_01", "w1_02", "w1_03", "w1_04", "w1_05", "w1_boss",
 	], ["cleared", "cleared", "cleared", "cleared", "cleared", "cleared"])
 
-	_check_no_dead_end(game, defs)
-
 	game.set("stages_cleared", previous)
+	game.set("pending_stage_id", previous_pending)
 
 
-## Aplica um estado de save e confere o estado de cada nó do mapa.
-func _expect_states(game: Node, defs: Array[StageDef], case_name: String,
+## Aplica um estado de save e, para cada nó, aperta o botão de verdade.
+func _expect_case(game: Node, defs: Array[StageDef], case_name: String,
 		cleared: Array, expected: Array) -> void:
 	var typed: Array[String] = []
 	for id_v: Variant in cleared:
 		typed.append(str(id_v))
 	game.set("stages_cleared", typed)
+
 	for i in range(defs.size()):
-		var def: StageDef = defs[i]
-		var got: String = _state_of(game, def)
 		var want: String = str(expected[i])
+		var probe: Dictionary = await _probe_node(game, i)
+		if not bool(probe.get("ok", false)):
+			_fail("%s: não consegui sondar o nó %d" % [case_name, i])
+			continue
+
+		var got: String = str(probe.get("state", ""))
 		if got != want:
-			_fail("%s: %s está '%s', esperado '%s'" % [case_name, def.stage_id, got, want])
-	var next: StageDef = WorldCatalog.next_playable()
+			_fail("%s: %s está '%s', esperado '%s'" % [case_name, defs[i].stage_id, got, want])
+		if bool(probe.get("disabled", true)):
+			_fail("%s: botão de %s está disabled — 'pressed' nunca dispara e o toque fica sem resposta" % [
+				case_name, defs[i].stage_id,
+			])
+
+		# O que importa não é o estado calculado, e sim o que o toque FAZ.
+		var pending: String = str(probe.get("pending", ""))
+		var status: String = str(probe.get("status", ""))
+		var refused: bool = status.contains("conclua")
+		if BLOCKED_STATES.has(want):
+			if pending != "":
+				_fail("%s: %s é '%s' mas o toque liberou a entrada (pending=%s)" % [
+					case_name, defs[i].stage_id, want, pending,
+				])
+			if not refused:
+				_fail("%s: %s bloqueada mas o status não explicou ('%s')" % [
+					case_name, defs[i].stage_id, status,
+				])
+		else:
+			if pending != defs[i].stage_id:
+				_fail("%s: %s aparece como '%s' mas o toque NÃO entrou (pending='%s', status='%s')" % [
+					case_name, defs[i].stage_id, want, pending, status,
+				])
+			if refused:
+				_fail("%s: %s aparece como '%s' e mesmo assim recusou o toque ('%s')" % [
+					case_name, defs[i].stage_id, want, status,
+				])
+
+	var next: StageDef = WorldCatalog.next_playable(typed)
 	var next_id: String = next.stage_id if next != null else "-"
 	print("[smoke] OK progressão '%s' → próxima jogável: %s" % [case_name, next_id])
 
 
-func _state_of(game: Node, def: StageDef) -> String:
-	if bool(game.call("is_stage_cleared", def.stage_id)):
-		return "cleared"
-	return "available" if def.is_unlocked() else "locked"
+## Monta o mapa, aperta o botão do nó `index` e devolve o que aconteceu.
+##
+## Um mapa novo por nó de propósito: depois de entrar numa fase o mapa entra em
+## `_traveling` e recusa cliques seguintes, o que mascararia o nó seguinte.
+func _probe_node(game: Node, index: int) -> Dictionary:
+	var out: Dictionary = {"ok": false}
+	var packed := load(MAP_SCENE) as PackedScene
+	if packed == null:
+		return out
+	var map: Node = packed.instantiate()
+	if map == null:
+		return out
+	root.add_child(map)
+	await process_frame
+
+	var buttons: Array[Button] = _stage_buttons_of(map)
+	var status := map.find_child("StatusLabel", true, false) as Label
+	if status == null or index >= buttons.size():
+		map.queue_free()
+		await process_frame
+		return out
+
+	var btn: Button = buttons[index]
+	out["disabled"] = btn.disabled
+	out["state"] = str(map.call("_node_state", index))
+
+	game.set("pending_stage_id", "")
+	btn.pressed.emit()
+	await process_frame
+	out["status"] = status.text
+	out["pending"] = str(game.get("pending_stage_id"))
+	out["ok"] = true
+
+	# Liberar antes da animação de viagem terminar: `_select_stage` confere
+	# `is_inside_tree()` e não troca de cena com o mapa fora da árvore.
+	map.queue_free()
+	await process_frame
+	return out
 
 
 ## Partindo do zero, seguir sempre a próxima fase jogável tem que limpar o mundo
 ## inteiro — se algum `requires_cleared` estiver mal encadeado, isso trava aqui.
-func _check_no_dead_end(game: Node, defs: Array[StageDef]) -> void:
+## Puro: não depende do save nem do autoload.
+func _check_no_dead_end(defs: Array[StageDef]) -> void:
 	var cleared: Array[String] = []
-	game.set("stages_cleared", cleared)
-	var order: PackedStringArray = PackedStringArray()
+	var order := PackedStringArray()
 	for _i in range(defs.size()):
-		var next: StageDef = WorldCatalog.next_playable()
+		var next: StageDef = WorldCatalog.next_playable(cleared)
 		if next == null:
 			_fail("progressão travou com %d/%d fases limpas: %s" % [
 				cleared.size(), defs.size(), ", ".join(order),
@@ -281,8 +337,7 @@ func _check_no_dead_end(game: Node, defs: Array[StageDef]) -> void:
 			return
 		cleared.append(next.stage_id)
 		order.append(next.stage_id)
-		game.set("stages_cleared", cleared)
-	if WorldCatalog.next_playable() != null:
+	if WorldCatalog.next_playable(cleared) != null:
 		_fail("sobrou fase jogável depois de limpar todas")
 		return
 	if order[order.size() - 1] != "w1_boss":
