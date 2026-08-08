@@ -78,6 +78,23 @@ static func _is_invisible_format(code: int) -> bool:
 	return code >= 0x2066 and code <= 0x2069
 
 
+## "Blank letters": codepoints que NAO sao Cc/C1/Cf/Zs — logo escapavam de todos
+## os filtros acima — mas desenham exatamente nada. E o bypass classico de nome
+## invisivel em jogo online: U+3164 (HANGUL FILLER) e o mais usado, seguido do
+## meio-largura U+FFA0 e do BRAILLE BLANK U+2800.
+## Os seletores de variacao (U+FE00-FE0F) entram aqui pelo mesmo motivo: sozinhos
+## nao desenham nada. Grudados num emoji so mudam a apresentacao, entao nome com
+## emoji continua valido — ver o caso de emoji em `_test_sanitize`.
+static func _is_blank_letter(code: int) -> bool:
+	if code == 0x115F or code == 0x1160 or code == 0x2800 or code == 0x3164 or code == 0xFFA0:
+		return true
+	if code >= 0x17B4 and code <= 0x17B5:
+		return true
+	if code >= 0x180B and code <= 0x180E:
+		return true
+	return code >= 0xFE00 and code <= 0xFE0F
+
+
 ## Normaliza o que veio da UI: tira espacos das pontas, colapsa espacos internos,
 ## remove caracteres de controle e invisiveis, e corta no limite.
 ## Retorna "" se nao sobrar nada VISIVEL — a checagem de vazio e sempre a ultima
@@ -91,6 +108,9 @@ static func sanitize_player_name(raw: String) -> String:
 			continue
 		# Invisiveis Cf: descarta antes de qualquer contagem de "tem conteudo".
 		if _is_invisible_format(code):
+			continue
+		# Blank letters (Lo/Mn que nao desenham nada): mesmo bypass, outra categoria.
+		if _is_blank_letter(code):
 			continue
 		# NBSP e afins viram espaco comum para o colapso abaixo enxergar.
 		if _is_space_like(code):

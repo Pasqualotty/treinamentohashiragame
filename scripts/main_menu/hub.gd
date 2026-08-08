@@ -96,6 +96,8 @@ func _ready() -> void:
 		Game.player_name_changed.connect(_on_player_name_changed)
 	if not showcase.resized.is_connected(_layout_showcase):
 		showcase.resized.connect(_layout_showcase)
+	if not SceneRouter.navigation_failed.is_connected(_on_navigation_failed):
+		SceneRouter.navigation_failed.connect(_on_navigation_failed)
 
 	if is_instance_valid(Audio):
 		Audio.play_bgm("hub")
@@ -388,27 +390,30 @@ func _ui_click() -> void:
 
 ## --- Navegação ------------------------------------------------------------
 
-## Arma a guarda e devolve true só na primeira chamada. Todo handler que troca de
-## cena passa por aqui — dois toques rápidos não podem virar duas cenas.
-func _begin_navigation() -> bool:
+## Navegação falhou: destrava os botões. Sem isto, um `change_scene_to_file` que
+## dá erro deixaria play/loja/config/perfil mortos de uma vez só.
+func _on_navigation_failed(_path: String) -> void:
+	_navigating = false
+
+
+## Único ponto de saída do hub: arma a guarda, chama o router e destrava sozinho
+## se o pedido for recusado. Handler novo só precisa passar o `to_*` aqui — não
+## há `if err != OK` espalhado para alguém esquecer.
+func _navigate(target: Callable) -> void:
 	if _navigating:
-		return false
+		return
 	_navigating = true
-	return true
+	_ui_click()
+	if not bool(target.call()):
+		_navigating = false
 
 
 func _on_play_pressed() -> void:
-	if not _begin_navigation():
-		return
-	_ui_click()
-	SceneRouter.to_world_map()
+	_navigate(SceneRouter.to_world_map)
 
 
 func _on_shop_pressed() -> void:
-	if not _begin_navigation():
-		return
-	_ui_click()
-	SceneRouter.to_shop()
+	_navigate(SceneRouter.to_shop)
 
 
 func _on_characters_pressed() -> void:
@@ -419,14 +424,8 @@ func _on_characters_pressed() -> void:
 
 
 func _on_settings_pressed() -> void:
-	if not _begin_navigation():
-		return
-	_ui_click()
-	SceneRouter.to_settings()
+	_navigate(SceneRouter.to_settings)
 
 
 func _on_profile_pressed() -> void:
-	if not _begin_navigation():
-		return
-	_ui_click()
-	SceneRouter.to_name_entry(true)
+	_navigate(func() -> bool: return SceneRouter.to_name_entry(true))

@@ -14,11 +14,21 @@ const NAME_ENTRY := "res://scenes/ui/name_entry.tscn"
 
 const TransitionScript := preload("res://scripts/ui/transition.gd")
 
+## Emitido quando um pedido de navegacao NAO se concretizou (cena inexistente,
+## erro de carregamento). Quem armou guarda de "ja estou navegando" escuta isto
+## para destravar: sem o aviso a tela continua viva na arvore com a guarda presa
+## e o jogador fica sem saida — nem confirmar, nem cancelar.
+signal navigation_failed(path: String)
+
 ## Intencao de navegacao lida pela tela de nome (mesmo padrao de `Game.pending_stage_id`).
 ## false = onboarding do primeiro boot; true = renomear a partir do hub (mostra Cancelar).
 var name_entry_edit_mode: bool = false
 
 var _transition: CanvasLayer
+## Trava de reentrancia no proprio roteador — e aqui que o bug original morava:
+## um segundo pedido durante o fade caia no ramo `is_busy()` e trocava de cena na
+## marra por cima da transicao. Agora o segundo pedido e recusado na porta.
+var _navigating: bool = false
 
 
 func _ready() -> void:
@@ -27,16 +37,36 @@ func _ready() -> void:
 	add_child(_transition)
 
 
+## true enquanto um pedido de `go_to` ainda não pousou numa cena nova.
+func is_navigating() -> bool:
+	return _navigating
+
+
 ## Troca de cena com transição suave. Fire-and-forget: chamadores continuam
 ## chamando `SceneRouter.go_to(path)` sem `await`, como sempre.
-func go_to(path: String) -> void:
+## Retorna false quando o pedido é RECUSADO na hora (já há navegação no ar).
+## Falha assíncrona (cena inválida) chega depois por `navigation_failed`.
+func go_to(path: String) -> bool:
+	if _navigating:
+		return false
+	_navigating = true
 	if _transition == null or _transition.is_busy():
-		# Sem cortina disponível (ou já em transição) — troca direta, nunca trava a navegação.
-		var err := get_tree().change_scene_to_file(path)
-		if err != OK:
-			push_error("SceneRouter: falha ao ir para %s (err=%s)" % [path, err])
+		# Sem cortina disponível — troca direta, nunca trava a navegação.
+		_go_direct(path)
+	else:
+		_go_to_with_transition(path)
+	return true
+
+
+func _go_direct(path: String) -> void:
+	var err := get_tree().change_scene_to_file(path)
+	if err != OK:
+		_fail_navigation(path, err)
 		return
-	_go_to_with_transition(path)
+	# A troca só acontece no fim do frame: segurar a trava até lá faz o segundo
+	# Enter do mesmo frame ser recusado (é o caso do headless, sem cortina).
+	await get_tree().process_frame
+	_navigating = false
 
 
 func _go_to_with_transition(path: String) -> void:
@@ -44,44 +74,59 @@ func _go_to_with_transition(path: String) -> void:
 	await _transition.close()
 	var err := get_tree().change_scene_to_file(path)
 	if err != OK:
-		push_error("SceneRouter: falha ao ir para %s (err=%s)" % [path, err])
 		await _transition.open()
 		_transition.set_busy(false)
+		_fail_navigation(path, err)
 		return
+	# Cena trocada: quem pediu já morreu, então um pedido novo é legítimo.
+	# Liberar aqui — e não depois do `open()` — evita prender o boot, onde a
+	# cena nova pode querer navegar assim que sobe.
+	_navigating = false
 	await get_tree().process_frame
 	await _transition.open()
 	_transition.set_busy(false)
 
 
-func to_splash() -> void:
-	go_to(SPLASH)
+## Destrava e avisa quem pediu, nesta ordem: o handler do sinal pode querer
+## disparar outra navegação imediatamente.
+func _fail_navigation(path: String, err: int) -> void:
+	_navigating = false
+	push_error("SceneRouter: falha ao ir para %s (err=%s)" % [path, err])
+	navigation_failed.emit(path)
 
 
-func to_loading() -> void:
-	go_to(LOADING)
+## Os helpers `to_*` repassam o retorno de `go_to`: false = pedido recusado.
+## Chamador que não se importa continua ignorando o valor, como sempre.
+
+func to_splash() -> bool:
+	return go_to(SPLASH)
 
 
-func to_hub() -> void:
-	go_to(HUB)
+func to_loading() -> bool:
+	return go_to(LOADING)
 
 
-func to_world_map() -> void:
-	go_to(WORLD_MAP)
+func to_hub() -> bool:
+	return go_to(HUB)
 
 
-func to_shop() -> void:
-	go_to(SHOP)
+func to_world_map() -> bool:
+	return go_to(WORLD_MAP)
 
 
-func to_credits() -> void:
-	go_to(CREDITS)
+func to_shop() -> bool:
+	return go_to(SHOP)
 
 
-func to_settings() -> void:
-	go_to(SETTINGS)
+func to_credits() -> bool:
+	return go_to(CREDITS)
+
+
+func to_settings() -> bool:
+	return go_to(SETTINGS)
 
 
 ## `edit_mode` true quando o jogador ja tem nome e veio do hub para trocar.
-func to_name_entry(edit_mode: bool = false) -> void:
+func to_name_entry(edit_mode: bool = false) -> bool:
 	name_entry_edit_mode = edit_mode
-	go_to(NAME_ENTRY)
+	return go_to(NAME_ENTRY)

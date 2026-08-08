@@ -13,6 +13,10 @@ const NAME_ENTRY := "res://scenes/ui/name_entry.tscn"
 const PLATE_DIR := "res://assets/ui/buttons/hub"
 ## Save descartável do teste. Some no `_finish`, aconteça o que acontecer.
 const TEMP_SAVE := "user://smoke_hub_name_entry_save.json"
+## Rota que não existe: `change_scene_to_file` devolve ERR_CANT_OPEN (19).
+const BOGUS_SCENE := "res://scenes/__rota_inexistente_do_smoke__.tscn"
+## close() + open() da cortina levam ~0.52s; o sinal de falha vem depois disso.
+const NAV_FAIL_TIMEOUT := 6.0
 
 var _ok: bool = true
 var _messages: Array[String] = []
@@ -45,7 +49,12 @@ func _dbg(s: String) -> String:
 			or (code >= 0x7F and code <= 0xA0) \
 			or code == 0x00AD or code == 0x1680 \
 			or (code >= 0x2000 and code <= 0x206F) \
-			or code == 0x3000 or code == 0xFEFF
+			or code == 0x3000 or code == 0xFEFF \
+			or code == 0x2800 or code == 0x3164 or code == 0xFFA0 \
+			or (code >= 0x115F and code <= 0x1160) \
+			or (code >= 0x17B4 and code <= 0x17B5) \
+			or (code >= 0x180B and code <= 0x180E) \
+			or (code >= 0xFE00 and code <= 0xFE0F)
 		shown += ("\\u%04X" % code) if hide else c
 	return "\"%s\"" % shown
 
@@ -71,6 +80,7 @@ func _run() -> void:
 	_test_plates()
 	await _test_scenes()
 	await _test_no_double_submit(router)
+	await _test_navigation_failure_unlocks(router)
 	_finish()
 
 
@@ -143,6 +153,26 @@ func _test_sanitize(game: Node) -> void:
 		# Override bidi (Cf).
 		[rlo + "Inosuke", "Inosuke"],
 		[rlo + char(0x200E), ""],
+		# "Blank letters": não são Cc/C1/Cf/Zs, então escapavam de todos os
+		# filtros acima. U+3164 é o bypass clássico de nome invisível em jogo.
+		[char(0x3164), ""],
+		[char(0x3164) + char(0x3164), ""],
+		[char(0x2800), ""],
+		[char(0xFFA0) + char(0x115F) + char(0x1160), ""],
+		[char(0x180E), ""],
+		[char(0x17B4) + char(0x17B5), ""],
+		["Tan" + char(0x3164) + "jiro", "Tanjiro"],
+		# Seletor de variação sozinho não é nome; grudado, só muda apresentação.
+		[char(0xFE0F), ""],
+		[char(0x263A) + char(0xFE0F), char(0x263A)],
+		# Legítimos: os filtros acima NÃO podem encostar neles.
+		["Tanjiro", "Tanjiro"],
+		["Caçador", "Caçador"],
+		["Zenitsu-kun", "Zenitsu-kun"],
+		["D'Artagnan", "D'Artagnan"],
+		["炭治郎", "炭治郎"],
+		["ねずこ", "ねずこ"],
+		["🔥 Tanjiro", "🔥 Tanjiro"],
 	]
 	for c in cases:
 		var got: String = str(game.call("sanitize_player_name", c[0]))
@@ -169,6 +199,8 @@ func _test_invisible_name_gate(game: Node) -> void:
 		char(0xFEFF),
 		char(0x7F) + char(0x0085),
 		char(0x202E) + char(0x200E),
+		char(0x3164),
+		char(0x2800) + char(0xFFA0),
 	]
 	for a in attempts:
 		if bool(game.call("set_player_name", a)):
@@ -177,7 +209,6 @@ func _test_invisible_name_gate(game: Node) -> void:
 	if bool(game.call("has_player_name")):
 		_fail("has_player_name true após nome só de invisíveis")
 		return
-
 	var raw: String = FileAccess.get_file_as_string(str(game.call("get_save_path")))
 	var parsed: Variant = JSON.parse_string(raw)
 	if typeof(parsed) != TYPE_DICTIONARY:
@@ -197,7 +228,16 @@ func _test_invisible_name_gate(game: Node) -> void:
 	if bool(game.call("has_player_name")):
 		_fail("save com nome invisível passou pelo load_game")
 		return
-	_pass("gate do onboarding resiste a nome invisível (5 formas + save adulterado)")
+
+	# O contrário do gate: filtro largo demais também é bug. Nomes legítimos de
+	# alfabetos não-latinos e com emoji têm que continuar entrando.
+	for legit in ["炭治郎", "ねずこ", "Caçador", "🔥 Tanjiro"]:
+		if not bool(game.call("set_player_name", legit)):
+			_fail("set_player_name rejeitou nome legítimo: %s" % _dbg(legit))
+			return
+	game.set("player_name", "")
+	game.call("save_game")
+	_pass("gate do onboarding resiste a nome invisível (7 formas + save adulterado), sem barrar nome legítimo")
 
 
 ## set_player_name persiste no save e load_game traz de volta; save antigo vira "".
@@ -335,6 +375,83 @@ func _test_no_double_submit(router: Node) -> void:
 	inst.queue_free()
 	await process_frame
 	_pass("Enter x3 = 1 navegação (guarda de reentrância do confirmar)")
+
+
+## Navegação que FALHA não pode deixar a tela num beco sem saída. Regressão real
+## do fix de reentrância: `change_scene_to_file` devolvendo erro reabria a cortina
+## e voltava `is_busy=false`, mas a tela seguia viva com `_navigating=true` para
+## sempre — confirmar E cancelar mortos, no onboarding só force-close do app.
+## O contrato agora: o router avisa por `navigation_failed` e a guarda solta.
+func _test_navigation_failure_unlocks(router: Node) -> void:
+	router.set("name_entry_edit_mode", false)
+	var packed: PackedScene = load(NAME_ENTRY) as PackedScene
+	if packed == null:
+		_fail("load falhou no teste de falha de navegação: %s" % NAME_ENTRY)
+		return
+	var inst: Node = packed.instantiate()
+	root.add_child(inst)
+	await process_frame
+
+	var field: LineEdit = inst.get("name_input") as LineEdit
+	if field == null:
+		_fail("name_input não resolvido no teste de falha de navegação")
+		inst.queue_free()
+		return
+	field.text = "Tanjiro"
+	if not bool(inst.call("_claim_submit")):
+		_fail("_claim_submit recusou nome válido antes do teste de falha")
+		inst.queue_free()
+		return
+	if not bool(inst.get("_navigating")):
+		_fail("guarda não armou após submit válido")
+		inst.queue_free()
+		return
+
+	# Pedido para rota inexistente: aceito na porta, falha depois da cortina.
+	if not bool(router.call("go_to", BOGUS_SCENE)):
+		_fail("router recusou o 1º pedido (esperado aceitar e falhar depois)")
+		inst.queue_free()
+		return
+	# E o 2º pedido, com navegação no ar, tem que ser RECUSADO — era exatamente
+	# aqui que o bug original trocava de cena por cima da transição.
+	if bool(router.call("go_to", BOGUS_SCENE)):
+		_fail("router aceitou 2º pedido concorrente — cena trocaria em dobro")
+		inst.queue_free()
+		return
+
+	if not await _await_navigation_failed(router):
+		_fail("router não emitiu navigation_failed em %.1fs para rota inexistente" % NAV_FAIL_TIMEOUT)
+		inst.queue_free()
+		return
+	if bool(router.call("is_navigating")):
+		_fail("router ficou preso em is_navigating após falha")
+		inst.queue_free()
+		return
+	if bool(inst.get("_navigating")):
+		_fail("tela continuou travada após navigation_failed — jogador sem saída")
+		inst.queue_free()
+		return
+	# Prova de que a tela voltou a ser utilizável de verdade.
+	if not bool(inst.call("_claim_submit")):
+		_fail("tela não aceitou novo confirmar depois da falha de navegação")
+		inst.queue_free()
+		return
+
+	inst.queue_free()
+	await process_frame
+	_pass("falha de navegação destrava a tela + router recusa pedido concorrente")
+
+
+func _await_navigation_failed(router: Node) -> bool:
+	var fired: Array[bool] = [false]
+	var cb: Callable = func(_p: String) -> void: fired[0] = true
+	router.connect("navigation_failed", cb)
+	var waited: float = 0.0
+	while waited < NAV_FAIL_TIMEOUT and not fired[0]:
+		await create_timer(0.1).timeout
+		waited += 0.1
+	router.disconnect("navigation_failed", cb)
+	return fired[0]
 
 
 func _instantiate(path: String, label: String) -> bool:

@@ -62,8 +62,18 @@ func _ready() -> void:
 	if _edit_mode:
 		name_input.select_all()
 
+	# O router avisa quando a troca de cena não aconteceu — sem isso a guarda
+	# `_navigating` ficaria armada para sempre e a tela viraria um beco sem saída.
+	if not SceneRouter.navigation_failed.is_connected(_on_navigation_failed):
+		SceneRouter.navigation_failed.connect(_on_navigation_failed)
+
 	if is_instance_valid(Audio):
 		Audio.play_bgm("hub")
+
+
+## Navegação falhou: destrava para o jogador poder tentar de novo ou cancelar.
+func _on_navigation_failed(_path: String) -> void:
+	_navigating = false
 
 
 func _apply_mode_copy() -> void:
@@ -128,7 +138,11 @@ func _confirm() -> bool:
 	if not _claim_submit():
 		return false
 	_ui_click()
-	SceneRouter.to_hub()
+	if not SceneRouter.to_hub():
+		# Recusado na porta (já havia navegação no ar): destrava aqui mesmo, não
+		# vem sinal nenhum nesse caso.
+		_navigating = false
+		return false
 	return true
 
 
@@ -151,7 +165,8 @@ func _on_cancel_pressed() -> void:
 		return
 	_navigating = true
 	_ui_click()
-	SceneRouter.to_hub()
+	if not SceneRouter.to_hub():
+		_navigating = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
