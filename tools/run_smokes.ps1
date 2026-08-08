@@ -6,6 +6,10 @@
   Resolve Godot 4.7 CLI (console preferido), executa scripts de QA com --headless.
   Exit code = 0 so se TODOS os smokes passarem.
 
+  Entrada cujo script nao existe NAO roda e conta como FALHA: um smoke que some da
+  cobertura (path errado numa uniao de merge, arquivo renomeado) e pior que um que
+  quebra, porque desaparece calado. O gate nao pode falhar aberto.
+
 .PARAMETER GodotExe
   Caminho explicito do Godot. Se vazio, tenta winget console, winget gui, PATH.
 
@@ -180,8 +184,12 @@ foreach ($s in $smokeList) {
     $fsPath = Convert-ResPathToFs -ResPath $script -Root $ProjectDir
 
     if (-not (Test-Path -LiteralPath $fsPath)) {
-        Write-Host "[SKIP] $name - script ausente: $script"
-        $results.Add([pscustomobject]@{ Name = $name; Status = "SKIP"; ExitCode = -1 }) | Out-Null
+        # Nao rodou = falha. Sem isso a suite perde um smoke em silencio e ainda diz PASS.
+        $reason = "script ausente: $script"
+        Write-Host ("[FAIL] {0} - NAO RODOU ({1})" -f $name, $reason)
+        $failed++
+        $results.Add([pscustomobject]@{ Name = $name; Status = "SKIP"; ExitCode = -1; Reason = $reason }) | Out-Null
+        Write-Host ""
         continue
     }
 
@@ -262,13 +270,27 @@ foreach ($s in $smokeList) {
 
 Write-Host "=== SUMMARY ==="
 foreach ($r in $results) {
-    Write-Host ("  {0,-24} {1} (exit {2})" -f $r.Name, $r.Status, $r.ExitCode)
+    if ($r.Status -eq "SKIP") {
+        Write-Host ("  {0,-24} SKIP -> FAIL ({1})" -f $r.Name, $r.Reason)
+    } else {
+        Write-Host ("  {0,-24} {1} (exit {2})" -f $r.Name, $r.Status, $r.ExitCode)
+    }
 }
 
-$ran = @($results | Where-Object { $_.Status -ne "SKIP" }).Count
+$skippedEntries = @($results | Where-Object { $_.Status -eq "SKIP" })
+$ran = $results.Count - $skippedEntries.Count
 $passed = @($results | Where-Object { $_.Status -eq "PASS" }).Count
+
+if ($skippedEntries.Count -gt 0) {
+    Write-Host ""
+    Write-Host "=== NAO RODARAM (contam como falha) ==="
+    foreach ($sk in $skippedEntries) {
+        Write-Host ("  {0,-24} {1}" -f $sk.Name, $sk.Reason)
+    }
+}
+
 Write-Host ""
-Write-Host ("Passed {0} / {1} (failed={2})" -f $passed, $ran, $failed)
+Write-Host ("Passed {0} / {1} (failed={2}, nao rodaram={3})" -f $passed, $results.Count, $failed, $skippedEntries.Count)
 
 if ($failed -gt 0) {
     Write-Host "SUITE FAIL"
