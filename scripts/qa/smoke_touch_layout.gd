@@ -89,6 +89,8 @@ func _run() -> void:
 	_ctx = "input atravessando resize"
 	await _check_keyboard_survives_resize(node)
 	await _check_stick_released_on_resize(node)
+	await _check_focus_out_does_not_disarm_guard(node)
+	await _check_keyboard_survives_stick_release(node)
 
 	node.queue_free()
 	await process_frame
@@ -126,30 +128,7 @@ func _check_stick_released_on_resize(node: CanvasLayer) -> void:
 	## O simétrico: com o dedo no stick, o resize destrói o VirtualJoystick, que não
 	## se libera sozinho — aí move_* PRECISA ser liberada, senão fica presa pra sempre.
 	await _set_window(Vector2i(1280, 720))
-	var stick_slot: Dictionary = _find_slot(node.call("get_layout_slots"), "virtual_stick")
-	if stick_slot.is_empty():
-		return
-	var center: Vector2 = stick_slot["center"]
-	var radius: float = float(stick_slot["radius"])
-	var to_window: Transform2D = root.get_final_transform()
-
-	var down := InputEventScreenTouch.new()
-	down.index = 1
-	down.position = to_window * center
-	down.pressed = true
-	root.push_input(down)
-	var drag := InputEventScreenDrag.new()
-	drag.index = 1
-	drag.position = to_window * (center + Vector2(radius * 0.8, 0.0))
-	drag.relative = Vector2(radius * 0.8, 0.0)
-	root.push_input(drag)
-	await process_frame
-
-	if not Input.is_action_pressed("move_right"):
-		_notes.append("stick não ativou move_right no headless — caso pulado")
-		_release_touch(1, to_window * center)
-		await process_frame
-		Input.action_release("move_right")
+	if not await _grab_stick(node):
 		return
 
 	await _set_window(Vector2i(2400, 1080))
@@ -157,10 +136,128 @@ func _check_stick_released_on_resize(node: CanvasLayer) -> void:
 		_fail("stick ativo destruído no resize deixou move_right presa")
 	else:
 		_notes.append("stick ativo liberou move_right ao ser reconstruído")
-	_release_touch(1, to_window * center)
+	await _drop_stick()
+
+
+func _check_focus_out_does_not_disarm_guard(node: CanvasLayer) -> void:
+	## A cadeia que desarmava o guard:
+	##   1. dedo no stick (posse do stick, move_right pressionada)
+	##   2. FOCUS_OUT -> _release_all() solta a action
+	##   3. o dedo CONTINUA arrastando -> o stick re-pressiona move_right
+	##   4. resize -> se a posse tivesse morrido no passo 2, o rebuild pularia o
+	##      release e move_right ficaria presa pra sempre
+	## O nó do stick sobrevive ao focus-out, então a posse tem de sobreviver junto.
+	await _set_window(Vector2i(1280, 720))
+	if not await _grab_stick(node):
+		return
+
+	node.notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
 	await process_frame
+
+	# Passo 3: o dedo não saiu da tela — o stick volta a empurrar a action.
+	_drag_stick()
+	await process_frame
+	if not Input.is_action_pressed("move_right"):
+		_notes.append("focus-out: stick não re-pressionou move_right — cadeia não reproduzida")
+		await _drop_stick()
+		return
+
+	await _set_window(Vector2i(2400, 1080))
 	if Input.is_action_pressed("move_right"):
-		Input.action_release("move_right")
+		_fail("focus-out desarmou a posse: move_right ficou presa após o resize")
+	else:
+		_notes.append("focus-out não desarmou o guard (move_right liberada no rebuild)")
+	await _drop_stick()
+
+
+func _check_keyboard_survives_stick_release(node: CanvasLayer) -> void:
+	## Caso misto: stick empurrando um eixo e TECLA FÍSICA segurando outro. O release
+	## do rebuild não pode levar a tecla junto — o VirtualJoystick da 4.7 não expõe o
+	## próprio output, então a posse por eixo vem do teclado do SO, não do stick.
+	await _set_window(Vector2i(1280, 720))
+	var keycode: int = _first_physical_keycode("move_up")
+	if keycode == 0:
+		_notes.append("move_up sem binding de tecla física — caso misto pulado")
+		return
+	if not await _grab_stick(node):
+		return
+
+	_press_physical_key(keycode, true)
+	await process_frame
+	if not Input.is_action_pressed("move_up"):
+		_notes.append("tecla física de move_up não pegou no headless — caso misto pulado")
+		_press_physical_key(keycode, false)
+		await _drop_stick()
+		return
+
+	await _set_window(Vector2i(2400, 1080))
+	if Input.is_action_pressed("move_up"):
+		_notes.append("caso misto: stick liberado sem matar a tecla de move_up")
+	else:
+		_fail("release do rebuild matou move_up, que estava presa por tecla física")
+	if Input.is_action_pressed("move_right"):
+		_fail("caso misto: move_right do stick ficou presa após o resize")
+	_press_physical_key(keycode, false)
+	await _drop_stick()
+
+
+# --- helpers de stick / teclado -------------------------------------------
+var _stick_center := Vector2.ZERO
+var _stick_radius := 0.0
+
+
+func _grab_stick(node: CanvasLayer) -> bool:
+	var stick_slot: Dictionary = _find_slot(node.call("get_layout_slots"), "virtual_stick")
+	if stick_slot.is_empty():
+		return false
+	_stick_center = stick_slot["center"]
+	_stick_radius = float(stick_slot["radius"])
+
+	var down := InputEventScreenTouch.new()
+	down.index = 1
+	down.position = root.get_final_transform() * _stick_center
+	down.pressed = true
+	root.push_input(down)
+	_drag_stick()
+	await process_frame
+
+	if not Input.is_action_pressed("move_right"):
+		_notes.append("stick não ativou move_right no headless — caso pulado")
+		await _drop_stick()
+		return false
+	return true
+
+
+func _drag_stick() -> void:
+	var offset := Vector2(_stick_radius * 0.8, 0.0)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 1
+	drag.position = root.get_final_transform() * (_stick_center + offset)
+	drag.relative = offset
+	root.push_input(drag)
+
+
+func _drop_stick() -> void:
+	_release_touch(1, root.get_final_transform() * _stick_center)
+	await process_frame
+	for action in ["move_right", "move_left", "move_up", "move_down"]:
+		if Input.is_action_pressed(action):
+			Input.action_release(action)
+
+
+func _first_physical_keycode(action: String) -> int:
+	for event: InputEvent in InputMap.action_get_events(action):
+		var key := event as InputEventKey
+		if key != null and key.physical_keycode != 0:
+			return key.physical_keycode
+	return 0
+
+
+func _press_physical_key(keycode: int, pressed: bool) -> void:
+	var ev := InputEventKey.new()
+	ev.physical_keycode = keycode
+	ev.pressed = pressed
+	Input.parse_input_event(ev)
 
 
 func _release_touch(index: int, at: Vector2) -> void:
