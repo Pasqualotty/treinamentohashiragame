@@ -7,7 +7,7 @@
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_forest.png" id="9_bg"]
 
-[ext_resource type="Texture2D" path="res://assets/tiles/w1/ground_strip_side.png" id="10_ground"]
+[ext_resource type="PackedScene" path="res://scenes/world/ground_band.tscn" id="10_gband"]
 [ext_resource type="Texture2D" path="res://assets/tiles/w1/platform_strip_side.png" id="11_plat"]
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/layers/soft_dot.tres" id="20_dot"]
@@ -144,12 +144,10 @@ collision_mask = 0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
 shape = SubResource("Rect_ground")
 
-[node name="Visual" type="Sprite2D" parent="Ground"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(1, 0.75)
-texture = ExtResource("10_ground")
-centered = true
+[node name="Visual" parent="Ground" instance=ExtResource("10_gband")]
+band_width = 1600.0
+surface_y = -24.0
+depth = 264.0
 
 [node name="PlatformLow" type="StaticBody2D" parent="."]
 position = Vector2(520, 440)
