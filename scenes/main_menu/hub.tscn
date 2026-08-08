@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/main_menu/hub.gd" id="1_hub"]
 [ext_resource type="FontFile" path="res://assets/fonts/Cinzel-Bold.ttf" id="2_display"]
 [ext_resource type="Script" path="res://scripts/ui/showcase_glow.gd" id="3_glow"]
+[ext_resource type="Texture2D" path="res://assets/ui/buttons/hub/icon_profile.png" id="4_profile"]
+[ext_resource type="Texture2D" path="res://assets/ui/buttons/hub/icon_coin.png" id="5_coin"]
 
 [node name="Hub" type="Control"]
 layout_mode = 3
@@ -24,8 +26,37 @@ grow_vertical = 2
 color = Color(0.058824, 0.070588, 0.094118, 1)
 mouse_filter = 2
 
-[node name="BgArt" type="TextureRect" parent="."]
+[node name="BgLayer" type="Control" parent="."]
 unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BgArtA" type="TextureRect" parent="BgLayer"]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -24.0
+offset_top = -24.0
+offset_right = 24.0
+offset_bottom = 24.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
+
+[node name="BgArtB" type="TextureRect" parent="BgLayer"]
+unique_name_in_owner = true
+texture_filter = 1
+modulate = Color(1, 1, 1, 0)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -57,41 +88,64 @@ anchor_right = 1.0
 offset_left = 16.0
 offset_top = 12.0
 offset_right = -16.0
-offset_bottom = 56.0
+offset_bottom = 76.0
 grow_horizontal = 2
 theme_override_constants/separation = 16
 
-[node name="ProfileBadge" type="PanelContainer" parent="TopBar"]
+[node name="ProfileButton" type="Button" parent="TopBar"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ProfileLabel" type="Label" parent="TopBar/ProfileBadge"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.95, 0.92, 0.85, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
+size_flags_horizontal = 0
+size_flags_vertical = 4
+tooltip_text = "Trocar nome de caçador"
 theme_override_font_sizes/font_size = 20
-text = "👤 Caçador"
+icon = ExtResource("4_profile")
+text = "Caçador"
+
+[node name="Spacer" type="Control" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
 
 [node name="CoinsBadge" type="PanelContainer" parent="TopBar"]
-layout_mode = 2
-
-[node name="CoinsLabel" type="Label" parent="TopBar/CoinsBadge"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 4
+
+[node name="CoinsRow" type="HBoxContainer" parent="TopBar/CoinsBadge"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CoinIcon" type="TextureRect" parent="TopBar/CoinsBadge/CoinsRow"]
+texture_filter = 1
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("5_coin")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CoinsLabel" type="Label" parent="TopBar/CoinsBadge/CoinsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 1
 theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 22
-text = "🪙 0"
+text = "0"
+vertical_alignment = 1
 
 [node name="SettingsButton" type="Button" parent="TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(48, 48)
+texture_filter = 1
+custom_minimum_size = Vector2(68, 68)
 layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "Ajustes"
 text = "⚙"
 
 [node name="LeftColumn" type="VBoxContainer" parent="."]
@@ -100,83 +154,78 @@ anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = 20.0
-offset_top = -120.0
-offset_right = 200.0
-offset_bottom = 120.0
+offset_top = -86.0
+offset_right = 340.0
+offset_bottom = 86.0
 grow_vertical = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 20
 
 [node name="ShopButton" type="Button" parent="LeftColumn"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 56)
+texture_filter = 1
+custom_minimum_size = Vector2(320, 76)
 layout_mode = 2
+size_flags_horizontal = 0
 theme_override_font_sizes/font_size = 20
 text = "LOJA"
 
 [node name="CharactersButton" type="Button" parent="LeftColumn"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 56)
+texture_filter = 1
+custom_minimum_size = Vector2(320, 76)
 layout_mode = 2
+size_flags_horizontal = 0
 theme_override_font_sizes/font_size = 20
 text = "PERSONAGENS"
 
 [node name="CenterShowcase" type="Control" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchor_left = 0.5
-anchor_top = 1.0
+anchor_top = 0.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -300.0
-offset_top = -620.0
+offset_top = 84.0
 offset_right = 300.0
-offset_bottom = -92.0
+offset_bottom = -128.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="PlatformGlow" type="Control" parent="CenterShowcase"]
-layout_mode = 1
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -170.0
-offset_top = -50.0
-offset_right = 170.0
-offset_bottom = 8.0
-grow_horizontal = 2
-grow_vertical = 0
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 340.0
+offset_bottom = 64.0
 mouse_filter = 2
 script = ExtResource("3_glow")
+
+[node name="CharacterArt" type="TextureRect" parent="CenterShowcase"]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 0
+offset_right = 320.0
+offset_bottom = 440.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="CharacterName" type="Label" parent="CenterShowcase"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 0.0
-offset_bottom = 34.0
+offset_bottom = 38.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_fonts/font = ExtResource("2_display")
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 28
 text = "Tanjiro"
 horizontal_alignment = 1
-
-[node name="CharacterArt" type="TextureRect" parent="CenterShowcase"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = 30.0
-offset_bottom = 0.0
-grow_horizontal = 2
-grow_vertical = 2
-expand_mode = 1
-stretch_mode = 5
 
 [node name="BottomBar" type="HBoxContainer" parent="."]
 layout_mode = 1
@@ -185,7 +234,7 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 24.0
-offset_top = -88.0
+offset_top = -116.0
 offset_right = -24.0
 offset_bottom = -16.0
 grow_horizontal = 2
@@ -196,6 +245,7 @@ alignment = 2
 [node name="MapHint" type="Label" parent="BottomBar"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 4
 theme_override_colors/font_color = Color(0.9, 0.88, 0.8, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
 theme_override_constants/shadow_offset_x = 1
@@ -205,11 +255,16 @@ text = "Mundo 1 · escolha a fase no mapa"
 
 [node name="PlayButton" type="Button" parent="BottomBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 72)
+texture_filter = 1
+custom_minimum_size = Vector2(380, 92)
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+size_flags_horizontal = 8
+size_flags_vertical = 4
+theme_override_fonts/font = ExtResource("2_display")
+theme_override_font_sizes/font_size = 30
 text = "JOGAR"
 
+[connection signal="pressed" from="TopBar/ProfileButton" to="." method="_on_profile_pressed"]
 [connection signal="pressed" from="TopBar/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="LeftColumn/ShopButton" to="." method="_on_shop_pressed"]
 [connection signal="pressed" from="LeftColumn/CharactersButton" to="." method="_on_characters_pressed"]
