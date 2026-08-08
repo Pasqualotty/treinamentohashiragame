@@ -27,7 +27,7 @@ func _fail(msg: String) -> void:
 
 func _run() -> void:
 	var defs: Array[StageDef] = WorldCatalog.load_stages()
-	await _check_catalog(defs)
+	_check_catalog(defs)
 	await _check_stage_scenes(defs)
 	await _check_world_map(defs)
 	_check_progression(defs)
@@ -109,7 +109,10 @@ func _check_ground_band(stage: Node, stage_id: String) -> void:
 	if fill == null or fill.texture == null:
 		return
 	var shape_node := ground.get_node_or_null("CollisionShape2D") as CollisionShape2D
-	var rect := shape_node.shape as RectangleShape2D if shape_node != null else null
+	if shape_node == null:
+		_fail("%s: Ground sem CollisionShape2D" % stage_id)
+		return
+	var rect := shape_node.shape as RectangleShape2D
 	if rect == null:
 		_fail("%s: Ground sem RectangleShape2D" % stage_id)
 		return
@@ -153,9 +156,20 @@ func _check_world_map(defs: Array[StageDef]) -> void:
 	if packed == null:
 		_fail("load: %s" % MAP_SCENE)
 		return
+
+	# Estado determinístico (save novo) para o mapa nascer sempre igual.
+	var game: Node = root.get_node_or_null("Game")
+	var previous: Array = []
+	if game != null:
+		previous = (game.get("stages_cleared") as Array).duplicate()
+		var empty: Array[String] = []
+		game.set("stages_cleared", empty)
+
 	var map: Node = packed.instantiate()
 	if map == null:
 		_fail("instantiate: %s" % MAP_SCENE)
+		if game != null:
+			game.set("stages_cleared", previous)
 		return
 	root.add_child(map)
 	await process_frame
@@ -172,8 +186,29 @@ func _check_world_map(defs: Array[StageDef]) -> void:
 			_fail("world_map criou %d nós para %d fases do catálogo" % [buttons, defs.size()])
 		else:
 			print("[smoke] OK world_map com %d nós de fase" % buttons)
+
+	# Tocar num nó bloqueado precisa dar resposta: o status diz o que falta.
+	var boss_index: int = -1
+	for i in range(defs.size()):
+		if defs[i].is_boss:
+			boss_index = i
+			break
+	var status := map.find_child("StatusLabel", true, false) as Label
+	if boss_index < 0 or status == null:
+		_fail("world_map sem nó de boss ou sem StatusLabel")
+	else:
+		map.call("_select_stage", boss_index)
+		await process_frame
+		var text: String = status.text
+		if not text.contains("conclua"):
+			_fail("toque no boss bloqueado não explicou o motivo (status='%s')" % text)
+		else:
+			print("[smoke] OK feedback de nó bloqueado: '%s'" % text)
+
 	map.queue_free()
 	await process_frame
+	if game != null:
+		game.set("stages_cleared", previous)
 
 
 # --- Progressão -------------------------------------------------------------

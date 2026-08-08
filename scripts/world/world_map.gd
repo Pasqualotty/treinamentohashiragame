@@ -21,6 +21,9 @@ const STATE_BOSS_AVAILABLE := "boss_available"
 const STATE_LOCKED := "locked"
 const STATE_BOSS_LOCKED := "boss_locked"
 
+## Quantas fases faltantes o status lista antes de resumir com "(+N)".
+const MAX_MISSING_SHOWN: int = 2
+
 @onready var status_label: Label = %StatusLabel
 @onready var map_canvas: Control = %MapCanvas
 
@@ -253,8 +256,9 @@ func _refresh_nodes() -> void:
 		if not is_instance_valid(btn):
 			continue
 		var state: String = _node_state(i)
-		var unlocked: bool = state != STATE_LOCKED and state != STATE_BOSS_LOCKED
-		btn.disabled = not unlocked
+		# Nó bloqueado continua clicável de propósito: `_select_stage` recusa a
+		# entrada e explica no status quais fases ainda faltam. Botão `disabled`
+		# não emite `pressed` e deixaria o jogador sem nenhuma resposta ao toque.
 		var label: String = _stages[i].node_label()
 		match state:
 			STATE_CLEARED:
@@ -281,13 +285,20 @@ func _intro_text() -> String:
 ## Motivo legível do bloqueio, citando as fases que faltam.
 func _locked_reason(index: int) -> String:
 	var def: StageDef = _stages[index]
+	var adj: String = "bloqueado" if def.is_boss else "bloqueada"
 	var missing: Array[String] = def.missing_requirements()
 	if missing.is_empty():
-		return "%s bloqueada" % def.node_label()
+		return "%s %s" % [def.node_label(), adj]
 	var names := PackedStringArray()
 	for req_id: String in missing:
+		if names.size() >= MAX_MISSING_SHOWN:
+			break
 		names.append(WorldCatalog.label_for(req_id))
-	return "%s bloqueada — conclua: %s" % [def.node_label(), ", ".join(names)]
+	var listed: String = ", ".join(names)
+	var rest: int = missing.size() - names.size()
+	if rest > 0:
+		listed += " (+%d)" % rest
+	return "%s %s — conclua: %s" % [def.node_label(), adj, listed]
 
 
 func _style_stage_button(btn: Button, state: String) -> void:
@@ -306,7 +317,8 @@ func _style_stage_button(btn: Button, state: String) -> void:
 		STATE_BOSS_AVAILABLE:
 			font_col = Color(1.0, 0.75, 0.75, 1.0)
 		_:
-			font_col = Color(0.65, 0.68, 0.7, 0.9)
+			# Mesmo tom do antigo `font_disabled_color` — nó bloqueado apagado.
+			font_col = Color(0.55, 0.58, 0.6, 0.85)
 	btn.add_theme_color_override("font_color", font_col)
 	btn.add_theme_color_override("font_hover_color", font_col.lightened(0.1))
 	btn.add_theme_color_override("font_pressed_color", font_col.darkened(0.1))
@@ -317,6 +329,9 @@ func _style_stage_button(btn: Button, state: String) -> void:
 # --- Ações ------------------------------------------------------------------
 
 func _on_back_pressed() -> void:
+	# Durante a viagem já existe uma troca de cena a caminho — não empilhar outra.
+	if _traveling:
+		return
 	if is_instance_valid(Audio):
 		Audio.play_sfx("ui_click")
 	SceneRouter.to_hub()
@@ -344,6 +359,9 @@ func _select_stage(index: int) -> void:
 	Game.pending_stage_id = def.stage_id
 	status_label.text = "Entrando em %s…" % def.node_label()
 	await _play_travel_animation(index)
+	# O mapa pode ter saído da árvore durante a animação (ex.: outra navegação).
+	if not is_inside_tree():
+		return
 	SceneRouter.go_to(def.scene_path)
 
 
