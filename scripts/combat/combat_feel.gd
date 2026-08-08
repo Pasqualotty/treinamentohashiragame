@@ -21,6 +21,14 @@ var _shake_token: int = 0
 var _hitstop_watchdog_token: int = 0
 const HITSTOP_WATCHDOG_SEC: float = 0.25
 
+## Zoom-punch: fração de zoom-in por evento (câmera "viva" no kill/ultimate).
+const ZOOM_PUNCH_KILL: float = 0.06
+const ZOOM_PUNCH_ULT: float = 0.10
+const ZOOM_PUNCH_DUR: float = 0.16
+const FREEZE_FRAME_DUR: float = 0.075
+
+var _zoom_token: int = 0
+
 
 func hit_impact(intensity: float = 1.0, is_ultimate: bool = false) -> void:
 	## Combo padrão ao acertar: hitstop + shake.
@@ -131,6 +139,37 @@ func shake(intensity: float = SHAKE_HIT, duration_sec: float = SHAKE_HIT_DUR) ->
 		t += tree.root.get_process_delta_time() if tree.root else 0.016
 	if is_instance_valid(cam) and token == _shake_token:
 		cam.offset = base
+
+
+func freeze_frame(duration_sec: float = FREEZE_FRAME_DUR) -> void:
+	## Freeze-frame de impacto (ultimate/kill) — mesmo mecanismo do hitstop,
+	## com nome semântico próprio pra chamadas de "câmera viva".
+	hitstop(duration_sec)
+
+
+func zoom_punch(amount: float = ZOOM_PUNCH_KILL, duration_sec: float = ZOOM_PUNCH_DUR) -> void:
+	## Punch de zoom curto (in→out) na câmera ativa. Seguro se não houver câmera.
+	var cam: Camera2D = _find_camera()
+	if cam == null:
+		return
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	_zoom_token += 1
+	var token: int = _zoom_token
+	var base: Vector2 = cam.zoom
+	var punch: Vector2 = base * (1.0 + clampf(amount, 0.0, 1.0))
+	var half: float = maxf(duration_sec * 0.5, 0.001)
+	var t: float = 0.0
+	while t < duration_sec and token == _zoom_token and is_instance_valid(cam):
+		var dt: float = tree.root.get_process_delta_time() if tree.root else 0.016
+		t += dt
+		var f: float = t / half if t < half else 1.0 - ((t - half) / half)
+		f = clampf(f, 0.0, 1.0)
+		cam.zoom = base.lerp(punch, f)
+		await tree.process_frame
+	if is_instance_valid(cam) and token == _zoom_token:
+		cam.zoom = base
 
 
 func _find_camera() -> Camera2D:

@@ -1,8 +1,7 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
 [ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
-[ext_resource type="PackedScene" path="res://scenes/characters/enemies/oni_elite.tscn" id="3_elite"]
 [ext_resource type="Script" path="res://scripts/battle/stage_goal.gd" id="4_goal"]
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_forest.png" id="9_bg"]
@@ -112,24 +111,6 @@ limit_right = 1320
 limit_bottom = 720
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
-
-[node name="Boss" parent="." instance=ExtResource("3_elite")]
-position = Vector2(720, 500)
-max_hp = 90
-coin_reward = 30
-patrol_speed = 40.0
-chase_speed = 100.0
-attack_damage = 9
-patrol_half_width = 120.0
-
-[node name="BossMinion" parent="." instance=ExtResource("3_elite")]
-position = Vector2(900, 500)
-max_hp = 50
-coin_reward = 15
-patrol_speed = 50.0
-chase_speed = 110.0
-attack_damage = 6
-patrol_half_width = 70.0
 
 [node name="Goal" type="Area2D" parent="."]
 position = Vector2(1180, 500)

@@ -19,7 +19,7 @@ extends CanvasLayer
 ## Faixa superior reservada ao HUD de combate: nenhum controle pode invadi-la.
 @export var hud_band_height: float = 150.0
 @export var stick_size: float = 156.0
-@export var stick_deadzone: float = 0.14
+@export var stick_deadzone: float = 0.12
 
 ## Hierarquia de tamanho em três níveis.
 @export var size_primary: float = 132.0    ## âncora do cluster direito (ATK)
@@ -45,10 +45,11 @@ const ANGLE_ADVANCE := 0.0
 ## Respiro entre a faixa do HUD e o botão de pause.
 const PAUSE_HUD_GAP := 12.0
 
-const PRESS_SCALE := 0.92
-const RELEASE_EASE_TIME := 0.14
-const PRESS_MOD := Color(1.05, 1.02, 0.96, 1.0)
-const NORMAL_MOD := Color(1.0, 1.0, 1.0, 0.88)
+const PRESS_SCALE := 0.9
+## Press mais quente/claro e idle mais discreto — diferença de estado nítida.
+const PRESS_MOD := Color(1.2, 1.14, 0.9, 1.0)
+const NORMAL_MOD := Color(1.0, 1.0, 1.0, 0.86)
+const RELEASE_EASE_SEC := 0.14
 
 var _root: Control
 var _tex_cache: Dictionary = {}
@@ -124,6 +125,8 @@ func _build_left_cluster() -> void:
 
 func _build_right_cluster() -> void:
 	## Âncora = ataque básico encostado no canto inferior direito.
+	## (Substitui a grade ATK/ULT + fileira H1/H2 de 4b45939: o PO pediu arranjo
+	## radial explicitamente, com um círculo grande e menores orbitando em arco.)
 	var anchor := Vector2(
 		design_size.x - safe_margin - size_primary * 0.5,
 		design_size.y - safe_margin - size_primary * 0.5
@@ -245,7 +248,7 @@ func _add_action_button(action: String, center: Vector2, size: float) -> void:
 
 	btn.set_meta("base_scale", btn.scale)
 	btn.pressed.connect(_on_tsb_pressed.bind(action, btn))
-	btn.released.connect(_on_tsb_released.bind(btn))
+	btn.released.connect(_on_tsb_released.bind(action, btn))
 	_root.add_child(btn)
 	_btn_nodes[action] = btn
 	_layout_slots.append({"id": action, "center": center, "radius": size * 0.5})
@@ -303,8 +306,9 @@ func _fallback_circle(col: Color, pressed: bool) -> Texture2D:
 # feedback
 # ---------------------------------------------------------------------------
 func _on_tsb_pressed(action: String, btn: TouchScreenButton) -> void:
-	# Press é instantâneo: sem tween, sem latência percebida.
-	_kill_release_tween(btn)
+	# Press é instantâneo (sem tween) — resposta imediata importa mais que
+	# suavidade num jogo de combate. O "juice" fica pro release.
+	_kill_btn_tween(btn)
 	var base: Vector2 = btn.get_meta("base_scale", btn.scale)
 	btn.scale = base * PRESS_SCALE
 	btn.modulate = PRESS_MOD
@@ -312,28 +316,28 @@ func _on_tsb_pressed(action: String, btn: TouchScreenButton) -> void:
 		Audio.play_sfx("ui_click", randf_range(0.95, 1.05))
 
 
-func _on_tsb_released(btn: TouchScreenButton) -> void:
+func _on_tsb_released(_action: String, btn: TouchScreenButton) -> void:
+	# Release com ease-back suave (spring) — feedback tátil premium sem
+	# atrasar a resposta do press em si.
+	_kill_btn_tween(btn)
 	var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE)
-	btn.modulate = NORMAL_MOD
-	_kill_release_tween(btn)
-	if not btn.is_inside_tree():
-		btn.scale = base
-		return
-	# Release com ease-back: o botão "volta" com um leve overshoot.
-	var tween := btn.create_tween()
-	tween.tween_property(btn, "scale", base, RELEASE_EASE_TIME) \
-		.set_trans(Tween.TRANS_BACK) \
-		.set_ease(Tween.EASE_OUT)
-	btn.set_meta("release_tween", tween)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.set_trans(Tween.TRANS_BACK)
+	tw.set_ease(Tween.EASE_OUT)
+	tw.tween_property(btn, "scale", base, RELEASE_EASE_SEC)
+	tw.tween_property(btn, "modulate", NORMAL_MOD, RELEASE_EASE_SEC)
+	btn.set_meta("release_tween", tw)
 
 
-func _kill_release_tween(btn: TouchScreenButton) -> void:
+func _kill_btn_tween(btn: TouchScreenButton) -> void:
+	# get_meta(key, null) NÃO suprime o erro "meta ausente" no Godot 4 (null é
+	# o mesmo sentinel de "sem default") — precisa do has_meta() antes.
 	if not btn.has_meta("release_tween"):
 		return
-	var prev: Variant = btn.get_meta("release_tween")
-	if prev is Tween and (prev as Tween).is_valid():
-		(prev as Tween).kill()
-	btn.remove_meta("release_tween")
+	var tw: Variant = btn.get_meta("release_tween")
+	if tw is Tween and (tw as Tween).is_valid():
+		(tw as Tween).kill()
 
 
 func _release_all() -> void:
@@ -343,6 +347,7 @@ func _release_all() -> void:
 	for action: Variant in _btn_nodes.keys():
 		var btn: TouchScreenButton = _btn_nodes[action] as TouchScreenButton
 		if btn:
-			_kill_release_tween(btn)
-			btn.scale = btn.get_meta("base_scale", Vector2.ONE)
+			_kill_btn_tween(btn)
+			var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE)
+			btn.scale = base
 			btn.modulate = NORMAL_MOD

@@ -1,0 +1,195 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/settings.gd" id="1_settings"]
+[ext_resource type="FontFile" path="res://assets/fonts/Cinzel-Bold.ttf" id="2_display"]
+
+[node name="Settings" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+clip_contents = true
+script = ExtResource("1_settings")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.058824, 0.070588, 0.094118, 1)
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -260.0
+offset_top = 64.0
+offset_right = 260.0
+offset_bottom = 116.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.909804, 0.721569, 0.290196, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_fonts/font = ExtResource("2_display")
+theme_override_font_sizes/font_size = 34
+text = "Ajustes"
+horizontal_alignment = 1
+
+[node name="Panel" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -150.0
+offset_right = 230.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Rows" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 26
+
+[node name="MasterRow" type="VBoxContainer" parent="Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MasterLabel" type="Label" parent="Panel/Rows/MasterRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Volume Geral"
+
+[node name="MasterSliderRow" type="HBoxContainer" parent="Panel/Rows/MasterRow"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="MasterSlider" type="HSlider" parent="Panel/Rows/MasterRow/MasterSliderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="MasterValueLabel" type="Label" parent="Panel/Rows/MasterRow/MasterSliderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.909804, 0.721569, 0.290196, 1)
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 2
+vertical_alignment = 1
+text = "100%"
+
+[node name="BgmRow" type="VBoxContainer" parent="Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="BgmLabel" type="Label" parent="Panel/Rows/BgmRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Música"
+
+[node name="BgmSliderRow" type="HBoxContainer" parent="Panel/Rows/BgmRow"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="BgmSlider" type="HSlider" parent="Panel/Rows/BgmRow/BgmSliderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 0.75
+
+[node name="BgmValueLabel" type="Label" parent="Panel/Rows/BgmRow/BgmSliderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.909804, 0.721569, 0.290196, 1)
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 2
+vertical_alignment = 1
+text = "75%"
+
+[node name="SfxRow" type="VBoxContainer" parent="Panel/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SfxLabel" type="Label" parent="Panel/Rows/SfxRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Efeitos"
+
+[node name="SfxSliderRow" type="HBoxContainer" parent="Panel/Rows/SfxRow"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="SfxSlider" type="HSlider" parent="Panel/Rows/SfxRow/SfxSliderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 24)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.01
+value = 1.0
+
+[node name="SfxValueLabel" type="Label" parent="Panel/Rows/SfxRow/SfxSliderRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.909804, 0.721569, 0.290196, 1)
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 2
+vertical_alignment = 1
+text = "100%"
+
+[node name="ButtonsRow" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -88.0
+offset_right = 220.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="BackButton" type="Button" parent="ButtonsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "← Hub"
+
+[node name="CreditsButton" type="Button" parent="ButtonsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 56)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Créditos"
+
+[connection signal="value_changed" from="Panel/Rows/MasterRow/MasterSliderRow/MasterSlider" to="." method="_on_master_changed"]
+[connection signal="value_changed" from="Panel/Rows/BgmRow/BgmSliderRow/BgmSlider" to="." method="_on_bgm_changed"]
+[connection signal="value_changed" from="Panel/Rows/SfxRow/SfxSliderRow/SfxSlider" to="." method="_on_sfx_changed"]
+[connection signal="drag_ended" from="Panel/Rows/SfxRow/SfxSliderRow/SfxSlider" to="." method="_on_sfx_drag_ended"]
+[connection signal="pressed" from="ButtonsRow/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="ButtonsRow/CreditsButton" to="." method="_on_credits_pressed"]

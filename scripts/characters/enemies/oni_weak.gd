@@ -12,6 +12,9 @@ const FLASH_COLOR: Color = Color(1.45, 0.35, 0.35, 1.0)
 const FLASH_TIME: float = 0.1
 const KNOCK_FRICTION: float = 900.0
 const COIN_SCENE: PackedScene = preload("res://scenes/combat/coin_pickup.tscn")
+## Duração do recoil visual procedural ao tomar hit (overlay sobre a pose do
+## estado atual, não é um State novo).
+const HURT_RECOIL_DUR: float = 0.22
 
 @export var max_hp: int = 30
 ## Valor da moeda spawnada no chão (creditada só no pickup).
@@ -46,6 +49,12 @@ var _hitbox_base_x: float = 28.0
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity") as float
 var _died: bool = false
 
+# --- Animação procedural (transform absoluto por frame, sem frames novos) ---
+var _sprite_base_pos: Vector2 = Vector2.ZERO
+var _sprite_base_scale: Vector2 = Vector2.ONE
+var _walk_t: float = 0.0
+var _hurt_recoil_t: float = 0.0
+
 
 func _ready() -> void:
 	add_to_group("enemy")
@@ -55,6 +64,8 @@ func _ready() -> void:
 		_base_modulate = sprite.modulate
 		facing = -1.0 if sprite.flip_h else 1.0
 		_patrol_dir = facing
+		_sprite_base_pos = sprite.position
+		_sprite_base_scale = sprite.scale
 	if hurtbox:
 		hurtbox.team = &"enemy"
 		if not hurtbox.hurt.is_connected(_on_hurt):
@@ -94,6 +105,7 @@ func _physics_process(delta: float) -> void:
 		State.ATTACK:
 			_ai_attack(delta)
 
+	_update_anim(delta)
 	move_and_slide()
 	_tick_flash(delta)
 
@@ -191,6 +203,72 @@ func _ai_attack(delta: float) -> void:
 		state = State.CHASE
 
 
+func _update_anim(delta: float) -> void:
+	## Motion procedural (position/scale/rotation do %Sprite) — sem frames
+	## novos. Cada estado escreve a pose ABSOLUTA do frame (nunca incremental,
+	## pra não acumular drift); sai do estado -> volta pra
+	## _sprite_base_pos/_sprite_base_scale. Facing já é tratado por
+	## _apply_facing() (flip_h) — aqui só offsets/lean/stretch na direção dele.
+	if sprite == null:
+		return
+	if _hurt_recoil_t > 0.0:
+		_hurt_recoil_t = maxf(_hurt_recoil_t - delta, 0.0)
+
+	var pos: Vector2 = _sprite_base_pos
+	var scl: Vector2 = _sprite_base_scale
+	var rot: float = 0.0
+
+	match state:
+		State.PATROL, State.CHASE:
+			var chasing: bool = state == State.CHASE
+			var moving: bool = is_on_floor() and not is_zero_approx(velocity.x)
+			var move_dir: float = signf(velocity.x) if moving else facing
+			if moving:
+				_walk_t += delta * (13.0 if chasing else 8.5)
+			var amp: float = 3.4 if chasing else 2.2
+			var bob: float = sin(_walk_t) * amp if moving else 0.0
+			pos = _sprite_base_pos + Vector2(0.0, bob)
+			scl = _sprite_base_scale * Vector2(1.0 - absf(bob) * 0.012, 1.0 + absf(bob) * 0.014)
+			rot = deg_to_rad((5.5 if chasing else 2.5) * move_dir) if moving else 0.0
+		State.TELEGRAPH:
+			# Wind-up: agacha/estica progressivamente + tremor que cresce junto
+			# com o pulso de cor (reforça o aviso do golpe iminente).
+			_walk_t = 0.0
+			var p: float = clampf(_phase_timer / maxf(telegraph_time, 0.0001), 0.0, 1.0)
+			var crouch: float = sin(clampf(p / 0.45, 0.0, 1.0) * PI * 0.5)
+			var tremor: float = sin(_phase_timer * 42.0) * 0.55 * p
+			pos = _sprite_base_pos + Vector2(tremor, 3.2 * crouch)
+			scl = _sprite_base_scale * Vector2(1.0 + 0.10 * crouch, 1.0 - 0.14 * crouch)
+			rot = deg_to_rad((tremor * 1.8 - 3.0 * crouch) * facing)
+		State.ATTACK:
+			# Lunge/estica: estende no active (janela de hit), relaxa no recovery.
+			_walk_t = 0.0
+			var active_dur: float = maxf(attack_active_time, 0.0001)
+			var rec_dur: float = maxf(attack_recovery, 0.0001)
+			var e: float
+			if _phase_timer < attack_active_time:
+				e = sin(clampf(_phase_timer / active_dur, 0.0, 1.0) * PI * 0.5)
+			else:
+				e = 1.0 - clampf((_phase_timer - attack_active_time) / rec_dur, 0.0, 1.0)
+			pos = _sprite_base_pos + Vector2(7.0 * e * facing, -1.5 * e)
+			scl = _sprite_base_scale * Vector2(1.0 + 0.20 * e, 1.0 - 0.14 * e)
+			rot = deg_to_rad(9.0 * e * facing)
+		_:
+			_walk_t = 0.0
+
+	if _hurt_recoil_t > 0.0:
+		# Recoil/lean ao tomar hit, sobreposto à pose do estado — recua contra
+		# o facing e relaxa ao longo de HURT_RECOIL_DUR.
+		var e3: float = _hurt_recoil_t / HURT_RECOIL_DUR
+		pos += Vector2(-9.0 * e3 * facing, -2.0 * e3)
+		rot += deg_to_rad(-11.0 * e3 * facing)
+		scl *= Vector2(1.0 + 0.06 * e3, 1.0 - 0.08 * e3)
+
+	sprite.position = pos
+	sprite.scale = scl
+	sprite.rotation = rot
+
+
 func _on_hurt(hit_data: HitData) -> void:
 	if _died or hp <= 0:
 		return
@@ -198,7 +276,11 @@ func _on_hurt(hit_data: HitData) -> void:
 	velocity.x = hit_data.knockback.x
 	velocity.y = hit_data.knockback.y
 	_start_flash()
+	_hurt_recoil_t = HURT_RECOIL_DUR
 	_refresh_label()
+	if is_instance_valid(Fx):
+		var spark_pos: Vector2 = hurtbox.global_position if hurtbox else global_position + Vector2(0.0, -28.0)
+		Fx.spark(spark_pos, Fx.COLOR_CRIMSON, 8)
 	# Hit SFX fica no player (fonte do hit); oni so reage visualmente.
 	print("[Oni] hurt dmg=%d hp=%d/%d" % [hit_data.damage, hp, max_hp])
 	# Interrompe telegraph/ataque ao tomar hit.
@@ -226,9 +308,26 @@ func _on_defeated() -> void:
 	if hp_label:
 		hp_label.text = "HP 0/%d — KO" % max_hp
 	_spawn_coin_drop()
+	if is_instance_valid(Fx):
+		Fx.death_poof(global_position + Vector2(0.0, -28.0), Fx.COLOR_ASH)
+	if is_instance_valid(CombatFeel):
+		if CombatFeel.has_method("freeze_frame"):
+			CombatFeel.freeze_frame()
+		if CombatFeel.has_method("zoom_punch"):
+			CombatFeel.zoom_punch(CombatFeel.ZOOM_PUNCH_KILL, CombatFeel.ZOOM_PUNCH_DUR)
 	defeated.emit()
-	# Remove apos feedback curto.
+	# Remove apos feedback curto — dissolve visual acompanha o poof de cinzas,
+	# junto com um tombo/squash procedural (tumble + achata na queda).
 	var tree: SceneTree = get_tree()
+	if sprite and tree:
+		var tw: Tween = create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(sprite, "modulate:a", 0.0, 0.3)
+		var fall_dir: float = facing if not is_zero_approx(facing) else 1.0
+		tw.tween_property(sprite, "rotation", deg_to_rad(78.0 * fall_dir), 0.3) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(sprite, "scale", _sprite_base_scale * Vector2(1.22, 0.68), 0.3) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	if tree:
 		await tree.create_timer(0.35).timeout
 	if is_instance_valid(self):

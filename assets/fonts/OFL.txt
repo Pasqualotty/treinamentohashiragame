@@ -1,0 +1,29 @@
+Fontes usadas em "Treinamento Hashira" (Pasqualotti Studio)
+=============================================================
+
+Todas as fontes nesta pasta sao distribuidas sob a SIL Open Font License 1.1
+(OFL), que permite uso, modificacao e redistribuicao livre, inclusive
+embarcada em jogos, desde que o nome da fonte nao seja usado para vender a
+fonte isoladamente. Texto completo: https://openfontlicense.org
+
+Fonte de display (titulos, CTA, headers) — clima ceremonial/noturno:
+  Cinzel Bold
+  Design: Natanael Gama
+  Fonte: Google Fonts — https://fonts.google.com/specimen/Cinzel
+  Uso no projeto: titulos de tela (hub, mapa, loja, loading, creditos) e CTA
+  principal ("JOGAR"). So o peso Bold e usado — Regular nao esta no repo
+  porque nao ha nenhum uso atual pra ele (evitar asset morto).
+
+Fonte de corpo (labels, HUD, textos de UI) — legibilidade em combate:
+  Noto Sans (Regular, SemiBold, Bold)
+  Design: Google Fonts / Noto project
+  Fonte: Google Fonts — https://fonts.google.com/noto/specimen/Noto+Sans
+  Uso no projeto: fonte padrao do Theme (resources/theme/default_theme.tres),
+  labels, botoes (SemiBold), HUD de combate. Bold reservado pra
+  RichTextLabel/enfase futura no theme.
+
+TODO (arte): se no futuro quisermos uma fonte com pegada japonesa mais
+explicita (ex.: Shippori Mincho / Zen Old Mincho), avaliar custo de peso —
+essas familias carregam o glyph set CJK completo (8MB+ por peso) so para
+usarmos os caracteres latinos, o que nao compensa o espaco. Cinzel cobre o
+"peso ceremonial" sem esse custo.
