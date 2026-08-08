@@ -86,9 +86,95 @@ func _run() -> void:
 		_check_nodes(node)
 		await _check_touch_alignment(slots, root.get_final_transform())
 
+	_ctx = "input atravessando resize"
+	await _check_keyboard_survives_resize(node)
+	await _check_stick_released_on_resize(node)
+
 	node.queue_free()
 	await process_frame
 	_report()
+
+
+# ---------------------------------------------------------------------------
+# input atravessando o resize (rotação de tela)
+# ---------------------------------------------------------------------------
+func _check_keyboard_survives_resize(node: CanvasLayer) -> void:
+	## Tecla segurada tem de sobreviver ao resize. As move_* têm binding de teclado
+	## (A/D/W/S + setas); um `Input.action_release()` incondicional no rebuild mata a
+	## tecla que o jogador está segurando e o personagem para até soltar e reapertar
+	## (no Godot 4 `action_release` limpa device_states e o echo não re-pressiona).
+	await _set_window(Vector2i(1280, 720))
+	Input.action_press("move_right")
+	await process_frame
+	if not Input.is_action_pressed("move_right"):
+		_fail("setup: action_press(move_right) não pegou")
+		Input.action_release("move_right")
+		return
+
+	await _set_window(Vector2i(2400, 1080))
+	if not node.call("get_layout_size").is_equal_approx(root.get_visible_rect().size):
+		_fail("setup: rebuild não aconteceu no resize")
+	if Input.is_action_pressed("move_right"):
+		_notes.append("teclado sobreviveu ao resize (move_right seguiu pressionada)")
+	else:
+		_fail("move_right foi liberada pelo resize com a tecla ainda segurada")
+	Input.action_release("move_right")
+	await process_frame
+
+
+func _check_stick_released_on_resize(node: CanvasLayer) -> void:
+	## O simétrico: com o dedo no stick, o resize destrói o VirtualJoystick, que não
+	## se libera sozinho — aí move_* PRECISA ser liberada, senão fica presa pra sempre.
+	await _set_window(Vector2i(1280, 720))
+	var stick_slot: Dictionary = _find_slot(node.call("get_layout_slots"), "virtual_stick")
+	if stick_slot.is_empty():
+		return
+	var center: Vector2 = stick_slot["center"]
+	var radius: float = float(stick_slot["radius"])
+	var to_window: Transform2D = root.get_final_transform()
+
+	var down := InputEventScreenTouch.new()
+	down.index = 1
+	down.position = to_window * center
+	down.pressed = true
+	root.push_input(down)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 1
+	drag.position = to_window * (center + Vector2(radius * 0.8, 0.0))
+	drag.relative = Vector2(radius * 0.8, 0.0)
+	root.push_input(drag)
+	await process_frame
+
+	if not Input.is_action_pressed("move_right"):
+		_notes.append("stick não ativou move_right no headless — caso pulado")
+		_release_touch(1, to_window * center)
+		await process_frame
+		Input.action_release("move_right")
+		return
+
+	await _set_window(Vector2i(2400, 1080))
+	if Input.is_action_pressed("move_right"):
+		_fail("stick ativo destruído no resize deixou move_right presa")
+	else:
+		_notes.append("stick ativo liberou move_right ao ser reconstruído")
+	_release_touch(1, to_window * center)
+	await process_frame
+	if Input.is_action_pressed("move_right"):
+		Input.action_release("move_right")
+
+
+func _release_touch(index: int, at: Vector2) -> void:
+	var up := InputEventScreenTouch.new()
+	up.index = index
+	up.position = at
+	up.pressed = false
+	root.push_input(up)
+
+
+func _set_window(window: Vector2i) -> void:
+	root.size = window
+	await process_frame
+	await process_frame
 
 
 # ---------------------------------------------------------------------------
