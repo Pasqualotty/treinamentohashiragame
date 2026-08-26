@@ -1,5 +1,10 @@
 # Changelog — Treinamento Hashira
 
+## Unreleased — auto-update sideload
+
+- No hub, se existe versão nova, o sobrinho vê um aviso e pode baixar/instalar sem APK na mão
+- Publicação: GitHub Releases (`latest.json` + APK) — `docs/AUTO-UPDATE.md`
+
 ## 0.1.0 — MVP Mundo 1 (2026-08-06)
 
 ### Jogavel

@@ -41,6 +41,7 @@ Lista copi├ível: `docs/android-paths.txt` ┬À setup geral: `docs/SETUP-AMBI
    - Architectures: **arm64-v8a** (celulares modernos)
 4. Clique **Export Project** (modo Debug) ÔåÆ APK em `export/`.
 5. No telefone: ative ÔÇ£Fontes desconhecidasÔÇØ / instalar via USB (`adb install -r export\TreinamentoHashira-debug.apk`).
+6. Update pro sobrinho (depois do primeiro APK): bump `version_code` + export + GitHub Release. Ver `docs/AUTO-UPDATE.md`. Sem bump do `version_code` o celular acha que ja esta na ultima.
 
 ## CLI (opcional)
 
@@ -65,7 +66,9 @@ Comando manual equivalente:
 | Platform | Android |
 | Unique name | `studio.pasqualotti.hashira` |
 | App name | Treinamento Hashira |
-| Version name / code | `0.1.0` / `1` |
+| Version name / code | ver `export_presets.cfg` + `updates/app_version.json` (os dois têm que subir juntos) |
+| Internet | **on** (check de update) |
+| Custom permission | `REQUEST_INSTALL_PACKAGES` (instalador OTA) |
 | Arch | arm64-v8a |
 | Gradle build | **off** (export ÔÇ£cl├íssicoÔÇØ com templates) |
 | Assinatura | debug (Editor Settings; sem keystore de release no git) |

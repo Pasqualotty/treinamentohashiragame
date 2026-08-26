@@ -74,6 +74,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
 | JOGAR → mapa → fase jogável | ✅ |
 | Touch + InputMap | ✅ |
 | APK instalável | ✅ `export/TreinamentoHashira-debug.apk` |
+| Auto-update sideload (OTA) | ✅ check no hub + aviso + download + Intent; publicar: `docs/AUTO-UPDATE.md` |
 | Créditos fan game | ✅ engrenagem do hub |
 | Pause na fase | ✅ Continuar / Mapa / Hub |
 | SceneRouter (shop/credits/mapa) | ✅ (hotfix 2026-08-07) |
@@ -119,7 +120,8 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 |------|--------|
 | APK **debug** no círculo | ✅ existe |
 | Keystore **release** + backup **fora do git** | ⬜ `q6` / `f26` |
-| Versão semver + changelog na mão do amigo | 🟡 `CHANGELOG` 0.1.0; bump assinado ainda não |
+| Versão semver + changelog na mão do amigo | 🟡 bump via `scripts/publish-update.ps1` + Release; keystore release ainda não |
+| Auto-update no telefone do sobrinho | 🟡 código no APK; falta playtest no aparelho (`docs/AUTO-UPDATE.md`) |
 | Play Store | ❌ **fora de escopo** (IP fan game) |
 
 ### 5) Estudos / processo (opcional)

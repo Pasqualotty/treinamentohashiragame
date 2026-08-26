@@ -109,6 +109,8 @@ func _ready() -> void:
 	_start_breathing()
 	_start_blink_loop()
 	_start_background()
+	# Depois do hub vivo: update nunca trava splash/loading nem o primeiro frame.
+	call_deferred("_request_update_check")
 
 
 ## --- Layout do showcase ---------------------------------------------------
@@ -429,3 +431,9 @@ func _on_settings_pressed() -> void:
 
 func _on_profile_pressed() -> void:
 	_navigate(func() -> bool: return SceneRouter.to_name_entry(true))
+
+
+func _request_update_check() -> void:
+	if not is_instance_valid(AutoUpdater):
+		return
+	AutoUpdater.check_from_hub()

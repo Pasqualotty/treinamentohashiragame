@@ -255,7 +255,7 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 | Playable | **Só Tanjiro** | ✅ |
 | Loja | **4 upgrades** | ✅ |
 | Onis | **2 tipos** | ✅ |
-| Distribuição | APK sideload | ✅ |
+| Distribuição | APK sideload + OTA próprio (GitHub Releases) | ✅ |
 
 ---
 
@@ -278,6 +278,16 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 - [x] Upgrades: **globais** no MVP
 - [x] JOGAR → **mapa do mundo**
 - [x] Elite ~20 moedas no pickup; boss = clear da run
+
+### Auto-update (família, 2026-08-26)
+
+- Sem Play Store. Manifesto JSON remoto + APK no GitHub Releases.
+- Check **no hub**, depois do boot — nunca trava splash/loading/combate.
+- `version_code` remoto > local → aviso curto em PT (ATUALIZAR / Depois).
+- Sem net / falhou o check → o jogo abre normal.
+- Download falhou → tentar de novo + jogar assim mesmo.
+- PC/editor: check não bate na rede.
+- Fluxo de publicação: `docs/AUTO-UPDATE.md`
 
 ### Ainda pos-MVP
 

@@ -164,6 +164,12 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_boot_flow.gd"
         PassMarker = "BOOT_FLOW PASS"
         FailMarker = "BOOT_FLOW FAIL"
+    },
+    [pscustomobject]@{
+        Name = "smoke_auto_update"
+        Script = "res://scripts/qa/smoke_auto_update.gd"
+        PassMarker = "AUTO_UPDATE PASS"
+        FailMarker = "AUTO_UPDATE FAIL"
     }
 )
 

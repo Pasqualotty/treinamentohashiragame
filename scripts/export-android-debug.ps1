@@ -33,15 +33,22 @@ function Resolve-GodotExe {
     param([string]$Explicit)
     if ($Explicit -and (Test-Path -LiteralPath $Explicit)) { return (Resolve-Path $Explicit).Path }
 
-    $winget = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.1-stable_win64.exe"
-    if (Test-Path -LiteralPath $winget) { return $winget }
+    $pkg = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe"
+    $console = Join-Path $pkg "Godot_v4.7.1-stable_win64_console.exe"
+    if (Test-Path -LiteralPath $console) { return $console }
+    $gui = Join-Path $pkg "Godot_v4.7.1-stable_win64.exe"
+    if (Test-Path -LiteralPath $gui) { return $gui }
 
     $cmd = Get-Command godot -ErrorAction SilentlyContinue
     if ($cmd) { return $cmd.Source }
 
-    $found = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages") -Filter "Godot_v4*.exe" -Recurse -ErrorAction SilentlyContinue |
+    $found = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages") -Filter "Godot_v4*console*.exe" -Recurse -ErrorAction SilentlyContinue |
         Select-Object -First 1 -ExpandProperty FullName
     if ($found) { return $found }
+
+    $found2 = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Packages") -Filter "Godot_v4*.exe" -Recurse -ErrorAction SilentlyContinue |
+        Select-Object -First 1 -ExpandProperty FullName
+    if ($found2) { return $found2 }
 
     return $null
 }
