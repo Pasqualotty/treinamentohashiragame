@@ -28,8 +28,11 @@ const EPS := 1.0
 const RELEASE_SETTLE_SEC := 0.18
 
 ## Janelas de teste. O retângulo visível resultante vem do stretch do projeto.
+## 18:9 e 19.5:9 são os celulares reais mais comuns além do 20:9 já coberto.
 const RESOLUTIONS: Array[Dictionary] = [
 	{"label": "16:9 1280x720", "window": Vector2i(1280, 720)},
+	{"label": "18:9 2160x1080", "window": Vector2i(2160, 1080)},
+	{"label": "19.5:9 2340x1080", "window": Vector2i(2340, 1080)},
 	{"label": "20:9 2400x1080 (Android)", "window": Vector2i(2400, 1080)},
 	{"label": "4:3 2048x1536 (tablet)", "window": Vector2i(2048, 1536)},
 ]
@@ -83,6 +86,7 @@ func _run() -> void:
 		var slots: Array = node.call("get_layout_slots")
 		_check_slots(node, slots, viewport_size)
 		_check_anchored_to_corners(node, slots, viewport_size)
+		_check_thumb_zones(slots, viewport_size)
 		_check_nodes(node)
 		await _check_touch_alignment(slots, root.get_final_transform())
 
@@ -432,6 +436,28 @@ func _check_anchored_to_corners(node: CanvasLayer, slots: Array, viewport_size: 
 				"%s: borda %s a %.1fpx do viewport, esperado %.1f (âncora não seguiu o viewport)"
 				% [check["id"], check["edge"], distance, margin]
 			)
+
+
+func _check_thumb_zones(slots: Array, viewport_size: Vector2) -> void:
+	## Polegares: stick na metade esquerda, ataque na direita, folga mínima da borda.
+	var mid_x: float = viewport_size.x * 0.5
+	var stick: Dictionary = _find_slot(slots, "virtual_stick")
+	var attack: Dictionary = _find_slot(slots, "attack_basic")
+	if stick.is_empty() or attack.is_empty():
+		return
+	var stick_c: Vector2 = stick["center"]
+	var atk_c: Vector2 = attack["center"]
+	if stick_c.x >= mid_x:
+		_fail("stick fora da zona esquerda (x=%.1f, meio=%.1f)" % [stick_c.x, mid_x])
+	if atk_c.x <= mid_x:
+		_fail("ataque fora da zona direita (x=%.1f, meio=%.1f)" % [atk_c.x, mid_x])
+	var stick_left: float = stick_c.x - float(stick["radius"])
+	var atk_right: float = atk_c.x + float(attack["radius"])
+	if stick_left < MIN_EDGE_GAP - EPS:
+		_fail("stick colado na borda (left=%.1f < %.1f)" % [stick_left, MIN_EDGE_GAP])
+	if viewport_size.x - atk_right < MIN_EDGE_GAP - EPS:
+		_fail("ataque colado na borda (gap=%.1f < %.1f)" % [viewport_size.x - atk_right, MIN_EDGE_GAP])
+	_notes.append("%s -> polegares L/R ok (stick x=%.0f, atk x=%.0f)" % [_ctx, stick_c.x, atk_c.x])
 
 
 func _find_slot(slots: Array, id: String) -> Dictionary:

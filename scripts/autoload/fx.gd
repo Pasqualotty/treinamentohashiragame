@@ -21,6 +21,10 @@ const COLOR_GOLD: Color = Color(0.910, 0.722, 0.290, 1.0)     # #E8B84A
 const COLOR_WHITE: Color = Color(1.0, 1.0, 1.0, 1.0)
 const COLOR_ASH: Color = Color(0.55, 0.55, 0.6, 1.0)
 
+## Teto de instâncias vivas (spark/slash/dust/número/poof). Fase cheia no celular
+## não empilha partículas até virar slideshow — o mais antigo sai pra nascer o novo.
+const MAX_LIVE: int = 24
+
 var _dot_texture: ImageTexture = null
 var _fade_gradient: Gradient = null
 
@@ -89,6 +93,17 @@ func get_fade_gradient() -> Gradient:
 	return _fade_gradient
 
 
+func get_live_count() -> int:
+	return get_child_count()
+
+
+func clear_all() -> void:
+	var kids: Array[Node] = get_children()
+	for c: Node in kids:
+		remove_child(c)
+		c.queue_free()
+
+
 func _instantiate(scene: PackedScene) -> Node2D:
 	if scene == null:
 		return null
@@ -99,8 +114,19 @@ func _instantiate(scene: PackedScene) -> Node2D:
 		push_warning("Fx: cena raiz não é Node2D (%s)" % scene.resource_path)
 		inst.queue_free()
 		return null
+	_evict_over_cap()
 	add_child(inst)
 	return inst as Node2D
+
+
+func _evict_over_cap() -> void:
+	var n: int = FxLiveCap.evict_for_spawn(get_child_count(), MAX_LIVE)
+	for _i in n:
+		if get_child_count() <= 0:
+			return
+		var oldest: Node = get_child(0)
+		remove_child(oldest)
+		oldest.queue_free()
 
 
 func _build_dot_texture() -> ImageTexture:

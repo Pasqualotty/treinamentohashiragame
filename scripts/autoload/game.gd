@@ -297,7 +297,19 @@ func set_save_path(path: String) -> void:
 
 
 func save_game() -> void:
-	var data := {
+	if not AtomicJson.write_dict(_save_path, _save_payload()):
+		push_error("Save failed: %s" % FileAccess.get_open_error())
+
+
+func load_game() -> void:
+	var parsed: Variant = AtomicJson.read_dict(_save_path)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return
+	_apply_save_data(parsed as Dictionary)
+
+
+func _save_payload() -> Dictionary:
+	return {
 		"version": SAVE_VERSION,
 		"coins_banked": coins_banked,
 		"player_name": player_name,
@@ -305,23 +317,9 @@ func save_game() -> void:
 		"stages_cleared": stages_cleared,
 		"upgrades": upgrades,
 	}
-	var f := FileAccess.open(_save_path, FileAccess.WRITE)
-	if f == null:
-		push_error("Save failed: %s" % FileAccess.get_open_error())
-		return
-	f.store_string(JSON.stringify(data))
 
 
-func load_game() -> void:
-	if not FileAccess.file_exists(_save_path):
-		return
-	var f := FileAccess.open(_save_path, FileAccess.READ)
-	if f == null:
-		return
-	var parsed: Variant = JSON.parse_string(f.get_as_text())
-	if typeof(parsed) != TYPE_DICTIONARY:
-		return
-	var data: Dictionary = parsed
+func _apply_save_data(data: Dictionary) -> void:
 	coins_banked = int(data.get("coins_banked", 0))
 	# Save antigo (sem a chave) cai em "" e manda o jogador pro onboarding de nome.
 	player_name = sanitize_player_name(str(data.get("player_name", "")))

@@ -170,6 +170,25 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_auto_update.gd"
         PassMarker = "AUTO_UPDATE PASS"
         FailMarker = "AUTO_UPDATE FAIL"
+    },
+    [pscustomobject]@{
+        Name = "smoke_save_atomic"
+        Script = "res://scripts/qa/smoke_save_atomic.gd"
+        PassMarker = "SAVE_ATOMIC PASS"
+        FailMarker = "SAVE_ATOMIC FAIL"
+    },
+    [pscustomobject]@{
+        Name = "smoke_scene_switch"
+        Script = "res://scripts/qa/smoke_scene_switch.gd"
+        PassMarker = "SCENE_SWITCH PASS"
+        FailMarker = "SCENE_SWITCH FAIL"
+        TimeoutSec = 180
+    },
+    [pscustomobject]@{
+        Name = "smoke_fps_budget"
+        Script = "res://scripts/qa/smoke_fps_budget.gd"
+        PassMarker = "FPS_BUDGET PASS"
+        FailMarker = "FPS_BUDGET FAIL"
     }
 )
 
@@ -214,10 +233,15 @@ foreach ($s in $smokeList) {
         -RedirectStandardOutput $stdoutLog `
         -RedirectStandardError $stderrLog
 
-    $finished = $proc.WaitForExit($TimeoutSec * 1000)
+    $smokeTimeout = $TimeoutSec
+    if ($null -ne $s.TimeoutSec -and [int]$s.TimeoutSec -gt 0) {
+        $smokeTimeout = [int]$s.TimeoutSec
+    }
+
+    $finished = $proc.WaitForExit($smokeTimeout * 1000)
     if (-not $finished) {
         try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch { }
-        Write-Host ("[FAIL] {0} - TIMEOUT {1}s" -f $name, $TimeoutSec)
+        Write-Host ("[FAIL] {0} - TIMEOUT {1}s" -f $name, $smokeTimeout)
         $failed++
         $results.Add([pscustomobject]@{ Name = $name; Status = "TIMEOUT"; ExitCode = 124 }) | Out-Null
         if (Test-Path -LiteralPath $stdoutLog) {
