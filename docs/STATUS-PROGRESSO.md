@@ -1,7 +1,7 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-08-07 (playtest-gate + premium wave)  
-**Marca:** **MVP W1 + PLAYABLE + gate de playtest**  
+**Atualizado:** 2026-09-01 (W1–W5 no catálogo e no mapa)  
+**Marca:** **MVP W1 + PLAYABLE + 5 mundos no mapa**  
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
 **Playtest humano 10 min:** `docs/PLAYTEST-SOBRINHO.md`  
@@ -11,7 +11,7 @@
 
 ## Onde estamos (1 frase)
 
-**W1 jogável de verdade (validado smoke headless):** input mouse+teclado+touch, movimento do player, ondas de oni, moedas com magnet, saída trancada até limpar ondas. Fluxo: splash → loading → hub → mapa → fase (ondas) → portal → loja/save. **Gate de playtest** documentado + suite `tools/run_smokes.ps1`.
+**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub → mapa (seletor de mundo) → fase → portal → loja/save. Mundo seguinte abre ao limpar o boss. Placeholders de tema (trem / distrito / castelo / céu vermelho). **Gate de playtest** + suite `tools/run_smokes.ps1`.
 
 ### Hotfix playability 2026-08-07 (crítico)
 
@@ -66,7 +66,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
 
 | Item | Status |
 |------|--------|
-| 1 mundo, 3 fases + boss | ✅ |
+| 5 mundos (W1–W5) no mapa, cadeia de unlock por boss | ✅ |
 | Só Tanjiro | ✅ |
 | Loja 4 upgrades + save | ✅ |
 | 2 tipos de oni (fraco + elite) | ✅ |
@@ -110,7 +110,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 ### 3) Conteúdo em escala (Fase F — sonho)
 
 - Zenitsu, Inosuke, depois Hashiras  
-- Mundos W2–W5  
+- Arte final / BGM por mundo (hoje placeholder recolorido)  
 - Muzan / Yoriichi endgame  
 - Ultimate / kit por personagem  
 

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StageDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/stage_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+stage_id = "w2_02"
+display_name = "Mundo 2 — Vagões"
+scene_path = "res://scenes/battle/stage_w2_02.tscn"
+requires_cleared = Array[String](["w2_01"])
+map_label = "Fase 2"
+map_position = Vector2(460, 320)
+is_boss = false
+waves = [["weak", "weak", "weak"], ["weak", "elite", "weak"], ["elite", "weak"]]

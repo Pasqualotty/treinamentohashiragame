@@ -312,6 +312,10 @@ func _flash_banner(text: String, color: Color, hold: float = 1.0) -> void:
 
 
 func _waves_for_stage(id: String) -> Array:
+	## Prefere o resource (mundos novos). Tabela W1 abaixo fica de fallback.
+	var from_def: Array = _waves_from_catalog(id)
+	if not from_def.is_empty():
+		return from_def
 	## Cada onda = lista de tipos.
 	match id:
 		"w1_01":
@@ -362,3 +366,10 @@ func _waves_for_stage(id: String) -> Array:
 	# alto, e o smoke exige entrada aqui para todo id do catálogo.
 	push_error("WaveDirector: fase sem ondas definidas em _waves_for_stage(): %s" % id)
 	return []
+
+
+func _waves_from_catalog(id: String) -> Array:
+	var def: StageDef = WorldCatalog.find(id)
+	if def == null:
+		return []
+	return def.wave_packs()

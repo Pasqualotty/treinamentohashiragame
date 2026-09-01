@@ -1,5 +1,12 @@
 # Changelog — Treinamento Hashira
 
+## Unreleased — mundos W2–W5
+
+- Mapa com seletor de 5 mundos; cadeado até o boss anterior
+- Fases + boss: `w2_01`…`w2_boss`, `w3_*`, `w4_*`, `w5_01`…`w5_boss`
+- Ondas dos mundos novos no `StageDef.waves` (kind `boss` no pack final)
+- W1 ids intactos
+
 ## Unreleased — auto-update sideload
 
 - No hub, se existe versão nova, o sobrinho vê um aviso e pode baixar/instalar sem APK na mão
