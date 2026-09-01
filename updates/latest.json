@@ -3,6 +3,6 @@
 	"version_name": "0.0.3",
 	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.3/TreinamentoHashira.apk",
 	"changelog": "Cortes e dash com efeito. Limpa a fase e vai sozinho pra proxima. Onis com barra de vida. Personagens e 5 mundos.",
-	"size_bytes": 0,
-	"sha256": ""
+	"size_bytes": 76675527,
+	"sha256": "2777c20bcff5b975e769ae6a4ec0cfbe58b3dd1796258ea2c9a7658a0708fc56"
 }
