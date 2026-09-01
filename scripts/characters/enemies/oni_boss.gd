@@ -27,7 +27,8 @@ enum State { INTRO, PATROL, CHASE, TELEGRAPH, CHARGE, SLAM, SUMMON, RECOVER, DEA
 enum AttackKind { CHARGE, SLAM, SUMMON }
 enum Phase { P1, P2, P3 }
 
-const BOSS_NAME: String = "Senhor da Névoa"
+@export var boss_display_name: String = "Senhor da Névoa"
+@export var skip_intro: bool = false
 const FLASH_COLOR: Color = Color(1.6, 0.4, 0.4, 1.0)
 const FLASH_TIME: float = 0.1
 const KNOCK_FRICTION: float = 820.0
@@ -102,13 +103,8 @@ var _walk_t: float = 0.0
 var _hurt_recoil_t: float = 0.0
 
 var _hp_layer: CanvasLayer
-var _hp_bar: ProgressBar
-var _hp_name_label: Label
-var _hp_text_label: Label
-
-var _banner_layer: CanvasLayer
-var _banner_bg: ColorRect
-var _banner: Label
+var _hp_ui: Dictionary = {}
+var _banner_ui: Dictionary = {}
 var _banner_tween: Tween
 
 
@@ -144,7 +140,7 @@ func _ready() -> void:
 		slam_hitbox_r.disable()
 	_apply_facing()
 	_build_boss_ui()
-	_refresh_hp_bar()
+	BossCommon.refresh_hp(_hp_ui, hp, max_hp, hp_label)
 	if is_instance_valid(Audio):
 		Audio.play_bgm("boss")
 	_play_intro()
@@ -280,27 +276,15 @@ func _telegraph_duration_for(kind: int) -> float:
 			base = slam_telegraph_time
 		AttackKind.SUMMON:
 			base = summon_telegraph_time
-	return base * _phase_speed_mult()
+	return BossCommon.telegraph_duration(base, phase)
 
 
 func _phase_speed_mult() -> float:
-	match phase:
-		Phase.P2:
-			return 0.88
-		Phase.P3:
-			return 0.72
-		_:
-			return 1.0
+	return BossCommon.phase_speed_mult(phase)
 
 
 func _phase_cooldown_mult() -> float:
-	match phase:
-		Phase.P2:
-			return 0.8
-		Phase.P3:
-			return 0.6
-		_:
-			return 1.0
+	return BossCommon.phase_cooldown_mult(phase)
 
 
 func _ai_telegraph(delta: float) -> void:
@@ -383,10 +367,7 @@ func _fire_slam_wave() -> void:
 
 
 func _tween_slam(hb: Hitbox, dir: float) -> void:
-	var target_x: float = dir * slam_wave_range
-	var tw: Tween = create_tween()
-	tw.tween_property(hb, "position:x", target_x, slam_active_time) \
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	BossCommon.tween_slam(self, hb, dir, slam_wave_range, slam_active_time)
 
 
 func _ai_slam(delta: float) -> void:
@@ -454,11 +435,7 @@ func _ai_summon(delta: float) -> void:
 
 
 func _alive_minion_count() -> int:
-	var n: int = 0
-	for m: Node in _minions:
-		if is_instance_valid(m):
-			n += 1
-	return n
+	return BossCommon.alive_count(_minions)
 
 
 # --- RECOVER (comum a todos os ataques) ---
@@ -471,7 +448,7 @@ func _start_recover() -> void:
 func _ai_recover(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, 0.0, KNOCK_FRICTION * delta)
 	_phase_timer += delta
-	var dur: float = recovery_time * (0.75 if phase == Phase.P3 else 1.0)
+	var dur: float = BossCommon.recovery_duration(recovery_time, phase)
 	if _phase_timer >= dur:
 		_cooldown_left = attack_cooldown_base * _phase_cooldown_mult()
 		state = State.CHASE
@@ -480,16 +457,7 @@ func _ai_recover(delta: float) -> void:
 # --- Animação procedural (transform absoluto por frame, sem frames novos) ---
 
 func _phase_weight_mult() -> float:
-	## Motion fica mais pesado/ameaçador conforme a fase avança (amplitude +
-	## frequência maiores em P2/P3) — reforça a escalada sem tocar na state
-	## machine de fases.
-	match phase:
-		Phase.P2:
-			return 1.15
-		Phase.P3:
-			return 1.3
-		_:
-			return 1.0
+	return BossCommon.phase_weight_mult(phase)
 
 
 func _update_anim(delta: float) -> void:
@@ -571,7 +539,7 @@ func _update_anim(delta: float) -> void:
 			rot = deg_to_rad(pulse2 * 3.0)
 		State.RECOVER:
 			_walk_t = 0.0
-			var dur2: float = maxf(recovery_time * (0.75 if phase == Phase.P3 else 1.0), 0.0001)
+			var dur2: float = maxf(BossCommon.recovery_duration(recovery_time, phase), 0.0001)
 			var q3: float = clampf(_phase_timer / dur2, 0.0, 1.0)
 			var wobble: float = sin(q3 * PI * 3.0) * (1.0 - q3)
 			pos = _sprite_base_pos + Vector2(wobble * 3.5 * facing, absf(wobble) * 1.8)
@@ -602,7 +570,7 @@ func _on_hurt(hit_data: HitData) -> void:
 	velocity.y = hit_data.knockback.y * 0.45
 	_start_flash()
 	_hurt_recoil_t = HURT_RECOIL_DUR
-	_refresh_hp_bar()
+	BossCommon.refresh_hp(_hp_ui, hp, max_hp, hp_label)
 	print("[OniBoss] hurt dmg=%d hp=%d/%d phase=%s" % [hit_data.damage, hp, max_hp, Phase.keys()[phase]])
 	# Poise total: hit não cancela telegraph/ataque em andamento. Só a
 	# transição de fase (abaixo) força um respiro seguro.
@@ -612,13 +580,8 @@ func _on_hurt(hit_data: HitData) -> void:
 
 
 func _check_phase_transition() -> void:
-	var pct: float = float(hp) / float(max_hp)
-	var new_phase: int = Phase.P1
-	if pct <= 0.25:
-		new_phase = Phase.P3
-	elif pct <= 0.6:
-		new_phase = Phase.P2
-	if new_phase == phase or new_phase < phase:
+	var new_phase: int = BossCommon.next_phase(phase, hp, max_hp)
+	if not BossCommon.did_advance(phase, new_phase):
 		return
 	phase = new_phase
 	_enter_phase(phase)
@@ -628,10 +591,10 @@ func _enter_phase(new_phase: int) -> void:
 	var title: String
 	var color: Color
 	if new_phase == Phase.P2:
-		title = "%s ENTRA EM FÚRIA!" % BOSS_NAME.to_upper()
+		title = "%s ENTRA EM FÚRIA!" % boss_display_name.to_upper()
 		color = Color(1.0, 0.55, 0.25, 1.0)
 	else:
-		title = "FASE FINAL — %s DESESPERADO!" % BOSS_NAME.to_upper()
+		title = "FASE FINAL — %s DESESPERADO!" % boss_display_name.to_upper()
 		color = Color(1.0, 0.25, 0.35, 1.0)
 	_show_banner_async(title, color, 1.3)
 	if is_instance_valid(CombatFeel):
@@ -639,12 +602,7 @@ func _enter_phase(new_phase: int) -> void:
 	if is_instance_valid(Audio):
 		Audio.play_sfx("hit", 0.7, 1.3)
 	if state != State.DEAD and state != State.INTRO:
-		if hitbox:
-			hitbox.disable()
-		if slam_hitbox_l:
-			slam_hitbox_l.disable()
-		if slam_hitbox_r:
-			slam_hitbox_r.disable()
+		BossCommon.disable_hitboxes([hitbox, slam_hitbox_l, slam_hitbox_r])
 		if sprite:
 			sprite.modulate = _base_modulate
 		_start_recover()
@@ -655,12 +613,7 @@ func _on_defeated() -> void:
 		return
 	_died = true
 	state = State.DEAD
-	if hitbox:
-		hitbox.disable()
-	if slam_hitbox_l:
-		slam_hitbox_l.disable()
-	if slam_hitbox_r:
-		slam_hitbox_r.disable()
+	BossCommon.disable_hitboxes([hitbox, slam_hitbox_l, slam_hitbox_r])
 	if hurtbox:
 		hurtbox.invulnerable = true
 	for m: Node in _minions:
@@ -674,8 +627,8 @@ func _on_defeated() -> void:
 	print("[OniBoss] defeated hp=0/%d" % max_hp)
 	if is_instance_valid(CombatFeel):
 		CombatFeel.shake(9.0, 0.5)
-	_show_banner_async("%s DERROTADO!" % BOSS_NAME.to_upper(), Color(1.0, 0.82, 0.35, 1.0), 1.3)
-	_fade_hp_bar()
+	_show_banner_async("%s DERROTADO!" % boss_display_name.to_upper(), Color(1.0, 0.82, 0.35, 1.0), 1.3)
+	BossCommon.fade_hp_layer(self, _hp_layer)
 	var tree: SceneTree = get_tree()
 	if tree:
 		await tree.create_timer(0.85).timeout
@@ -699,24 +652,7 @@ func _on_defeated() -> void:
 
 func _spawn_coin_drop() -> void:
 	## Não credita moedas aqui — só spawna pickup (anti double-count).
-	var parent_node: Node = get_parent()
-	if parent_node == null:
-		parent_node = get_tree().current_scene if get_tree() else null
-	if parent_node == null:
-		push_error("[OniBoss] sem parent pra drop de moeda")
-		return
-	var coin: Node = COIN_SCENE.instantiate()
-	if coin == null:
-		push_error("[OniBoss] falha ao instanciar coin_pickup")
-		return
-	parent_node.add_child(coin)
-	if coin is Node2D:
-		(coin as Node2D).global_position = global_position + Vector2(facing * 12.0, -44.0)
-		(coin as Node2D).z_index = 25
-	if coin.has_method("setup"):
-		coin.call("setup", coin_reward)
-	elif "value" in coin:
-		coin.set("value", coin_reward)
+	BossCommon.spawn_coin_drop(self, COIN_SCENE, coin_reward, facing)
 
 
 # --- Intro / banner / HP bar ---
@@ -724,174 +660,24 @@ func _spawn_coin_drop() -> void:
 func _play_intro() -> void:
 	state = State.INTRO
 	velocity = Vector2.ZERO
-	await _show_banner("— %s —" % BOSS_NAME.to_upper(), Color(1.0, 0.6, 0.95, 1.0), 1.6)
+	if skip_intro:
+		state = State.PATROL
+		return
+	await _show_banner("— %s —" % boss_display_name.to_upper(), Color(1.0, 0.6, 0.95, 1.0), 1.6)
 	if is_instance_valid(self) and state == State.INTRO:
 		state = State.PATROL
 
 
 func _build_boss_ui() -> void:
-	_hp_layer = CanvasLayer.new()
-	_hp_layer.name = "BossHpLayer"
-	_hp_layer.layer = 58
-	add_child(_hp_layer)
-
-	var bg := ColorRect.new()
-	bg.name = "BossHpBg"
-	bg.anchor_left = 0.5
-	bg.anchor_right = 0.5
-	bg.offset_left = -230.0
-	bg.offset_right = 230.0
-	bg.offset_top = 16.0
-	bg.offset_bottom = 66.0
-	bg.color = Color(0.05, 0.04, 0.09, 0.78)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hp_layer.add_child(bg)
-
-	_hp_name_label = Label.new()
-	_hp_name_label.name = "BossNameLabel"
-	_hp_name_label.anchor_left = 0.5
-	_hp_name_label.anchor_right = 0.5
-	_hp_name_label.offset_left = -230.0
-	_hp_name_label.offset_right = 230.0
-	_hp_name_label.offset_top = 18.0
-	_hp_name_label.offset_bottom = 38.0
-	_hp_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hp_name_label.text = BOSS_NAME
-	_hp_name_label.add_theme_font_size_override("font_size", 16)
-	_hp_name_label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.6, 1.0))
-	_hp_name_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	_hp_name_label.add_theme_constant_override("shadow_offset_x", 1)
-	_hp_name_label.add_theme_constant_override("shadow_offset_y", 1)
-	_hp_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hp_layer.add_child(_hp_name_label)
-
-	_hp_bar = ProgressBar.new()
-	_hp_bar.name = "BossHpBar"
-	_hp_bar.anchor_left = 0.5
-	_hp_bar.anchor_right = 0.5
-	_hp_bar.offset_left = -214.0
-	_hp_bar.offset_right = 214.0
-	_hp_bar.offset_top = 40.0
-	_hp_bar.offset_bottom = 60.0
-	_hp_bar.show_percentage = false
-	_hp_bar.max_value = float(max_hp)
-	_hp_bar.value = float(hp)
-	_hp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var bg_box := StyleBoxFlat.new()
-	bg_box.bg_color = Color(0.1, 0.05, 0.07, 0.95)
-	bg_box.border_color = Color(0.55, 0.45, 0.2, 0.7)
-	bg_box.set_border_width_all(1)
-	bg_box.set_corner_radius_all(6)
-	var fill_box := StyleBoxFlat.new()
-	fill_box.bg_color = Color(0.77, 0.24, 0.24, 1.0)
-	fill_box.set_corner_radius_all(5)
-	_hp_bar.add_theme_stylebox_override("background", bg_box)
-	_hp_bar.add_theme_stylebox_override("fill", fill_box)
-	_hp_layer.add_child(_hp_bar)
-
-	_hp_text_label = Label.new()
-	_hp_text_label.name = "BossHpText"
-	_hp_text_label.anchor_left = 0.5
-	_hp_text_label.anchor_right = 0.5
-	_hp_text_label.offset_left = -214.0
-	_hp_text_label.offset_right = 214.0
-	_hp_text_label.offset_top = 40.0
-	_hp_text_label.offset_bottom = 60.0
-	_hp_text_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hp_text_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_hp_text_label.add_theme_font_size_override("font_size", 13)
-	_hp_text_label.add_theme_color_override("font_color", Color(1, 0.95, 0.9, 1))
-	_hp_text_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
-	_hp_text_label.add_theme_constant_override("shadow_offset_x", 1)
-	_hp_text_label.add_theme_constant_override("shadow_offset_y", 1)
-	_hp_text_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hp_layer.add_child(_hp_text_label)
-
-	_ensure_banner_ui()
-
-
-func _refresh_hp_bar() -> void:
-	if _hp_bar:
-		_hp_bar.max_value = float(max_hp)
-		_hp_bar.value = float(hp)
-	if _hp_text_label:
-		_hp_text_label.text = "%d / %d" % [hp, max_hp]
-	if hp_label:
-		hp_label.text = "HP %d/%d" % [hp, max_hp]
-
-
-func _fade_hp_bar() -> void:
-	if _hp_layer == null:
-		return
-	var tw: Tween = create_tween()
-	tw.tween_interval(0.4)
-	tw.set_parallel(true)
-	for child: Node in _hp_layer.get_children():
-		if child is CanvasItem:
-			tw.tween_property(child, "modulate:a", 0.0, 0.5)
-
-
-func _ensure_banner_ui() -> void:
-	_banner_layer = CanvasLayer.new()
-	_banner_layer.name = "BossBannerLayer"
-	_banner_layer.layer = 59
-	add_child(_banner_layer)
-
-	_banner_bg = ColorRect.new()
-	_banner_bg.name = "BossBannerBg"
-	_banner_bg.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_banner_bg.offset_top = 300.0
-	_banner_bg.offset_bottom = 372.0
-	_banner_bg.color = Color(0.02, 0.03, 0.07, 0.0)
-	_banner_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_banner_layer.add_child(_banner_bg)
-
-	_banner = Label.new()
-	_banner.name = "BossBannerLabel"
-	_banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_banner.offset_top = 304.0
-	_banner.offset_bottom = 368.0
-	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_banner.add_theme_font_size_override("font_size", 34)
-	_banner.add_theme_color_override("font_color", Color(1, 1, 1, 1))
-	_banner.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.75))
-	_banner.add_theme_constant_override("shadow_offset_x", 2)
-	_banner.add_theme_constant_override("shadow_offset_y", 2)
-	_banner.add_theme_constant_override("outline_size", 4)
-	_banner.modulate.a = 0.0
-	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_banner_layer.add_child(_banner)
+	_hp_ui = BossCommon.attach_hp_bar(self, boss_display_name, max_hp, hp)
+	_hp_layer = _hp_ui.get("layer", null) as CanvasLayer
+	_banner_ui = BossCommon.attach_banner(self)
 
 
 func _show_banner(text: String, color: Color, hold: float = 1.2) -> void:
-	if _banner == null or not is_inside_tree():
-		return
-	if _banner_tween != null and is_instance_valid(_banner_tween):
-		_banner_tween.kill()
-	_banner.text = text
-	_banner.add_theme_color_override("font_color", color)
-	_banner.modulate = Color(1, 1, 1, 0)
-	_banner.scale = Vector2(0.7, 0.7)
-	_banner.pivot_offset = Vector2(_banner.size.x * 0.5, _banner.size.y * 0.5)
-	if _banner_bg:
-		_banner_bg.color = Color(0.02, 0.03, 0.07, 0.0)
-
-	_banner_tween = create_tween()
-	_banner_tween.set_parallel(true)
-	_banner_tween.tween_property(_banner, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_banner_tween.tween_property(_banner, "scale", Vector2(1.06, 1.06), 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	if _banner_bg:
-		_banner_tween.tween_property(_banner_bg, "color:a", 0.5, 0.2)
-	_banner_tween.set_parallel(false)
-	_banner_tween.tween_property(_banner, "scale", Vector2.ONE, 0.12)
-	_banner_tween.tween_interval(maxf(0.15, hold - 0.5))
-	_banner_tween.set_parallel(true)
-	_banner_tween.tween_property(_banner, "modulate:a", 0.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	if _banner_bg:
-		_banner_tween.tween_property(_banner_bg, "color:a", 0.0, 0.3)
-	await _banner_tween.finished
+	_banner_tween = BossCommon.play_banner(self, _banner_ui, text, color, hold)
+	if _banner_tween:
+		await _banner_tween.finished
 
 
 func _show_banner_async(text: String, color: Color, hold: float = 1.2) -> void:
@@ -899,19 +685,8 @@ func _show_banner_async(text: String, color: Color, hold: float = 1.2) -> void:
 	_show_banner(text, color, hold)
 
 
-# --- Utilidades comuns ---
-
 func _find_player() -> Node2D:
-	var tree: SceneTree = get_tree()
-	if tree == null:
-		return null
-	var nodes: Array[Node] = tree.get_nodes_in_group("player")
-	if nodes.is_empty():
-		return null
-	var n: Node = nodes[0]
-	if n is Node2D:
-		return n as Node2D
-	return null
+	return BossCommon.find_player(get_tree())
 
 
 func _dist_to(target: Node2D) -> float:
@@ -922,11 +697,7 @@ func _apply_facing() -> void:
 	## `oni_weak_side.png` SEM flip já olha pra ESQUERDA:
 	##   facing = -1 (esquerda) -> flip_h = false
 	##   facing = +1 (direita)  -> flip_h = true
-	## A dedução inicial em `_ready()` é o inverso exato disto.
-	if sprite:
-		sprite.flip_h = facing > 0.0
-	if hitbox:
-		hitbox.position.x = _hitbox_base_x * facing
+	BossCommon.apply_facing(sprite, hitbox, facing, _hitbox_base_x)
 
 
 func _start_flash() -> void:

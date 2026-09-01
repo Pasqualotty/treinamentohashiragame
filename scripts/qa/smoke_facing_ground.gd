@@ -28,6 +28,10 @@ const ENEMY_SCENES: PackedStringArray = [
 	"res://scenes/characters/enemies/oni_charger.tscn",
 	"res://scenes/characters/enemies/oni_ranged.tscn",
 	"res://scenes/characters/enemies/oni_boss.tscn",
+	"res://scenes/characters/enemies/oni_boss_fire.tscn",
+	"res://scenes/characters/enemies/oni_boss_dual.tscn",
+	"res://scenes/characters/enemies/oni_boss_castle.tscn",
+	"res://scenes/characters/enemies/oni_boss_final.tscn",
 ]
 
 ## Pasta varrida atrás das fases. Fase nova é coberta automaticamente, sem
