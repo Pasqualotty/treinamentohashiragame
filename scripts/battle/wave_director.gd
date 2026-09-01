@@ -16,10 +16,18 @@ const ONI_ELITE := preload("res://scenes/characters/enemies/oni_elite.tscn")
 const ONI_RANGED := preload("res://scenes/characters/enemies/oni_ranged.tscn")
 const ONI_CHARGER := preload("res://scenes/characters/enemies/oni_charger.tscn")
 const ONI_BOSS := preload("res://scenes/characters/enemies/oni_boss.tscn")
+const ONI_BOSS_FIRE := preload("res://scenes/characters/enemies/oni_boss_fire.tscn")
+const ONI_BOSS_DUAL := preload("res://scenes/characters/enemies/oni_boss_dual.tscn")
+const ONI_BOSS_CASTLE := preload("res://scenes/characters/enemies/oni_boss_castle.tscn")
+const ONI_BOSS_FINAL := preload("res://scenes/characters/enemies/oni_boss_final.tscn")
 
 ## Tipos de oni aceitos numa onda. O smoke valida a tabela de `_waves_for_stage`
 ## contra esta lista — typo vira falha de suíte, não um weak silencioso.
-const KINDS: PackedStringArray = ["weak", "elite", "ranged", "charger", "boss"]
+## Chefes w2–w5 existem como kind+cena; as ondas desses mundos ficam na frente mundos.
+const KINDS: PackedStringArray = [
+	"weak", "elite", "ranged", "charger",
+	"boss", "boss_fire", "boss_dual", "boss_castle", "boss_final",
+]
 
 ## stage_id → lista de ondas; cada onda = array de tipos de `KINDS`.
 @export var stage_id: String = "w1_01"
@@ -119,7 +127,7 @@ func _spawn_wave(pack: Array) -> void:
 		parent.add_child(oni)
 		if oni is Node2D:
 			var x: float
-			if kind == "boss":
+			if kind == "boss" or kind.begins_with("boss_"):
 				# Boss spawna numa posição fixa e legível — não empilha com spawn_xs.
 				x = boss_spawn_x
 			else:
@@ -145,6 +153,14 @@ func _scene_for_kind(kind: String) -> PackedScene:
 			return ONI_CHARGER
 		"boss":
 			return ONI_BOSS
+		"boss_fire":
+			return ONI_BOSS_FIRE
+		"boss_dual":
+			return ONI_BOSS_DUAL
+		"boss_castle":
+			return ONI_BOSS_CASTLE
+		"boss_final":
+			return ONI_BOSS_FINAL
 	# Tipo desconhecido virava `weak` em silêncio: um typo na tabela de ondas
 	# passava despercebido. Continua caindo em `weak` para não travar a fase,
 	# mas reclama alto.

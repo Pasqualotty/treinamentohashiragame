@@ -195,6 +195,12 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_hitbox_frames.gd"
         PassMarker = "=== HITBOX_FRAMES PASS ==="
         FailMarker = "=== HITBOX_FRAMES FAIL ==="
+    },
+    [pscustomobject]@{
+        Name = "smoke_boss_phases"
+        Script = "res://scripts/qa/smoke_boss_phases.gd"
+        PassMarker = "=== BOSS PHASES PASS ==="
+        FailMarker = "=== BOSS PHASES FAIL ==="
     }
 )
 
