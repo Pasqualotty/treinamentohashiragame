@@ -94,6 +94,8 @@ func _ready() -> void:
 		Game.coins_changed.connect(_on_coins_changed)
 	if not Game.player_name_changed.is_connected(_on_player_name_changed):
 		Game.player_name_changed.connect(_on_player_name_changed)
+	if not Game.character_changed.is_connected(_on_character_changed):
+		Game.character_changed.connect(_on_character_changed)
 	if not showcase.resized.is_connected(_layout_showcase):
 		showcase.resized.connect(_layout_showcase)
 	if not SceneRouter.navigation_failed.is_connected(_on_navigation_failed):
@@ -373,7 +375,12 @@ func _load_tex(path: String) -> Texture2D:
 
 func _refresh() -> void:
 	coins_label.text = str(Game.coins_banked)
-	character_name.text = "Tanjiro"
+	var def: CharacterDef = CharacterCatalog.find(Game.current_character_id)
+	if def == null:
+		def = CharacterCatalog.starter()
+	character_name.text = def.display_name if def != null else "Tanjiro"
+	if character_art != null and def != null:
+		character_art.modulate = def.accent
 	profile_btn.text = Game.player_name if Game.has_player_name() else "Caçador"
 
 
@@ -382,6 +389,10 @@ func _on_coins_changed(_total: int) -> void:
 
 
 func _on_player_name_changed(_new_name: String) -> void:
+	_refresh()
+
+
+func _on_character_changed(_character_id: String) -> void:
 	_refresh()
 
 
@@ -419,10 +430,7 @@ func _on_shop_pressed() -> void:
 
 
 func _on_characters_pressed() -> void:
-	# Não navega: fica fora da guarda para o jogador poder clicar de novo.
-	_ui_click()
-	# MVP: so Tanjiro. Tela de elenco completa e pos-MVP.
-	character_name.text = "Tanjiro (unico no MVP)"
+	_navigate(SceneRouter.to_characters)
 
 
 func _on_settings_pressed() -> void:

@@ -201,6 +201,12 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_boss_phases.gd"
         PassMarker = "=== BOSS PHASES PASS ==="
         FailMarker = "=== BOSS PHASES FAIL ==="
+    },
+    [pscustomobject]@{
+        Name = "smoke_character_select"
+        Script = "res://scripts/qa/smoke_character_select.gd"
+        PassMarker = "CHARACTER_SELECT PASS"
+        FailMarker = "CHARACTER_SELECT FAIL"
     }
 )
 

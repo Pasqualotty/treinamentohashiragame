@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "uzui"
+display_name = "Uzui"
+unlock_requires = Array[String](["w3_boss"])
+unlock_hint = "Vença o chefe do Mundo 3"
+skill_1_name = "Estouro"
+skill_2_name = "Corte Duplo"
+ultimate_name = "Desfile"
+accent = Color(1.1, 0.88, 0.5, 1)
+stats_path = "res://resources/player/kits/stats_uzui.tres"
+combat_frames_dir = ""
+lifesteal_ratio = 0.0

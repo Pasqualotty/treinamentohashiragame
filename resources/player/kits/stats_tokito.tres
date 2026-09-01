@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PlayerStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/player_stats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+
+move_speed = 345.0
+max_hp = 75
+dash_cooldown = 0.48
+dash_speed = 720.0
+attack_damage = 8
+hurt_invuln = 0.6

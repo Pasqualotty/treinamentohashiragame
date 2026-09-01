@@ -93,7 +93,7 @@ func _run() -> void:
 					messages.append("save.json parse fail")
 				else:
 					var d: Dictionary = save_data
-					for key in ["version", "coins_banked", "upgrades", "stages_cleared", "current_character_id"]:
+					for key in ["version", "coins_banked", "upgrades", "stages_cleared", "current_character_id", "unlocked_characters"]:
 						if not d.has(key):
 							ok = false
 							messages.append("save falta chave %s" % key)

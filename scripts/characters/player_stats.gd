@@ -111,7 +111,8 @@ extends Resource
 ])
 @export var skill_2_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array([22.0, 34.0, 42.0])
 
-# --- Ultimate (consome barra de respira├º├úo) ---
+# --- Ultimate (consome barra de respiração) ---
+@export var ultimate_display_name: String = "Respiração"
 @export var ultimate_damage: int = 25
 @export var ultimate_knockback: Vector2 = Vector2(320.0, -120.0)
 @export var ultimate_startup: float = 0.10
@@ -126,3 +127,5 @@ extends Resource
 @export var ultimate_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array([26.0, 40.0, 52.0])
 ## Breath ganho por hit que acerta (via Game.add_breath_from_hit).
 @export var breath_per_hit: float = 10.0
+## Fração do dano causado convertida em cura (0 = desligado). Kit do Muzan.
+@export var lifesteal_ratio: float = 0.0

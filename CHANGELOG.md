@@ -1,11 +1,14 @@
 # Changelog — Treinamento Hashira
 
-## Unreleased — mundos W2–W5
+## Unreleased — mundos W2–W5 + elenco 14
 
 - Mapa com seletor de 5 mundos; cadeado até o boss anterior
 - Fases + boss: `w2_01`…`w2_boss`, `w3_*`, `w4_*`, `w5_01`…`w5_boss`
-- Ondas dos mundos novos no `StageDef.waves` (kind `boss` no pack final)
-- W1 ids intactos
+- Ondas dos mundos novos no `StageDef.waves`
+- Hub PERSONAGENS abre a tela de verdade (não só o label)
+- 14 caçadores no catálogo; Tanjiro starter; locked mostra a condição em PT
+- Kit distinto por resource (stats + nomes de skill); um player só
+- Save: `unlocked_characters` + `current_character_id` + `current_world_id`
 
 ## Unreleased — auto-update sideload
 

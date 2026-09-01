@@ -2,7 +2,7 @@
 
 **Projeto:** Treinamento Hashira (2D · Android · fan / uso pessoal)  
 **Estúdio:** Pasqualotti Studio  
-**Atualizado:** 2026-09-01 (W1–W5 no mapa — progresso vivo em `STATUS-PROGRESSO.md`)
+**Atualizado:** 2026-09-01 (W1–W5 + elenco 14 — progresso vivo em `STATUS-PROGRESSO.md`)
 
 ---
 
@@ -108,7 +108,7 @@ Ordem **obrigatória** (confirmada com prints):
 | Topo moedas / recursos | Gems, coins, bling | **Moedas** (e depois outros se precisar) | ✅ moedas |
 | Topo perfil | Nick + ícone | Nick local / “Caçador” + avatar | ✅ simples |
 | Esquerda LOJA | Shop | **Loja de upgrades** | ✅ |
-| Esquerda lista chars | Brawlers | **Personagens** (só Tanjiro unlocked) | ✅ tela stub |
+| Esquerda lista chars | Brawlers | **Personagens** (14 no catálogo; Tanjiro starter) | ✅ tela select |
 | Esquerda missões / XP | Battle pass vibe | Missões / XP | ⏳ fase 2 |
 | Direita Notícias / Amigos / Clube | Social online | **Fora do MVP** (offline) | ❌ omitir |
 | Baixo seletor de modo | Combate solitário + mapa | **Mapa / próxima fase** + info do mundo | ✅ |
@@ -252,7 +252,7 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 | Splash marca + hub | Sim | ✅ no fluxo |
 | Mundos | **5** (W1 starter; W2–W5 abrem ao limpar o boss anterior) | ✅ catálogo + mapa |
 | Fases | W1: 5 + boss · W2: 3 + boss · W3: 4 + boss · W4: 4 + boss · W5: 3 + boss | ✅ ids estáveis |
-| Playable | **Só Tanjiro** | ✅ |
+| Playable | **Elenco 14** (Tanjiro starter; resto por mundo) | ✅ |
 | Loja | **4 upgrades** | ✅ |
 | Onis | **2 tipos** | ✅ |
 | Distribuição | APK sideload + OTA próprio (GitHub Releases) | ✅ |
@@ -291,7 +291,7 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 
 ### Ainda pos-MVP
 
-- Elenco (Zenitsu/Inosuke/Hashiras), boss multiphase fancy, arte final por mundo, release keystore
+- Arte final por mundo / por caçador, release keystore, playtest no celular
 
 ---
 

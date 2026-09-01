@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "obanai"
+display_name = "Obanai"
+unlock_requires = Array[String](["w4_05"])
+unlock_hint = "Conclua o Mundo 4"
+skill_1_name = "Serpente"
+skill_2_name = "Espiral"
+ultimate_name = "Trilha"
+accent = Color(0.68, 1.0, 0.72, 1)
+stats_path = "res://resources/player/kits/stats_obanai.tres"
+combat_frames_dir = ""
+lifesteal_ratio = 0.0
