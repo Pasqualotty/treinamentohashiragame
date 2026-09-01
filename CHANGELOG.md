@@ -1,5 +1,13 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.3 — efeitos + próxima fase (2026-09-01)
+
+- Cortes, dash e hits com os efeitos do treino (slash, água, impacto)
+- Onis com barra de vida na cabeça
+- HUD: Vitalidade / Respiracao + onda
+- Limpa a fase e o jogo te leva sozinho pra próxima
+- Elenco 14, 5 mundos, chefes de verdade (já na main)
+
 ## Unreleased — mundos W2–W5 + elenco 14
 
 - Mapa com seletor de 5 mundos; cadeado até o boss anterior

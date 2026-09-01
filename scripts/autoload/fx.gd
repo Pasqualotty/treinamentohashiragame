@@ -13,6 +13,28 @@ const SLASH_ARC_SCENE: PackedScene = preload("res://scenes/fx/slash_arc.tscn")
 const DUST_PUFF_SCENE: PackedScene = preload("res://scenes/fx/dust_puff.tscn")
 const DAMAGE_NUMBER_SCENE: PackedScene = preload("res://scenes/fx/damage_number.tscn")
 const DEATH_POOF_SCENE: PackedScene = preload("res://scenes/fx/death_poof.tscn")
+const SHEET_BURST_SCENE: PackedScene = preload("res://scenes/fx/sheet_burst.tscn")
+
+const SLASH_PATHS: PackedStringArray = [
+	"res://assets/fx/slash/00.png",
+	"res://assets/fx/slash/01.png",
+	"res://assets/fx/slash/02.png",
+	"res://assets/fx/slash/03.png",
+]
+const WATER_PATHS: PackedStringArray = [
+	"res://assets/fx/water/00.png",
+	"res://assets/fx/water/01.png",
+	"res://assets/fx/water/02.png",
+	"res://assets/fx/water/03.png",
+]
+const IMPACT_PATHS: PackedStringArray = [
+	"res://assets/fx/impact/00.png",
+	"res://assets/fx/impact/01.png",
+	"res://assets/fx/impact/02.png",
+	"res://assets/fx/impact/03.png",
+	"res://assets/fx/impact/04.png",
+	"res://assets/fx/impact/05.png",
+]
 
 ## Cores tema (Style Bible) reutilizadas pelos callers.
 const COLOR_WATER: Color = Color(0.357, 0.553, 0.937, 1.0)    # #5B8DEF — respiração da água
@@ -39,12 +61,85 @@ func spark(pos: Vector2, color: Color = COLOR_WHITE, amount: int = 10) -> void:
 
 
 func slash(pos: Vector2, facing: float, kind: StringName = &"basic") -> void:
+	var size: float = 128.0
+	var life: float = 0.22
+	match kind:
+		&"skill":
+			size = 150.0
+			life = 0.28
+		&"ultimate":
+			size = 170.0
+			life = 0.32
+		_:
+			size = 128.0
+	_play_sheet(SLASH_PATHS, pos, facing, life, size)
 	var inst: Node2D = _instantiate(SLASH_ARC_SCENE)
 	if inst == null:
 		return
 	inst.global_position = pos
 	if inst.has_method("play"):
 		inst.call("play", facing, kind)
+
+
+func impact(pos: Vector2) -> void:
+	_play_sheet(IMPACT_PATHS, pos, 1.0, 0.22, 78.0)
+
+
+func water(pos: Vector2, facing: float) -> void:
+	var f: float = signf(facing) if not is_zero_approx(facing) else 1.0
+	_play_sheet(WATER_PATHS, pos, f, 0.48, 170.0, f * 280.0)
+	flash(Color(0.31, 0.75, 1.0, 0.16), 0.22)
+
+
+func flash(color: Color, duration: float = 0.18) -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 80
+	add_child(layer)
+	var rect := ColorRect.new()
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.color = color
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(rect)
+	var tw := create_tween()
+	tw.tween_property(rect, "modulate:a", 0.0, maxf(0.08, duration))
+	tw.tween_callback(layer.queue_free)
+
+
+func afterimage(src: AnimatedSprite2D) -> void:
+	if src == null or src.sprite_frames == null:
+		return
+	if not src.sprite_frames.has_animation(src.animation):
+		return
+	var tex: Texture2D = src.sprite_frames.get_frame_texture(src.animation, src.frame)
+	if tex == null:
+		return
+	var host: Node = src.get_parent()
+	if host:
+		host = host.get_parent()
+	if host == null:
+		return
+	var spr := Sprite2D.new()
+	spr.texture = tex
+	spr.global_position = src.global_position
+	spr.flip_h = src.flip_h
+	spr.scale = src.scale
+	spr.rotation = src.rotation
+	spr.z_index = src.z_index - 1
+	spr.modulate = Color(0.48, 0.84, 1.0, 0.5)
+	host.add_child(spr)
+	spr.global_position = src.global_position
+	var tw := create_tween()
+	tw.tween_property(spr, "modulate:a", 0.0, 0.16)
+	tw.tween_callback(spr.queue_free)
+
+
+func _play_sheet(paths: PackedStringArray, pos: Vector2, facing: float, life: float, draw_size: float, vx: float = 0.0) -> void:
+	var inst: Node2D = _instantiate(SHEET_BURST_SCENE)
+	if inst == null:
+		return
+	inst.global_position = pos
+	if inst.has_method("play_sheet"):
+		inst.call("play_sheet", paths, life, draw_size, facing, vx)
 
 
 func dust(pos: Vector2) -> void:

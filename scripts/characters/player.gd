@@ -124,6 +124,8 @@ var _default_hitbox_size: Vector2 = Vector2(40.0, 30.0)
 var _flash_left: float = 0.0
 var _base_modulate: Color = Color.WHITE
 var _run_bob_t: float = 0.0
+var _afterimage_t: float = 0.0
+var _dash_spark_t: float = 0.0
 var _base_sprite_scale: float = 0.18
 var _sprite_base_y: float = -48.0
 const FLASH_HURT: Color = Color(1.5, 0.45, 0.45, 1.0)
@@ -310,6 +312,10 @@ func try_dash() -> bool:
 	_disable_hitbox()
 	if is_instance_valid(Fx):
 		Fx.dust(global_position)
+		Fx.spark(global_position + Vector2(0.0, -28.0), Fx.COLOR_WATER, 10)
+		Fx.flash(Color(0.55, 0.9, 1.0, 0.12), 0.12)
+	_afterimage_t = 0.0
+	_dash_spark_t = 0.0
 	return true
 
 
@@ -322,7 +328,7 @@ func apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 		return
 
 	hp = maxi(0, hp - amount)
-	hp_changed.emit(hp, stats.max_hp)
+	hp_changed.emit(hp, stats.max_hp if stats else hp)
 	_start_flash()
 	if is_instance_valid(Audio):
 		Audio.play_sfx("hurt")
@@ -343,6 +349,14 @@ func apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 		hurtbox.invulnerable = true
 	if is_instance_valid(CombatFeel):
 		CombatFeel.hit_impact_typed(&"hurt", 1.0)
+
+
+func heal(amount: int) -> void:
+	if _state == State.DEAD or amount <= 0:
+		return
+	var cap: int = stats.max_hp if stats else hp
+	hp = mini(cap, hp + amount)
+	hp_changed.emit(hp, cap)
 
 
 func heal_full() -> void:
@@ -428,6 +442,15 @@ func _process_dash(delta: float) -> void:
 	_dash_time_left -= delta
 	velocity.x = _facing * stats.dash_speed
 	velocity.y = 0.0
+	_afterimage_t -= delta
+	_dash_spark_t -= delta
+	if is_instance_valid(Fx):
+		if _afterimage_t <= 0.0 and sprite:
+			_afterimage_t = 0.028
+			Fx.afterimage(sprite)
+		if _dash_spark_t <= 0.0:
+			_dash_spark_t = 0.05
+			Fx.spark(global_position + Vector2(0.0, -24.0), Fx.COLOR_WATER, 2)
 	if _dash_time_left <= 0.0:
 		velocity.x = 0.0
 		_set_state(State.IDLE if is_on_floor() else State.JUMP)
@@ -697,6 +720,9 @@ func _begin_action(
 				slash_kind = &"basic"
 		var slash_pos: Vector2 = global_position + Vector2(offset_x * 0.55 * _facing, -28.0)
 		Fx.slash(slash_pos, _facing, slash_kind)
+		if new_state == State.SKILL_1:
+			Fx.water(slash_pos + Vector2(_facing * 24.0, 0.0), _facing)
+			Fx.spark(slash_pos, Fx.COLOR_WATER, 14)
 	_sync_attack_frame_to_action()
 
 
@@ -774,6 +800,7 @@ func _on_hitbox_hit(_hurtbox: Hurtbox, hit_data: HitData) -> void:
 			is_crit = true
 		var hit_pos: Vector2 = hitbox.global_position if hitbox else global_position
 		Fx.spark(hit_pos, spark_color, spark_amount)
+		Fx.impact(hit_pos)
 		Fx.damage_number(hit_pos + Vector2(0.0, -18.0), hit_data.damage if hit_data else 0, is_crit)
 
 

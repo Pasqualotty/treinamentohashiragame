@@ -67,7 +67,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 18
-text = "HP"
+text = "VITALIDADE"
 
 [node name="HpLabel" type="Label" parent="Root/TopSafe/TopRow/HpBlock/HpBlockInner/HpHeader"]
 unique_name_in_owner = true
@@ -121,7 +121,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 18
-text = "Respiracao"
+text = "RESPIRACAO"
 
 [node name="BreathLabel" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathBlockInner/BreathHeader"]
 unique_name_in_owner = true
@@ -176,6 +176,24 @@ theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 28
 text = "0"
+
+[node name="WaveChip" type="PanelContainer" parent="Root/TopSafe/TopRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="WaveLabel" type="Label" parent="Root/TopSafe/TopRow/WaveChip"]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.9, 0.92, 0.96, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 14
+text = "ONDA 1/1"
 
 [node name="ComboBlock" type="Control" parent="Root"]
 unique_name_in_owner = true

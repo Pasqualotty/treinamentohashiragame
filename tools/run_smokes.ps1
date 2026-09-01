@@ -207,6 +207,12 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_character_select.gd"
         PassMarker = "CHARACTER_SELECT PASS"
         FailMarker = "CHARACTER_SELECT FAIL"
+    },
+    [pscustomobject]@{
+        Name = "smoke_ref_fx"
+        Script = "res://scripts/qa/smoke_ref_fx.gd"
+        PassMarker = "=== REF FX PASS ==="
+        FailMarker = "=== REF FX FAIL ==="
     }
 )
 

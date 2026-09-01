@@ -13,6 +13,7 @@ extends CanvasLayer
 @onready var coins_icon: TextureRect = %CoinsIcon
 @onready var combo_block: Control = %ComboBlock
 @onready var combo_label: Label = %ComboLabel
+@onready var wave_label: Label = get_node_or_null("%WaveLabel") as Label
 
 const TEX_HEART := "res://assets/ui/icons/hp_heart.png"
 const TEX_BREATH := "res://assets/ui/icons/breath_orb.png"
@@ -297,6 +298,14 @@ func _stop_ultimate_flourish() -> void:
 
 
 ## --- Moedas: pop de escala ao mudar --------------------------------------
+
+func set_wave(current: int, total: int) -> void:
+	if wave_label == null:
+		return
+	var t: int = maxi(total, 1)
+	var c: int = clampi(current, 1, t)
+	wave_label.text = "ONDA %d/%d" % [c, t]
+
 
 func _refresh_coins(run_total: int, animate: bool) -> void:
 	coins_label.text = str(run_total)

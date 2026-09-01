@@ -85,6 +85,7 @@ func _ready() -> void:
 		_wire_enemies()
 		if _goal:
 			_set_goal_locked(false)
+	call_deferred("_play_stage_intro")
 
 	if _goal:
 		if _goal.has_signal("reached"):
@@ -118,11 +119,15 @@ func _start_waves() -> void:
 	_wave_director.name = "WaveDirector"
 	_wave_director.set("stage_id", stage_id)
 	_wave_director.set("spawn_y", _guess_spawn_y())
-	_wave_director.set("auto_start", true)
+	_wave_director.set("auto_start", false)
 	_wave_director.set("clear_scene_enemies_on_start", true)
 	add_child(_wave_director)
 	if _wave_director.has_signal("waves_finished"):
 		_wave_director.connect("waves_finished", _on_waves_finished)
+	if _wave_director.has_signal("wave_started"):
+		_wave_director.connect("wave_started", _on_wave_started)
+	if _wave_director.has_signal("wave_cleared"):
+		_wave_director.connect("wave_cleared", _on_wave_cleared)
 
 
 func _guess_spawn_y() -> float:
@@ -136,6 +141,34 @@ func _on_waves_finished() -> void:
 	if _goal:
 		_set_goal_locked(false)
 	print("[StageController] waves done → goal unlocked")
+
+
+func _on_wave_started(wave_index: int, total_waves: int, _count: int) -> void:
+	if _hud != null and _hud.has_method("set_wave"):
+		_hud.call("set_wave", wave_index, total_waves)
+
+
+func _on_wave_cleared(_wave_index: int, _total_waves: int) -> void:
+	if _player != null and _player.has_method("heal"):
+		_player.call("heal", 12)
+
+
+func _play_stage_intro() -> void:
+	if CeremonyCard.is_headless():
+		_kick_waves()
+		return
+	var def: StageDef = WorldCatalog.find(stage_id)
+	var title: String = def.display_name if def else stage_id
+	var kicker: String = def.map_label if def else "Fase"
+	var card := CeremonyCard.new()
+	add_child(card)
+	await card.play(kicker, title, "Os onis surgem nas sombras", 2.0)
+	_kick_waves()
+
+
+func _kick_waves() -> void:
+	if _wave_director != null and _wave_director.has_method("begin_waves"):
+		_wave_director.call("begin_waves")
 
 
 func _set_goal_locked(locked: bool) -> void:
@@ -241,6 +274,19 @@ func _complete_stage() -> void:
 		CombatFeel.shake(5.0, 0.15)
 	print("[StageController] CLEAR %s coins_banked=%d" % [stage_id, banked_amount])
 	await _play_clear_ceremony(banked_amount)
+	_go_after_clear()
+
+
+func _go_after_clear() -> void:
+	if CeremonyCard.is_headless():
+		SceneRouter.to_world_map()
+		return
+	var nxt: StageDef = WorldCatalog.next_playable_any(WorldCatalog.cleared_ids())
+	if nxt != null and not nxt.scene_path.is_empty():
+		Game.pending_stage_id = nxt.stage_id
+		Game.current_world_id = WorldCatalog.world_of(nxt.stage_id)
+		SceneRouter.go_to(nxt.scene_path)
+		return
 	SceneRouter.to_world_map()
 
 
@@ -266,7 +312,7 @@ func _play_clear_ceremony(banked_amount: int) -> void:
 	title.offset_bottom = 0.0
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.text = "CLEAR!"
+	title.text = "FASE CONCLUIDA"
 	title.add_theme_font_size_override("font_size", 64)
 	title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45, 1.0))
 	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))

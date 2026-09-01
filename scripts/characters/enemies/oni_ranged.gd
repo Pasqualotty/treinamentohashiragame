@@ -61,6 +61,7 @@ var _sprite_base_scale: Vector2 = Vector2.ONE
 var _walk_t: float = 0.0
 var _hurt_recoil_t: float = 0.0
 var _fire_kick_t: float = 0.0
+var _hp_pip: EnemyHpPip
 
 
 func _ready() -> void:
@@ -78,6 +79,7 @@ func _ready() -> void:
 		hurtbox.team = &"enemy"
 		if not hurtbox.hurt.is_connected(_on_hurt):
 			hurtbox.hurt.connect(_on_hurt)
+	_hp_pip = EnemyHpPip.attach(self, hp_label, max_hp)
 	_apply_facing()
 	_refresh_label()
 
@@ -389,3 +391,5 @@ func _tick_flash(delta: float) -> void:
 func _refresh_label() -> void:
 	if hp_label:
 		hp_label.text = "HP %d/%d" % [hp, max_hp]
+	if _hp_pip:
+		_hp_pip.set_ratio(hp, max_hp)

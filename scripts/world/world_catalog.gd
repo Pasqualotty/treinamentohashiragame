@@ -179,6 +179,22 @@ static func cleared_ids() -> Array[String]:
 	return out
 
 
+## Próxima fase jogável em qualquer mundo (ordem do catálogo).
+static func world_of(stage_id: String) -> String:
+	for wid: String in world_ids():
+		if _find_in_world(stage_id, wid) != null:
+			return wid
+	return DEFAULT_WORLD_ID
+
+
+static func next_playable_any(cleared: Array[String]) -> StageDef:
+	for wid: String in world_ids():
+		var nxt: StageDef = next_playable(cleared, wid)
+		if nxt != null:
+			return nxt
+	return null
+
+
 ## Primeira fase liberada e ainda não concluída — o "próximo passo" do jogador.
 ## Retorna null quando o mundo inteiro já foi limpo.
 static func next_playable(cleared: Array[String], world_id: String = DEFAULT_WORLD_ID) -> StageDef:

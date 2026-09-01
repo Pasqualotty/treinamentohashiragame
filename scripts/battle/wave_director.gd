@@ -67,6 +67,10 @@ func is_finished() -> bool:
 	return _finished
 
 
+func begin_waves() -> void:
+	call_deferred("_begin")
+
+
 func _begin() -> void:
 	if _running or _finished:
 		return
