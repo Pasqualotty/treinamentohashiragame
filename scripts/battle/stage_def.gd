@@ -29,6 +29,11 @@ extends Resource
 ## Nó de chefe: anel carmesim + selo rotativo no mapa.
 @export var is_boss: bool = false
 
+@export_group("Ondas")
+## Packs de onda (cada item = array de kinds do WaveDirector). Vazio = o
+## diretor cai na tabela W1 em `_waves_for_stage`. Mundos novos preenchem aqui.
+@export var waves: Array = []
+
 
 ## Todos os pré-requisitos estão em `cleared`?
 ##
@@ -58,3 +63,20 @@ func node_label() -> String:
 	if display_name != "":
 		return display_name
 	return stage_id
+
+
+## Ondas normalizadas (lista de packs, cada pack = lista de kinds em String).
+## Pack vazio é ignorado. Recurso sem `waves` devolve [].
+func wave_packs() -> Array:
+	var out: Array = []
+	for pack_v: Variant in waves:
+		var pack: Array = []
+		if pack_v is PackedStringArray:
+			for k: String in (pack_v as PackedStringArray):
+				pack.append(k)
+		elif pack_v is Array:
+			for k_v: Variant in (pack_v as Array):
+				pack.append(str(k_v))
+		if not pack.is_empty():
+			out.append(pack)
+	return out

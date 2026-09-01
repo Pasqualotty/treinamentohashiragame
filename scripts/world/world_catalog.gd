@@ -9,7 +9,8 @@ extends RefCounted
 ##      `requires_cleared`, rótulo e posição no mapa).
 ##   3. Acrescentar o caminho do `.tres` na lista do mundo aqui embaixo, na
 ##      ordem em que a fase aparece no caminho do mapa.
-##   4. Registrar as ondas em `wave_director.gd::_waves_for_stage()`.
+##   4. Preencher `waves` no `.tres` (kinds do WaveDirector). W1 ainda pode
+##      cair na tabela de `_waves_for_stage()` se `waves` estiver vazio.
 ##
 ## O mapa não precisa de botão novo: os nós são instanciados a partir da lista.
 ##
@@ -18,6 +19,14 @@ extends RefCounted
 ## resolvida, para não existirem duas rotas de leitura do mesmo estado.
 
 const DEFAULT_WORLD_ID: String = "w1"
+
+const TITLES := {
+	"w1": "Mundo 1 — Montanha",
+	"w2": "Mundo 2 — Trem",
+	"w3": "Mundo 3 — Distrito",
+	"w4": "Mundo 4 — Castelo",
+	"w5": "Mundo 5 — Céu Vermelho",
+}
 
 ## world_id → caminhos dos StageDef, na ordem do caminho no mapa.
 const WORLDS: Dictionary = {
@@ -29,7 +38,45 @@ const WORLDS: Dictionary = {
 		"res://resources/stages/stage_w1_05.tres",
 		"res://resources/stages/stage_w1_boss.tres",
 	],
+	"w2": [
+		"res://resources/stages/stage_w2_01.tres",
+		"res://resources/stages/stage_w2_02.tres",
+		"res://resources/stages/stage_w2_03.tres",
+		"res://resources/stages/stage_w2_boss.tres",
+	],
+	"w3": [
+		"res://resources/stages/stage_w3_01.tres",
+		"res://resources/stages/stage_w3_02.tres",
+		"res://resources/stages/stage_w3_03.tres",
+		"res://resources/stages/stage_w3_04.tres",
+		"res://resources/stages/stage_w3_boss.tres",
+	],
+	"w4": [
+		"res://resources/stages/stage_w4_01.tres",
+		"res://resources/stages/stage_w4_02.tres",
+		"res://resources/stages/stage_w4_03.tres",
+		"res://resources/stages/stage_w4_04.tres",
+		"res://resources/stages/stage_w4_boss.tres",
+	],
+	"w5": [
+		"res://resources/stages/stage_w5_01.tres",
+		"res://resources/stages/stage_w5_02.tres",
+		"res://resources/stages/stage_w5_03.tres",
+		"res://resources/stages/stage_w5_boss.tres",
+	],
 }
+
+
+static func world_ids() -> PackedStringArray:
+	var out := PackedStringArray()
+	for wid: String in WorldUnlock.known_ids():
+		if WORLDS.has(wid):
+			out.append(wid)
+	return out
+
+
+static func title_for(world_id: String) -> String:
+	return str(TITLES.get(world_id, world_id))
 
 
 ## Caminhos dos StageDef do mundo, na ordem do caminho no mapa.
@@ -71,8 +118,29 @@ static func stage_ids(world_id: String = DEFAULT_WORLD_ID) -> PackedStringArray:
 	return out
 
 
-## StageDef pelo ID canônico (null se não existir no catálogo).
+static func load_all_stages() -> Array[StageDef]:
+	var out: Array[StageDef] = []
+	for wid: String in world_ids():
+		for def: StageDef in load_stages(wid):
+			out.append(def)
+	return out
+
+
+## StageDef pelo ID canônico. Procura no mundo pedido e, se faltar, nos outros.
 static func find(stage_id: String, world_id: String = DEFAULT_WORLD_ID) -> StageDef:
+	var def: StageDef = _find_in_world(stage_id, world_id)
+	if def != null:
+		return def
+	for wid: String in world_ids():
+		if wid == world_id:
+			continue
+		def = _find_in_world(stage_id, wid)
+		if def != null:
+			return def
+	return null
+
+
+static func _find_in_world(stage_id: String, world_id: String) -> StageDef:
 	for def: StageDef in load_stages(world_id):
 		if def.stage_id == stage_id:
 			return def

@@ -37,6 +37,8 @@ var audio_volume_bgm: float = 0.75
 var audio_volume_sfx: float = 1.0
 ## Stage id opcional (mapa / debug) antes de trocar de cena.
 var pending_stage_id: String = "w1_01"
+## Mundo visível no mapa. Persistido; o mapa clampa se ainda estiver trancado.
+var current_world_id: String = "w1"
 
 var _catalog: Array[UpgradeDef] = []
 var _catalog_loaded: bool = false
@@ -314,6 +316,7 @@ func _save_payload() -> Dictionary:
 		"coins_banked": coins_banked,
 		"player_name": player_name,
 		"current_character_id": current_character_id,
+		"current_world_id": current_world_id,
 		"stages_cleared": stages_cleared,
 		"upgrades": upgrades,
 	}
@@ -324,6 +327,8 @@ func _apply_save_data(data: Dictionary) -> void:
 	# Save antigo (sem a chave) cai em "" e manda o jogador pro onboarding de nome.
 	player_name = sanitize_player_name(str(data.get("player_name", "")))
 	current_character_id = str(data.get("current_character_id", "tanjiro"))
+	var loaded_world: String = str(data.get("current_world_id", "w1"))
+	current_world_id = loaded_world if loaded_world != "" else "w1"
 	var raw_upgrades: Variant = data.get("upgrades", {})
 	upgrades = {}
 	if typeof(raw_upgrades) == TYPE_DICTIONARY:

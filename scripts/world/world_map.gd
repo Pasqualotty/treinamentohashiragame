@@ -26,12 +26,16 @@ const MAX_MISSING_SHOWN: int = 2
 
 @onready var status_label: Label = %StatusLabel
 @onready var map_canvas: Control = %MapCanvas
+@onready var world_tabs: HBoxContainer = %WorldTabs
+@onready var title_label: Label = %Title
 
 var _stages: Array[StageDef] = []
 ## Snapshot do progresso, lido UMA vez por refresh. Rota única de leitura do
 ## save: nada aqui consulta o autoload direto (ver `WorldCatalog.cleared_ids`).
 var _cleared: Array[String] = []
 var _stage_buttons: Array[Button] = []
+var _world_buttons: Array[Button] = []
+var _world_id: String = WorldCatalog.DEFAULT_WORLD_ID
 
 ## Timer ambiente — anima glow do caminho e ring pulsante do próximo nó.
 var _t: float = 0.0
@@ -45,9 +49,12 @@ var _travel_progress: float = 0.0
 func _ready() -> void:
 	_load_catalog()
 	map_canvas.set("paint_cb", Callable(self, "_paint_map"))
+	_build_world_tabs()
 	_build_stage_buttons()
 	_layout_stage_buttons()
 	_refresh_nodes()
+	_refresh_world_tabs()
+	_apply_world_chrome()
 	status_label.text = _intro_text()
 	if is_instance_valid(Audio):
 		Audio.play_bgm("hub")
@@ -68,8 +75,15 @@ func _notification(what: int) -> void:
 # --- Catálogo / nós ---------------------------------------------------------
 
 func _load_catalog() -> void:
-	_stages = WorldCatalog.load_stages()
 	_cleared = WorldCatalog.cleared_ids()
+	var requested: String = WorldCatalog.DEFAULT_WORLD_ID
+	var loop: MainLoop = Engine.get_main_loop()
+	if loop is SceneTree:
+		var game: Node = (loop as SceneTree).root.get_node_or_null("Game")
+		if game != null:
+			requested = str(game.get("current_world_id"))
+	_world_id = WorldUnlock.clamp_world_id(requested, _cleared)
+	_stages = WorldCatalog.load_stages(_world_id)
 
 
 func _canvas_scale() -> Vector2:
@@ -85,6 +99,109 @@ func _screen_position(index: int) -> Vector2:
 
 func _node_radius(index: int) -> float:
 	return BOSS_NODE_RADIUS if _stages[index].is_boss else NODE_RADIUS
+
+
+func _build_world_tabs() -> void:
+	for btn: Button in _world_buttons:
+		if is_instance_valid(btn):
+			btn.queue_free()
+	_world_buttons.clear()
+	if world_tabs == null:
+		return
+	for child: Node in world_tabs.get_children():
+		child.queue_free()
+	for wid: String in WorldCatalog.world_ids():
+		var btn := Button.new()
+		btn.name = "WorldTab_%s" % wid
+		btn.custom_minimum_size = Vector2(88.0, 36.0)
+		btn.clip_text = false
+		btn.tooltip_text = WorldCatalog.title_for(wid)
+		btn.pressed.connect(_on_world_tab_pressed.bind(wid))
+		world_tabs.add_child(btn)
+		_world_buttons.append(btn)
+
+
+func _on_world_tab_pressed(world_id: String) -> void:
+	_select_world(world_id)
+
+
+func _select_world(world_id: String) -> void:
+	if _traveling:
+		return
+	if not WorldUnlock.is_unlocked(world_id, _cleared):
+		status_label.text = _world_locked_reason(world_id)
+		return
+	if is_instance_valid(Audio):
+		Audio.play_sfx("ui_click")
+	var loop: MainLoop = Engine.get_main_loop()
+	if loop is SceneTree:
+		var game: Node = (loop as SceneTree).root.get_node_or_null("Game")
+		if game != null:
+			game.set("current_world_id", world_id)
+			if game.has_method("save_game"):
+				game.call("save_game")
+	_world_id = world_id
+	_stages = WorldCatalog.load_stages(_world_id)
+	_build_stage_buttons()
+	_layout_stage_buttons()
+	_refresh_nodes()
+	_refresh_world_tabs()
+	_apply_world_chrome()
+	status_label.text = _intro_text()
+
+
+func _world_locked_reason(world_id: String) -> String:
+	var req: String = WorldUnlock.required_cleared(world_id)
+	var label: String = WorldCatalog.label_for(req) if req != "" and req != "*" else req
+	return "%s bloqueado — conclua: %s" % [WorldCatalog.title_for(world_id), label]
+
+
+func _refresh_world_tabs() -> void:
+	for i in range(_world_buttons.size()):
+		var btn: Button = _world_buttons[i]
+		if not is_instance_valid(btn):
+			continue
+		var wid: String = WorldCatalog.world_ids()[i] if i < WorldCatalog.world_ids().size() else ""
+		if wid == "":
+			continue
+		var open: bool = WorldUnlock.is_unlocked(wid, _cleared)
+		var short: String = wid.to_upper()
+		if open:
+			btn.text = short
+		else:
+			btn.text = "🔒 %s" % short
+		btn.disabled = false
+		var font_col := Color(0.55, 0.58, 0.6, 0.9)
+		if open and wid == _world_id:
+			font_col = Palette.GOLD
+		elif open:
+			font_col = Color(0.92, 0.9, 0.82, 1.0)
+		btn.add_theme_color_override("font_color", font_col)
+		btn.add_theme_color_override("font_hover_color", font_col.lightened(0.1))
+		btn.add_theme_font_size_override("font_size", 14)
+
+
+func _apply_world_chrome() -> void:
+	if title_label:
+		title_label.text = "Mapa — %s" % WorldCatalog.title_for(_world_id)
+	var overlay := get_node_or_null("Background") as ColorRect
+	var accent := get_node_or_null("BgAccent") as ColorRect
+	var tint: Color
+	match _world_id:
+		"w2":
+			tint = Color(0.18, 0.12, 0.07, 0.42)
+		"w3":
+			tint = Color(0.16, 0.08, 0.1, 0.4)
+		"w4":
+			tint = Color(0.08, 0.08, 0.14, 0.42)
+		"w5":
+			tint = Color(0.22, 0.05, 0.05, 0.45)
+		_:
+			tint = Color(0.04, 0.06, 0.05, 0.35)
+	if overlay:
+		overlay.color = tint
+	if accent:
+		accent.color = Color(tint.r, tint.g, tint.b, 0.22)
 
 
 func _build_stage_buttons() -> void:
@@ -275,10 +392,14 @@ func _refresh_nodes() -> void:
 func _intro_text() -> String:
 	if _stages.is_empty():
 		return "Nenhuma fase disponível — catálogo vazio"
-	var next: StageDef = WorldCatalog.next_playable(_cleared)
+	var title: String = WorldCatalog.title_for(_world_id)
+	var next: StageDef = WorldCatalog.next_playable(_cleared, _world_id)
 	if next == null:
-		return "Mundo 1 — tudo limpo! Rejogue qualquer fase"
-	return "Mundo 1 — próxima: %s" % next.node_label()
+		var nxt_world: String = WorldUnlock.next_world_id(_world_id)
+		if nxt_world != "" and WorldUnlock.is_unlocked(nxt_world, _cleared):
+			return "%s — tudo limpo! Próximo: %s" % [title, WorldCatalog.title_for(nxt_world)]
+		return "%s — tudo limpo! Rejogue qualquer fase" % title
+	return "%s — próxima: %s" % [title, next.node_label()]
 
 
 ## Motivo legível do bloqueio, citando as fases que faltam.
@@ -292,7 +413,7 @@ func _locked_reason(index: int) -> String:
 	for req_id: String in missing:
 		if names.size() >= MAX_MISSING_SHOWN:
 			break
-		names.append(WorldCatalog.label_for(req_id))
+		names.append(WorldCatalog.label_for(req_id, _world_id))
 	var listed: String = ", ".join(names)
 	var rest: int = missing.size() - names.size()
 	if rest > 0:

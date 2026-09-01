@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StageDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/stage_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+stage_id = "w2_03"
+display_name = "Mundo 2 — Telhados"
+scene_path = "res://scenes/battle/stage_w2_03.tscn"
+requires_cleared = Array[String](["w2_02"])
+map_label = "Fase 3"
+map_position = Vector2(780, 430)
+is_boss = false
+waves = [["weak", "ranged"], ["ranged", "weak", "weak"], ["elite", "ranged"]]

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StageDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/stage_def.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+stage_id = "w5_boss"
+display_name = "Mundo 5 — Boss"
+scene_path = "res://scenes/battle/stage_w5_boss.tscn"
+requires_cleared = Array[String](["w5_01", "w5_02", "w5_03"])
+map_label = "Boss"
+map_position = Vector2(1100, 250)
+is_boss = true
+waves = [["charger", "ranged", "elite"], ["elite", "charger", "ranged", "weak"], ["boss"]]

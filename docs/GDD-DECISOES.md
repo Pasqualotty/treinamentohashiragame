@@ -2,7 +2,7 @@
 
 **Projeto:** Treinamento Hashira (2D · Android · fan / uso pessoal)  
 **Estúdio:** Pasqualotti Studio  
-**Atualizado:** 2026-08-07 (MVP W1 completo no código — progresso vivo em `STATUS-PROGRESSO.md`)
+**Atualizado:** 2026-09-01 (W1–W5 no mapa — progresso vivo em `STATUS-PROGRESSO.md`)
 
 ---
 
@@ -250,8 +250,8 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 | Item | Valor | Status |
 |------|-------|--------|
 | Splash marca + hub | Sim | ✅ no fluxo |
-| Mundos | **1** (W1) | ✅ |
-| Fases | **3** + **1 boss** | ✅ |
+| Mundos | **5** (W1 starter; W2–W5 abrem ao limpar o boss anterior) | ✅ catálogo + mapa |
+| Fases | W1: 5 + boss · W2: 3 + boss · W3: 4 + boss · W4: 4 + boss · W5: 3 + boss | ✅ ids estáveis |
 | Playable | **Só Tanjiro** | ✅ |
 | Loja | **4 upgrades** | ✅ |
 | Onis | **2 tipos** | ✅ |
@@ -291,7 +291,7 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 
 ### Ainda pos-MVP
 
-- Elenco (Zenitsu/Inosuke/Hashiras), W2+, boss multiphase fancy, release keystore
+- Elenco (Zenitsu/Inosuke/Hashiras), boss multiphase fancy, arte final por mundo, release keystore
 
 ---
 
@@ -304,3 +304,4 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 | 2026-08-03 | Rodada 3: boot = splash estúdio → loading (barra) → hub Brawl-like; refs em `docs/references/ui/`; social online fora do MVP |
 | 2026-08-03 | Rodada 3b: JOGAR no hub → **mapa do mundo** (não pula fase direto) |
 | 2026-08-03 | Playtest PC: splash → loading → hub → mapa stub OK; combate ainda não; ver STATUS-PROGRESSO |
+| 2026-09-01 | Mapa com 5 mundos (W1 Montanha → W5 Céu Vermelho). W2 tranca até `w1_boss`. Ondas dos mundos novos no StageDef. Placeholder de BG por tema. |
