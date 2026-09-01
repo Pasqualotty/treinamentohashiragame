@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
 [ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
@@ -8,7 +8,6 @@
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_forest.png" id="9_bg"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/ground_band.tscn" id="10_gband"]
-[ext_resource type="Texture2D" path="res://assets/tiles/w1/platform_strip_side.png" id="11_plat"]
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/layers/soft_dot.tres" id="20_dot"]
 
@@ -17,9 +16,6 @@ size = Vector2(1600, 48)
 
 [sub_resource type="RectangleShape2D" id="Rect_wall"]
 size = Vector2(40, 800)
-
-[sub_resource type="RectangleShape2D" id="Rect_plat"]
-size = Vector2(180, 24)
 
 [sub_resource type="RectangleShape2D" id="Rect_goal"]
 size = Vector2(64, 96)
@@ -149,21 +145,6 @@ band_width = 1600.0
 surface_y = -24.0
 depth = 264.0
 
-[node name="PlatformLow" type="StaticBody2D" parent="."]
-position = Vector2(520, 440)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="PlatformLow"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="PlatformLow"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(0.9, 0.55)
-texture = ExtResource("11_plat")
-centered = true
-
 [node name="WallLeft" type="StaticBody2D" parent="."]
 position = Vector2(-20, 360)
 collision_layer = 1
@@ -206,7 +187,6 @@ script = ExtResource("4_goal")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Goal"]
 shape = SubResource("Rect_goal")
 
-
 [node name="PortalGlow" type="ColorRect" parent="Goal"]
 offset_left = -48.0
 offset_top = -96.0
@@ -242,5 +222,4 @@ offset_bottom = 48.0
 theme_override_colors/font_color = Color(0.9, 0.95, 0.85, 1)
 theme_override_font_sizes/font_size = 16
 text = ""
-
 

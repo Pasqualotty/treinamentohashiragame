@@ -149,7 +149,7 @@ if (-not [System.IO.Path]::IsPathRooted($apkAbs)) {
 
 if ($FillFromApk) {
     if (-not (Test-Path -LiteralPath $apkAbs)) {
-        throw "APK nao encontrado: $apkAbs — exporte antes e rode -FillFromApk de novo."
+        throw "APK nao encontrado: $apkAbs - exporte antes e rode -FillFromApk de novo."
     }
     $item = Get-Item -LiteralPath $apkAbs
     $size = [int64]$item.Length
@@ -176,7 +176,7 @@ if ($VersionName -or $FillFromApk) {
 }
 
 Write-Host ""
-Write-Host "Proximo passo — GitHub Release (APK publico, sem token no jogo):"
+Write-Host "Proximo passo - GitHub Release (APK publico, sem token no jogo):"
 Write-Host "  gh release create `"v$name`" `"$apkAbs`" `"$LatestPath`" --repo $Repo --title `"Treino $name`" --notes `"$Changelog`""
 Write-Host ""
 Write-Host "O sobrinho so precisa abrir o jogo. Manifesto:"
@@ -187,7 +187,7 @@ if ($CreateGithubRelease) {
         throw "gh nao encontrado. Instale GitHub CLI ou rode o comando acima na mao."
     }
     if (-not (Test-Path -LiteralPath $apkAbs)) {
-        throw "Sem APK em $apkAbs — exporte antes de -CreateGithubRelease."
+        throw "Sem APK em $apkAbs - exporte antes de -CreateGithubRelease."
     }
     if ($size -le 0 -or -not $sha) {
         throw "Rode -FillFromApk antes de criar o release (latest.json sem hash)."

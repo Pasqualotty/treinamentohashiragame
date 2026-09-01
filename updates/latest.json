@@ -1,8 +1,8 @@
 {
-	"version_code": 1,
-	"version_name": "0.0.1",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.1/TreinamentoHashira.apk",
-	"changelog": "Primeira versão do treino.",
-	"size_bytes": 0,
-	"sha256": ""
+	"version_code": 2,
+	"version_name": "0.0.2",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.2/TreinamentoHashira.apk",
+	"changelog": "Atualizacao de teste. Se apareceu este aviso, deu certo.",
+	"size_bytes": 76210641,
+	"sha256": "c90ea87c964b7e342632cbf5ba10eb5f9070418bb99220edf2d22f3f28368942"
 }

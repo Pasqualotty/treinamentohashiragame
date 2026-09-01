@@ -1,12 +1,9 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=14 format=3]
 
-; Mundo 1 - Fase 4: "Escadaria do Penhasco".
-; Layout vertical: escadaria de 6 plataformas subindo ~336px ate a saida no topo.
-; Cada degrau sobe 56px (salto do player alcanca ~70px), entao a subida exige
-; ritmo de pulo/dash em vez de so andar para a direita.
-;
-; O chao usa o componente GroundBand (Ground/Visual): band_width acompanha a
-; colisao e depth desce ate 80px abaixo do limit_bottom da camera.
+; Mundo 1 - Fase 4: "Escadaria do Penhasco" (temporario: chao plano).
+; Plataformas/degraus flutuantes removidos por enquanto — a altura antiga
+; bloqueava passagem por baixo e o pulo nao alcancava o topo.
+; Saida (Goal) no chao a direita. GroundBand em Ground/Visual.
 
 [ext_resource type="Script" path="res://scripts/battle/stage_controller.gd" id="1_ctrl"]
 [ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
@@ -16,7 +13,6 @@
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_mountain.png" id="9_bg"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/ground_band.tscn" id="10_gband"]
-[ext_resource type="Texture2D" path="res://assets/tiles/w1/platform_strip_side.png" id="11_plat"]
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/layers/soft_dot.tres" id="20_dot"]
 
@@ -25,12 +21,6 @@ size = Vector2(1600, 48)
 
 [sub_resource type="RectangleShape2D" id="Rect_wall"]
 size = Vector2(40, 1100)
-
-[sub_resource type="RectangleShape2D" id="Rect_plat"]
-size = Vector2(160, 24)
-
-[sub_resource type="RectangleShape2D" id="Rect_plat_wide"]
-size = Vector2(200, 24)
 
 [sub_resource type="RectangleShape2D" id="Rect_goal"]
 size = Vector2(64, 96)
@@ -115,7 +105,7 @@ color = Color(0.7, 0.74, 1.0, 1)
 energy = 0.45
 
 [node name="SummitGlow" type="PointLight2D" parent="."]
-position = Vector2(1390, 180)
+position = Vector2(1390, 470)
 texture = ExtResource("20_dot")
 texture_scale = 6.0
 color = Color(0.95, 0.68, 0.35, 1)
@@ -148,96 +138,6 @@ shape = SubResource("Rect_ground")
 band_width = 1600.0
 surface_y = -24.0
 depth = 304.0
-
-[node name="Step1" type="StaticBody2D" parent="."]
-position = Vector2(380, 492)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Step1"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="Step1"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(0.8, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="Step2" type="StaticBody2D" parent="."]
-position = Vector2(580, 436)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Step2"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="Step2"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(0.8, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="Step3" type="StaticBody2D" parent="."]
-position = Vector2(780, 380)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Step3"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="Step3"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(0.8, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="Step4" type="StaticBody2D" parent="."]
-position = Vector2(980, 324)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Step4"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="Step4"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(0.8, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="Step5" type="StaticBody2D" parent="."]
-position = Vector2(1180, 268)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Step5"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="Step5"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(0.8, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="Summit" type="StaticBody2D" parent="."]
-position = Vector2(1390, 212)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Summit"]
-shape = SubResource("Rect_plat_wide")
-
-[node name="Visual" type="Sprite2D" parent="Summit"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(1, 0.86)
-texture = ExtResource("11_plat")
-centered = true
 
 [node name="WallLeft" type="StaticBody2D" parent="."]
 position = Vector2(-20, 260)
@@ -274,7 +174,7 @@ position = Vector2(640, 500)
 position = Vector2(1060, 500)
 
 [node name="Goal" type="Area2D" parent="."]
-position = Vector2(1390, 152)
+position = Vector2(1390, 500)
 collision_layer = 0
 collision_mask = 3
 monitoring = true

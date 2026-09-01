@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=14 format=3]
 
 ; Mundo 1 - Fase 5: "Corredor da Vigilia".
 ; Layout longo e aberto (2400px): dois grupos de plataformas separados por uma
@@ -16,7 +16,6 @@
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/stage_forest.png" id="9_bg"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/ground_band.tscn" id="10_gband"]
-[ext_resource type="Texture2D" path="res://assets/tiles/w1/platform_strip_side.png" id="11_plat"]
 
 [ext_resource type="Texture2D" path="res://assets/backgrounds/w1/layers/soft_dot.tres" id="20_dot"]
 
@@ -25,15 +24,6 @@ size = Vector2(2400, 48)
 
 [sub_resource type="RectangleShape2D" id="Rect_wall"]
 size = Vector2(40, 1100)
-
-[sub_resource type="RectangleShape2D" id="Rect_plat"]
-size = Vector2(200, 24)
-
-[sub_resource type="RectangleShape2D" id="Rect_plat_short"]
-size = Vector2(180, 24)
-
-[sub_resource type="RectangleShape2D" id="Rect_plat_long"]
-size = Vector2(220, 24)
 
 [sub_resource type="RectangleShape2D" id="Rect_goal"]
 size = Vector2(64, 96)
@@ -176,96 +166,6 @@ shape = SubResource("Rect_ground")
 band_width = 2400.0
 surface_y = -24.0
 depth = 304.0
-
-[node name="WestLedgeLow" type="StaticBody2D" parent="."]
-position = Vector2(560, 492)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="WestLedgeLow"]
-shape = SubResource("Rect_plat_long")
-
-[node name="Visual" type="Sprite2D" parent="WestLedgeLow"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(1.1, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="WestLedgeHigh" type="StaticBody2D" parent="."]
-position = Vector2(820, 436)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="WestLedgeHigh"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="WestLedgeHigh"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(1, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="WestLedgeEnd" type="StaticBody2D" parent="."]
-position = Vector2(1120, 492)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="WestLedgeEnd"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="WestLedgeEnd"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(1, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="EastLedgeLow" type="StaticBody2D" parent="."]
-position = Vector2(1760, 492)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="EastLedgeLow"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="EastLedgeLow"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(1, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="EastLedgeMid" type="StaticBody2D" parent="."]
-position = Vector2(2000, 436)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="EastLedgeMid"]
-shape = SubResource("Rect_plat_short")
-
-[node name="Visual" type="Sprite2D" parent="EastLedgeMid"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(0.9, 0.86)
-texture = ExtResource("11_plat")
-centered = true
-
-[node name="EastLedgeHigh" type="StaticBody2D" parent="."]
-position = Vector2(2240, 380)
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="EastLedgeHigh"]
-shape = SubResource("Rect_plat")
-
-[node name="Visual" type="Sprite2D" parent="EastLedgeHigh"]
-z_index = -1
-position = Vector2(0, 0)
-scale = Vector2(1, 0.86)
-texture = ExtResource("11_plat")
-centered = true
 
 [node name="WallLeft" type="StaticBody2D" parent="."]
 position = Vector2(-20, 260)
