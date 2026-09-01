@@ -189,6 +189,12 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_fps_budget.gd"
         PassMarker = "FPS_BUDGET PASS"
         FailMarker = "FPS_BUDGET FAIL"
+    },
+    [pscustomobject]@{
+        Name = "smoke_hitbox_frames"
+        Script = "res://scripts/qa/smoke_hitbox_frames.gd"
+        PassMarker = "=== HITBOX_FRAMES PASS ==="
+        FailMarker = "=== HITBOX_FRAMES FAIL ==="
     }
 )
 

@@ -439,16 +439,7 @@ func _process_action(delta: float) -> void:
 
 	_action_timer += delta
 
-	var active_start: float = _action_startup
-	var active_end: float = _action_startup + _action_active
-	if _action_timer >= active_start and _action_timer < active_end:
-		if hitbox and not hitbox.is_active():
-			_enable_hitbox_for_current_action()
-	else:
-		if hitbox and hitbox.is_active():
-			hitbox.disable()
-
-	# Frame de ataque alinhado à janela de hit (windup / active / recovery).
+	# Frame + AABB da hitbox via timeline (startup/recovery off; active por frame).
 	_sync_attack_frame_to_action()
 	# Cancel leve: jump/dash no fim do recovery (basic e skills, não ultimate).
 	if _can_cancel_attack_to_mobility():
@@ -562,6 +553,10 @@ func _reset_combo() -> void:
 
 func get_combo_count() -> int:
 	return _combo_index
+
+
+func try_attack_basic() -> bool:
+	return _try_start_attack_basic()
 
 
 func _try_start_skill_1() -> bool:
@@ -681,6 +676,7 @@ func _begin_action(
 				slash_kind = &"basic"
 		var slash_pos: Vector2 = global_position + Vector2(offset_x * 0.55 * _facing, -28.0)
 		Fx.slash(slash_pos, _facing, slash_kind)
+	_sync_attack_frame_to_action()
 
 
 func _configure_hitbox(damage: int, knockback: Vector2, size: Vector2, offset_x: float) -> void:
@@ -691,22 +687,18 @@ func _configure_hitbox(damage: int, knockback: Vector2, size: Vector2, offset_x:
 	hitbox.set_facing(_facing)
 	hitbox.position.x = offset_x * _facing
 	hitbox.position.y = -28.0
-	if hitbox_shape and hitbox_shape.shape is RectangleShape2D:
-		var rect: RectangleShape2D = hitbox_shape.shape as RectangleShape2D
-		# Duplica se for recurso compartilhado.
-		if rect.resource_local_to_scene == false:
-			rect = rect.duplicate() as RectangleShape2D
-			rect.resource_local_to_scene = true
-			hitbox_shape.shape = rect
-		rect.size = size
+	_set_hitbox_size(size)
 
 
-func _enable_hitbox_for_current_action() -> void:
-	if hitbox == null:
+func _set_hitbox_size(size: Vector2) -> void:
+	if hitbox_shape == null or not (hitbox_shape.shape is RectangleShape2D):
 		return
-	hitbox.set_facing(_facing)
-	hitbox.position.x = _hitbox_base_x * _facing
-	hitbox.enable()
+	var rect: RectangleShape2D = hitbox_shape.shape as RectangleShape2D
+	if rect.resource_local_to_scene == false:
+		rect = rect.duplicate() as RectangleShape2D
+		rect.resource_local_to_scene = true
+		hitbox_shape.shape = rect
+	rect.size = size
 
 
 func _disable_hitbox() -> void:
@@ -1007,7 +999,7 @@ func _play_anim(anim: StringName, restart: bool = true) -> void:
 
 
 func _sync_attack_frame_to_action() -> void:
-	## Alinha frame de ataque: 0=startup, 1=active (hit), 2=recovery.
+	## Alinha frame de arte + AABB da hitbox ao timeline (por frame do golpe).
 	if sprite == null or sprite.sprite_frames == null:
 		return
 	if _state not in [State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE]:
@@ -1020,14 +1012,53 @@ func _sync_attack_frame_to_action() -> void:
 	if sprite.animation != ANIM_ATTACK:
 		sprite.play(ANIM_ATTACK)
 	sprite.pause()
-	var frame_i: int = 0
-	if _action_timer >= _action_startup + _action_active:
-		frame_i = mini(2, count - 1)
-	elif _action_timer >= _action_startup:
-		frame_i = mini(1, count - 1)
-	else:
-		frame_i = 0
-	sprite.frame = frame_i
+	sprite.frame = HitboxTimeline.visual_frame(
+		_action_timer, _action_startup, _action_active, count
+	)
+	_apply_hitbox_timeline(count)
+
+
+func _hitbox_action_kind() -> StringName:
+	match _state:
+		State.SKILL_1:
+			return HitboxTimeline.KIND_SKILL_1
+		State.SKILL_2:
+			return HitboxTimeline.KIND_SKILL_2
+		State.ULTIMATE:
+			return HitboxTimeline.KIND_ULTIMATE
+		_:
+			return HitboxTimeline.KIND_BASIC
+
+
+func _apply_hitbox_timeline(anim_frames: int) -> void:
+	if hitbox == null:
+		return
+	var tables: Dictionary = HitboxTimeline.tables_from_stats(
+		stats, _hitbox_action_kind(), _combo_index
+	)
+	var sizes: PackedVector2Array = PackedVector2Array(tables["sizes"])
+	var offsets: PackedFloat32Array = PackedFloat32Array(tables["offsets"])
+	var pose: Dictionary = HitboxTimeline.resolve(
+		_action_timer,
+		_action_startup,
+		_action_active,
+		sizes,
+		offsets,
+		tables["fallback_size"],
+		float(tables["fallback_offset"]),
+		anim_frames
+	)
+	var offset_x: float = float(pose["offset_x"])
+	_hitbox_base_x = offset_x
+	hitbox.set_facing(_facing)
+	hitbox.position.x = offset_x * _facing
+	hitbox.position.y = -28.0
+	_set_hitbox_size(pose["size"])
+	if bool(pose["active"]):
+		if not hitbox.is_active():
+			hitbox.enable()
+	elif hitbox.is_active():
+		hitbox.disable()
 
 
 func _update_run_bob(delta: float) -> void:
