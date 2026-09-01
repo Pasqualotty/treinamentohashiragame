@@ -6,7 +6,7 @@
 script = ExtResource("1_def")
 id = "tokito"
 display_name = "Tokito"
-unlock_requires = Array[String](["w4_05"])
+unlock_requires = Array[String](["w4_boss"])
 unlock_hint = "Conclua o Mundo 4"
 skill_1_name = "Névoa"
 skill_2_name = "Desvanecer"

@@ -68,6 +68,7 @@ func _run() -> void:
 			else:
 				messages.append("buy_upgrade + custo OK")
 
+			game.set("current_character_id", "tanjiro")
 			var stats: Resource = game.call("build_player_stats") as Resource
 			if stats == null:
 				ok = false

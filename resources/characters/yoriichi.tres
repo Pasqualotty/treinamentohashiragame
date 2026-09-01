@@ -6,7 +6,7 @@
 script = ExtResource("1_def")
 id = "yoriichi"
 display_name = "Yoriichi"
-unlock_requires = Array[String](["w5_05"])
+unlock_requires = Array[String](["w5_boss"])
 unlock_hint = "Conclua o Mundo 5"
 skill_1_name = "Sol Nascente"
 skill_2_name = "Dança"

@@ -6,7 +6,7 @@
 script = ExtResource("1_def")
 id = "muzan"
 display_name = "Muzan"
-unlock_requires = Array[String](["w5_05"])
+unlock_requires = Array[String](["w5_boss"])
 unlock_hint = "Conclua o Mundo 5 (secreto)"
 skill_1_name = "Sombra"
 skill_2_name = "Lua"

@@ -223,8 +223,8 @@ func _check_waves(defs: Array[StageDef]) -> void:
 					_fail("%s onda %d: tipo de oni desconhecido '%s'" % [def.stage_id, wi + 1, kind])
 					bad = true
 				total_onis += 1
-		if def.is_boss and last_kind != "boss":
-			_fail("%s boss deve fechar com kind 'boss' (veio '%s')" % [def.stage_id, last_kind])
+		if def.is_boss and last_kind != "boss" and not last_kind.begins_with("boss_"):
+			_fail("%s boss deve fechar com kind boss* (veio '%s')" % [def.stage_id, last_kind])
 			bad = true
 		if not bad:
 			print("[smoke] OK ondas %s: %d ondas, %d onis last=%s" % [
