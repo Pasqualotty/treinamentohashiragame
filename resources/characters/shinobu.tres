@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "shinobu"
+display_name = "Shinobu"
+unlock_requires = Array[String](["w3_boss"])
+unlock_hint = "Vença o chefe do Mundo 3"
+skill_1_name = "Agulha"
+skill_2_name = "Dança da Vespa"
+ultimate_name = "Toxina"
+accent = Color(0.82, 0.78, 1.15, 1)
+stats_path = "res://resources/player/kits/stats_shinobu.tres"
+combat_frames_dir = ""
+lifesteal_ratio = 0.0

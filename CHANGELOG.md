@@ -1,5 +1,13 @@
 # Changelog — Treinamento Hashira
 
+## Unreleased — elenco 14
+
+- Hub PERSONAGENS abre a tela de verdade (não só o label)
+- 14 caçadores no catálogo; Tanjiro starter; locked mostra a condição em PT
+- Kit distinto por resource (stats + nomes de skill); um player só
+- Save: `unlocked_characters` + `current_character_id` (legado = só Tanjiro)
+- Smoke `smoke_character_select` na suite
+
 ## Unreleased — auto-update sideload
 
 - No hub, se existe versão nova, o sobrinho vê um aviso e pode baixar/instalar sem APK na mão

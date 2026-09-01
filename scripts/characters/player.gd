@@ -53,6 +53,8 @@ signal state_changed(new_state: State)
 signal combo_changed(count: int)
 
 @export var stats: PlayerStats
+## Id do CharacterDef aplicado neste spawn (smoke / HUD).
+var applied_character_id: String = ""
 
 @onready var sprite: AnimatedSprite2D = %AnimatedSprite2D
 @onready var hitbox: Hitbox = %Hitbox
@@ -149,8 +151,7 @@ func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_GROUNDED
 	up_direction = Vector2.UP
 
-	if stats == null:
-		stats = load(DEFAULT_STATS) as PlayerStats
+	_apply_character_kit()
 	if stats == null:
 		push_error("Player: PlayerStats ausente em %s" % DEFAULT_STATS)
 		stats = PlayerStats.new()
@@ -179,13 +180,33 @@ func _ready() -> void:
 			hurtbox.hurt.connect(_on_hurt)
 
 	if sprite:
-		_base_modulate = Color.WHITE
+		sprite.modulate = _base_modulate
 		sprite.centered = true
 		sprite.z_index = 2
 		_setup_sprite_frames()
 	_apply_facing_visual()
 	_sync_sprite_to_state()
 	hp_changed.emit(hp, stats.max_hp)
+
+
+## Um player, 14 resources: stats + tint vêm do CharacterDef do save.
+func _apply_character_kit() -> void:
+	var wanted_id: String = "tanjiro"
+	if Game != null:
+		wanted_id = str(Game.current_character_id)
+	var def: CharacterDef = CharacterCatalog.find(wanted_id)
+	if def == null:
+		def = CharacterCatalog.starter()
+	if def == null:
+		applied_character_id = wanted_id
+		if stats == null:
+			stats = load(DEFAULT_STATS) as PlayerStats
+		return
+	applied_character_id = def.id
+	stats = def.build_stats()
+	_base_modulate = def.accent
+	if sprite:
+		sprite.modulate = _base_modulate
 
 
 func _physics_process(delta: float) -> void:
@@ -720,6 +741,7 @@ func _on_hitbox_hit(_hurtbox: Hurtbox, hit_data: HitData) -> void:
 	# Respiracao por hit que acerta (GDD) + juice por tipo.
 	if stats:
 		Game.add_breath_from_hit(stats.breath_per_hit)
+		_apply_lifesteal(hit_data)
 	else:
 		Game.add_breath_from_hit()
 	if is_instance_valid(Audio):
@@ -761,6 +783,19 @@ func _on_hitbox_hit(_hurtbox: Hurtbox, hit_data: HitData) -> void:
 		var hit_pos: Vector2 = hitbox.global_position if hitbox else global_position
 		Fx.spark(hit_pos, spark_color, spark_amount)
 		Fx.damage_number(hit_pos + Vector2(0.0, -18.0), hit_data.damage if hit_data else 0, is_crit)
+
+
+func _apply_lifesteal(hit_data: HitData) -> void:
+	if stats == null or stats.lifesteal_ratio <= 0.0:
+		return
+	var dmg: int = hit_data.damage if hit_data != null else 0
+	if dmg <= 0:
+		return
+	var heal: int = int(round(float(dmg) * stats.lifesteal_ratio))
+	if heal <= 0:
+		return
+	hp = mini(stats.max_hp, hp + heal)
+	hp_changed.emit(hp, stats.max_hp)
 
 
 func _on_hurt(hit_data: HitData) -> void:

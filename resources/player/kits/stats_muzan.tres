@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PlayerStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/player_stats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+
+move_speed = 255.0
+max_hp = 140
+attack_damage = 11
+attack_hitbox_size = Vector2(88, 48)
+skill_1_hitbox_size = Vector2(90, 50)
+ultimate_hitbox_size = Vector2(110, 64)
+lifesteal_ratio = 0.12

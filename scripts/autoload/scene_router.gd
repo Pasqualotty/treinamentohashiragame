@@ -11,6 +11,7 @@ const SHOP := "res://scenes/ui/shop.tscn"
 const CREDITS := "res://scenes/ui/credits.tscn"
 const SETTINGS := "res://scenes/ui/settings.tscn"
 const NAME_ENTRY := "res://scenes/ui/name_entry.tscn"
+const CHARACTER_SELECT := "res://scenes/ui/character_select.tscn"
 
 const TransitionScript := preload("res://scripts/ui/transition.gd")
 
@@ -141,3 +142,7 @@ func to_settings() -> bool:
 func to_name_entry(edit_mode: bool = false) -> bool:
 	name_entry_edit_mode = edit_mode
 	return go_to(NAME_ENTRY)
+
+
+func to_characters() -> bool:
+	return go_to(CHARACTER_SELECT)

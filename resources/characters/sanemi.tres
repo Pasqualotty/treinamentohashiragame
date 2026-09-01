@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "sanemi"
+display_name = "Sanemi"
+unlock_requires = Array[String](["w4_boss"])
+unlock_hint = "Vença o chefe do Mundo 4"
+skill_1_name = "Rajada"
+skill_2_name = "Corte de Vento"
+ultimate_name = "Tempestade"
+accent = Color(0.78, 1.12, 0.72, 1)
+stats_path = "res://resources/player/kits/stats_sanemi.tres"
+combat_frames_dir = ""
+lifesteal_ratio = 0.0

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "zenitsu"
+display_name = "Zenitsu"
+unlock_requires = Array[String](["w1_boss"])
+unlock_hint = "Vença o chefe do Mundo 1"
+skill_1_name = "Relâmpago"
+skill_2_name = "Passo do Trovão"
+ultimate_name = "Seis Dobras"
+accent = Color(1.12, 1.08, 0.55, 1)
+stats_path = "res://resources/player/kits/stats_zenitsu.tres"
+combat_frames_dir = ""
+lifesteal_ratio = 0.0

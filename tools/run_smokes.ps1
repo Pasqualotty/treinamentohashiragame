@@ -170,6 +170,12 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_auto_update.gd"
         PassMarker = "AUTO_UPDATE PASS"
         FailMarker = "AUTO_UPDATE FAIL"
+    },
+    [pscustomobject]@{
+        Name = "smoke_character_select"
+        Script = "res://scripts/qa/smoke_character_select.gd"
+        PassMarker = "CHARACTER_SELECT PASS"
+        FailMarker = "CHARACTER_SELECT FAIL"
     }
 )
 

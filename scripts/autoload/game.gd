@@ -19,11 +19,15 @@ signal breath_changed(value: float, max_value: float)
 signal upgrades_changed
 ## Nome de cacador escolhido pelo jogador (onboarding ou renomeacao no hub).
 signal player_name_changed(new_name: String)
+## Personagem atual (elenco). Hub e select escutam para atualizar o showcase.
+signal character_changed(character_id: String)
 
 var coins_banked: int = 0
 ## Vazio = jogador ainda nao passou pelo onboarding de nome.
 var player_name: String = ""
 var current_character_id: String = "tanjiro"
+## Persistido. Save legado sem a chave começa só com o starter (Tanjiro).
+var unlocked_characters: Array[String] = ["tanjiro"]
 var stages_cleared: Array[String] = []
 var upgrades: Dictionary = {}  # id -> level
 
@@ -193,7 +197,47 @@ func is_stage_cleared(stage_id: String) -> bool:
 func mark_stage_cleared(stage_id: String) -> void:
 	if stage_id not in stages_cleared:
 		stages_cleared.append(stage_id)
+		_sync_character_unlocks()
 		save_game()
+
+
+func is_character_unlocked(character_id: String) -> bool:
+	_sync_character_unlocks()
+	return character_id in unlocked_characters
+
+
+## Seleciona quem entra na fase. Recusa id locked ou fora do catálogo.
+func select_character(character_id: String) -> bool:
+	_sync_character_unlocks()
+	if character_id not in unlocked_characters:
+		return false
+	if CharacterCatalog.find(character_id) == null:
+		return false
+	if current_character_id == character_id:
+		return true
+	current_character_id = character_id
+	character_changed.emit(current_character_id)
+	save_game()
+	return true
+
+
+## Libera quem cumpriu `unlock_requires` com o `stages_cleared` atual.
+## Não grava sozinho — o caller persiste (load não deve sujar disco).
+func _sync_character_unlocks() -> void:
+	if CharacterCatalog.STARTER_ID not in unlocked_characters:
+		unlocked_characters.insert(0, CharacterCatalog.STARTER_ID)
+	for def: CharacterDef in CharacterCatalog.load_all():
+		if def.is_unlocked(stages_cleared) and def.id not in unlocked_characters:
+			unlocked_characters.append(def.id)
+	_sanitize_current_character()
+
+
+func _sanitize_current_character() -> void:
+	if current_character_id in unlocked_characters and CharacterCatalog.find(current_character_id) != null:
+		return
+	current_character_id = CharacterCatalog.STARTER_ID
+	if current_character_id not in unlocked_characters:
+		unlocked_characters.insert(0, current_character_id)
 
 
 # --- Upgrades / loja ---
@@ -279,7 +323,14 @@ func apply_upgrades_to_stats(base: PlayerStats) -> PlayerStats:
 
 
 func build_player_stats() -> PlayerStats:
-	var base: PlayerStats = load(DEFAULT_PLAYER_STATS) as PlayerStats
+	var def: CharacterDef = CharacterCatalog.find(current_character_id)
+	if def == null:
+		def = CharacterCatalog.starter()
+	var base: PlayerStats
+	if def != null:
+		base = def.build_stats()
+	else:
+		base = load(DEFAULT_PLAYER_STATS) as PlayerStats
 	return apply_upgrades_to_stats(base)
 
 
@@ -302,6 +353,7 @@ func save_game() -> void:
 		"coins_banked": coins_banked,
 		"player_name": player_name,
 		"current_character_id": current_character_id,
+		"unlocked_characters": unlocked_characters,
 		"stages_cleared": stages_cleared,
 		"upgrades": upgrades,
 	}
@@ -335,6 +387,17 @@ func load_game() -> void:
 	stages_cleared.clear()
 	for s in cleared:
 		stages_cleared.append(str(s))
+	unlocked_characters.clear()
+	if data.has("unlocked_characters"):
+		var raw_chars: Variant = data.get("unlocked_characters", [])
+		if raw_chars is Array:
+			for cid in raw_chars:
+				var sid := str(cid)
+				if sid != "" and sid not in unlocked_characters:
+					unlocked_characters.append(sid)
+	if unlocked_characters.is_empty():
+		unlocked_characters.append("tanjiro")
+	_sync_character_unlocks()
 
 
 func _ensure_catalog() -> void:

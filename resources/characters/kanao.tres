@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "kanao"
+display_name = "Kanao"
+unlock_requires = Array[String](["w3_01"])
+unlock_hint = "Conclua a fase 1 do Mundo 3"
+skill_1_name = "Pétala"
+skill_2_name = "Passo de Flor"
+ultimate_name = "Olho Firme"
+accent = Color(1.05, 0.82, 0.95, 1)
+stats_path = "res://resources/player/kits/stats_kanao.tres"
+combat_frames_dir = ""
+lifesteal_ratio = 0.0
