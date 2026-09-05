@@ -137,7 +137,6 @@ func _claim_submit() -> bool:
 func _confirm() -> bool:
 	if not _claim_submit():
 		return false
-	_ui_click()
 	if not SceneRouter.to_hub():
 		# Recusado na porta (já havia navegação no ar): destrava aqui mesmo, não
 		# vem sinal nenhum nesse caso.
@@ -147,7 +146,6 @@ func _confirm() -> bool:
 
 
 func _on_random_pressed() -> void:
-	_ui_click()
 	var current := _current_clean_name()
 	var pool: Array[String] = RANDOM_NAMES.filter(func(n: String) -> bool: return n != current)
 	if pool.is_empty():
@@ -164,7 +162,6 @@ func _on_cancel_pressed() -> void:
 	if _navigating:
 		return
 	_navigating = true
-	_ui_click()
 	if not SceneRouter.to_hub():
 		_navigating = false
 
@@ -174,11 +171,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _edit_mode and event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		_on_cancel_pressed()
-
-
-func _ui_click() -> void:
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
 
 
 ## --- Estilo ---------------------------------------------------------------

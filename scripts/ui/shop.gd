@@ -200,8 +200,6 @@ func _find_row(upgrade_id: String) -> Control:
 
 
 func _on_buy_pressed(upgrade_id: String) -> void:
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
 	var panel: Control = _find_row(upgrade_id)
 	if Game.buy_upgrade(upgrade_id):
 		var def: UpgradeDef = Game.get_upgrade_def(upgrade_id)
