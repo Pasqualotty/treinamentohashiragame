@@ -131,8 +131,6 @@ func _select_world(world_id: String) -> void:
 	if not WorldUnlock.is_unlocked(world_id, _cleared):
 		status_label.text = _world_locked_reason(world_id)
 		return
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
 	var loop: MainLoop = Engine.get_main_loop()
 	if loop is SceneTree:
 		var game: Node = (loop as SceneTree).root.get_node_or_null("Game")
@@ -452,8 +450,6 @@ func _on_back_pressed() -> void:
 	# Durante a viagem já existe uma troca de cena a caminho — não empilhar outra.
 	if _traveling:
 		return
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
 	SceneRouter.to_hub()
 
 
@@ -474,8 +470,6 @@ func _select_stage(index: int) -> void:
 		push_error("world_map: cena ausente para %s (%s)" % [def.stage_id, def.scene_path])
 		status_label.text = "%s indisponível" % def.node_label()
 		return
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
 	Game.pending_stage_id = def.stage_id
 	status_label.text = "Entrando em %s…" % def.node_label()
 	await _play_travel_animation(index)

@@ -154,7 +154,6 @@ func _open() -> void:
 
 
 func _on_primary_pressed() -> void:
-	_ui_click()
 	match _mode:
 		"offer":
 			update_pressed.emit()
@@ -165,7 +164,6 @@ func _on_primary_pressed() -> void:
 
 
 func _on_secondary_pressed() -> void:
-	_ui_click()
 	match _mode:
 		"offer", "permission":
 			later_pressed.emit()
@@ -173,11 +171,6 @@ func _on_secondary_pressed() -> void:
 			cancel_download_pressed.emit()
 		"failed", "installing", "blocked", "desktop":
 			play_anyway_pressed.emit()
-
-
-func _ui_click() -> void:
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
 
 
 func _style_panel() -> void:

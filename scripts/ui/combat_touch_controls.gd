@@ -410,8 +410,6 @@ func _on_tsb_pressed(action: String, btn: TouchScreenButton) -> void:
 	var base: Vector2 = btn.get_meta("base_scale", btn.scale)
 	btn.scale = base * PRESS_SCALE
 	btn.modulate = PRESS_MOD
-	if is_instance_valid(Audio) and action != "move_left" and action != "move_right":
-		Audio.play_sfx("ui_click", randf_range(0.95, 1.05))
 
 
 func _on_tsb_released(_action: String, btn: TouchScreenButton) -> void:

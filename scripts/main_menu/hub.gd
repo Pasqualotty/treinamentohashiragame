@@ -396,11 +396,6 @@ func _on_character_changed(_character_id: String) -> void:
 	_refresh()
 
 
-func _ui_click() -> void:
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
-
-
 ## --- Navegação ------------------------------------------------------------
 
 ## Navegação falhou: destrava os botões. Sem isto, um `change_scene_to_file` que
@@ -416,7 +411,6 @@ func _navigate(target: Callable) -> void:
 	if _navigating:
 		return
 	_navigating = true
-	_ui_click()
 	if not bool(target.call()):
 		_navigating = false
 

@@ -65,27 +65,18 @@ func _on_sfx_changed(value: float) -> void:
 		Audio.set_volume_sfx(value)
 
 
-func _on_sfx_drag_ended(value_changed: bool) -> void:
-	# Preview sonoro só ao soltar o slider — evita spam de SFX durante o arraste.
-	if value_changed and is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
+func _on_sfx_drag_ended(_value_changed: bool) -> void:
+	pass
 
 
 ## --- Navegação --------------------------------------------------------
 
 func _on_back_pressed() -> void:
-	_ui_click()
 	SceneRouter.to_hub()
 
 
 func _on_credits_pressed() -> void:
-	_ui_click()
 	SceneRouter.to_credits()
-
-
-func _ui_click() -> void:
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
 
 
 ## --- Estilo / paleta --------------------------------------------------

@@ -84,8 +84,6 @@ func _make_card(def: CharacterDef) -> Control:
 
 
 func _on_choose(character_id: String) -> void:
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
 	if not Game.select_character(character_id):
 		status_label.text = "Ainda bloqueado."
 		return
@@ -101,7 +99,5 @@ func _on_back_pressed() -> void:
 	if _navigating:
 		return
 	_navigating = true
-	if is_instance_valid(Audio):
-		Audio.play_sfx("ui_click")
 	if not SceneRouter.to_hub():
 		_navigating = false
