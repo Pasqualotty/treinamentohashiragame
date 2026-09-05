@@ -10,7 +10,7 @@
 | Autoload `Audio` | `scripts/autoload/audio.gd` |
 | Volumes no save | `Game.audio_volume_*` → `user://save.json` |
 | SFX placeholders | `assets/audio/sfx/*.wav` (procedural, original) |
-| BGM placeholders | `assets/audio/bgm/hub_loop.wav`, `stage_loop.wav`, `boss_loop.wav` |
+| BGM real (hub/stage/boss) | `assets/audio/bgm/game_theme.mp3` — loop via `_as_looping` (AudioStreamMP3.duplicate + loop=true) |
 | Hooks | splash sting, hub BGM + UI click, mapa UI click, stage/boss BGM, slash/hit, coin/breath_full/ultimate/stage_clear |
 
 **Licença:** só original/procedural/CC0 — **nunca** OST Demon Slayer rip.
@@ -52,9 +52,10 @@ assets/audio/
     stage_clear.wav
     brand_sting.wav
   bgm/
-    hub_loop.wav
-    stage_loop.wav
-    boss_loop.wav
+    game_theme.mp3     # música do jogo (hub/stage/boss) — loop via _as_looping
+    hub_loop.wav       # placeholder (não usado por BGM_FILES)
+    stage_loop.wav     # placeholder (não usado por BGM_FILES)
+    boss_loop.wav      # placeholder (não usado por BGM_FILES)
 resources/default_bus_layout.tres   # Master → BGM, SFX
 scripts/autoload/audio.gd
 scripts/tools/generate_audio_placeholders.py

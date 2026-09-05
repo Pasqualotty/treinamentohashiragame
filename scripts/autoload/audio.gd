@@ -44,9 +44,9 @@ const SFX_FILES := {
 }
 
 const BGM_FILES := {
-	"hub": "hub_loop",
-	"stage": "stage_loop",
-	"boss": "boss_loop",
+	"hub": "game_theme",
+	"stage": "game_theme",
+	"boss": "game_theme",
 }
 
 var volume_master: float = 1.0
@@ -226,6 +226,10 @@ func _as_looping(stream: AudioStream) -> AudioStream:
 		var ogg := (stream as AudioStreamOggVorbis).duplicate() as AudioStreamOggVorbis
 		ogg.loop = true
 		return ogg
+	if stream is AudioStreamMP3:
+		var mp3 := (stream as AudioStreamMP3).duplicate() as AudioStreamMP3
+		mp3.loop = true
+		return mp3
 	return stream
 
 
