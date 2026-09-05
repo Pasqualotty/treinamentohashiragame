@@ -37,8 +37,8 @@ var breath: float = 0.0
 var breath_max: float = 100.0
 
 var audio_volume_master: float = 1.0
-var audio_volume_bgm: float = 0.75
-var audio_volume_sfx: float = 1.0
+var audio_volume_bgm: float = 0.32  # era 0.75 — alto demais no device
+var audio_volume_sfx: float = 0.45  # era 1.0  — alto demais no device
 ## Stage id opcional (mapa / debug) antes de trocar de cena.
 var pending_stage_id: String = "w1_01"
 ## Mundo visível no mapa. Persistido; o mapa clampa se ainda estiver trancado.

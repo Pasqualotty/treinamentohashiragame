@@ -50,8 +50,8 @@ const BGM_FILES := {
 }
 
 var volume_master: float = 1.0
-var volume_bgm: float = 0.75
-var volume_sfx: float = 1.0
+var volume_bgm: float = 0.32  # era 0.75 — alto demais no device
+var volume_sfx: float = 0.45  # era 1.0  — alto demais no device
 
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_i: int = 0
