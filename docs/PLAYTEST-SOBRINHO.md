@@ -82,6 +82,22 @@ Data: ________  Dispositivo: ________  Quem jogou: ________
 
 ---
 
+## 2 celulares (LAN, mesmo Wi-Fi)
+
+Não entra no CI. Dois APKs (ou 2 instâncias Play no PC com `127.0.0.1`).
+
+1. Os dois no **mesmo Wi-Fi da casa** (sem rede de convidado isolado).
+2. Host: hub → Amigos → **Criar sala** → código de 6 na cara (tap copia).
+3. Guest: **Entrar** → cola o código. Se não achar em ~2 s, abre “IP do anfitrião”.
+4. Host toca **JOGAR** → mapa → `w1_01`. Guest **não** escolhe fase (“O anfitrião escolhe a fase”).
+5. Os dois aparecem na fase; cada um controla o **próprio** caçador (touch no celular dele).
+6. Os dois batem oni. Um sai da sala → o outro não fica preso (guest cai → hub; host sozinho segue ou volta ao hub se ainda não entrou na fase).
+7. Fecha o app e abre de novo: a lista de amigos ainda tem o nick (sem IP na tela).
+
+**APK diferente (`version_code`):** guest vê recusa em PT (“Atualize o APK”), não combate quebrado.
+
+---
+
 ## Se FAIL — anote em 3 linhas (pra mandar pro dev)
 
 1. Onde parou:  

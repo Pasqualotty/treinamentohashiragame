@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-10 (elenco 15 + feel + oni aperta + loja/skills)  
+**Atualizado:** 2026-09-10 (elenco 15 + feel + oni aperta + loja/skills + amigos LAN 2P)  
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -11,7 +11,7 @@
 
 ## Onde estamos (1 frase)
 
-**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub → mapa (seletor de mundo) → fase → portal → loja/save. Mundo seguinte abre ao limpar o boss. Placeholders de tema (trem / distrito / castelo / céu vermelho). **Gate de playtest** + suite `tools/run_smokes.ps1`. Playtest do sobrinho agora tem pressão real nos oni (HP/agressão/ondas; sem one-shot).
+**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub (Amigos à direita) → mapa (seletor de mundo) → fase → portal → loja/save. **Sala LAN 2P** no mesmo Wi-Fi (código 6). Mundo seguinte abre ao limpar o boss.
 
 ### Hotfix playability 2026-08-07 (crítico)
 
@@ -78,6 +78,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
 | Créditos fan game | ✅ engrenagem do hub |
 | Pause na fase | ✅ Continuar / Mapa / Hub |
 | SceneRouter (shop/credits/mapa) | ✅ (hotfix 2026-08-07) |
+| Amigos + sala LAN 2P | ✅ lista no hub, ENet, código 6, sem nuvem |
 
 ---
 
@@ -105,7 +106,8 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
 | UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
 | PERSONAGENS no hub | ✅ tela select real (15; portrait no quarteto; locked recusa; save do id) |
-| Missões / XP / social no hub | GDD: fase 2+ / fora offline |
+| Amigos / sala LAN | ✅ 2P mesmo Wi-Fi; clube/notícias/eventos ainda fora |
+| Missões / XP / clube no hub | GDD: fase 2+ / fora |
 
 ### 3) Conteúdo em escala (Fase F)
 

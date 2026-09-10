@@ -20,6 +20,7 @@ Esta pasta é a **consulta técnica** do projeto. Decisões de produto ficam em 
 | [09-troubleshooting.md](./09-troubleshooting.md) | Erros já vistos e fixes |
 | [10-skills-pasqualotti.md](./10-skills-pasqualotti.md) | Skills obrigatórias de design/arte |
 | [11-combat-hud.md](./11-combat-hud.md) | HUD de combate (HP / breath / moedas run) |
+| [12-lan-coop.md](./12-lan-coop.md) | Sala LAN 2P (ENet, beacon UDP, código 6) |
 
 **Skills Grok (sempre):**
 
