@@ -168,6 +168,17 @@ func notify_guest_host_picks() -> void:
 		toast_requested.emit("O anfitrião escolhe a fase")
 
 
+func host_leave_stage_to_map() -> void:
+	## Pause host "Sair para o mapa": sala permanece, guest volta ao hub.
+	if not is_host():
+		return
+	in_stage = false
+	_oni_t = 0.0
+	_next_oni_id = 1
+	if _handshake_ok:
+		_rpc_host_picking_stage.rpc()
+
+
 func close_session() -> void:
 	var had: bool = role != Role.NONE
 	_beacon.stop()
@@ -361,6 +372,27 @@ func _guest_go(path: String) -> void:
 	if not is_inside_tree():
 		return
 	SceneRouter.go_to(path)
+
+
+@rpc("authority", "reliable")
+func _rpc_host_picking_stage() -> void:
+	if role != Role.GUEST:
+		return
+	in_stage = false
+	_input_t = 0.0
+	_pending_just = 0
+	_guest_onis.clear()
+	var tree := get_tree()
+	if tree != null:
+		tree.paused = false
+	Engine.time_scale = 1.0
+	call_deferred("_guest_go_hub")
+
+
+func _guest_go_hub() -> void:
+	if not is_inside_tree():
+		return
+	SceneRouter.to_hub()
 
 
 @rpc("any_peer", "unreliable")

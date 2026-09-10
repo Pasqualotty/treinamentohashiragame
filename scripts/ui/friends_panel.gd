@@ -22,7 +22,10 @@ func _ready() -> void:
 	_build()
 	_bind_session()
 	_refresh_list()
-	_show(View.LIST)
+	if is_instance_valid(LanSession) and LanSession.is_guest() and LanSession.has_peer():
+		show_host_picks_stage()
+	else:
+		_show(View.LIST)
 
 
 func _build() -> void:
@@ -125,7 +128,7 @@ func _build() -> void:
 	_ip_input.placeholder_text = "127.0.0.1"
 	_ip_box.add_child(_ip_input)
 	_join_box.add_child(_ip_box)
-	_join_box.add_child(_plate_btn("VOLTAR", func() -> void: _show(View.LIST)))
+	_join_box.add_child(_plate_btn("VOLTAR", _on_close_room))
 
 	_wait_box = VBoxContainer.new()
 	_wait_box.add_theme_constant_override("separation", 10)

@@ -44,6 +44,9 @@ func _run() -> void:
 	_test_legacy_without_friends()
 	await _test_hub_panel()
 	_test_host_close(lan)
+	await _test_join_voltar(lan)
+	_test_host_leave_keeps_room(lan)
+	await _test_guest_clears_packed(lan)
 	_finish()
 
 
@@ -217,6 +220,125 @@ func _test_host_close(lan: Node) -> void:
 		_fail("close_session não zerou role")
 		return
 	_pass("host_room + close_session sem crash")
+
+
+func _find_button(n: Node, text: String) -> Button:
+	if n is Button and (n as Button).text == text:
+		return n as Button
+	for c: Node in n.get_children():
+		var hit: Button = _find_button(c, text)
+		if hit != null:
+			return hit
+	return null
+
+
+func _test_join_voltar(lan: Node) -> void:
+	var packed: PackedScene = load(HUB) as PackedScene
+	if packed == null:
+		_fail("VOLTAR: hub.tscn não carrega")
+		return
+	var inst: Node = packed.instantiate()
+	root.add_child(inst)
+	for i in range(6):
+		await process_frame
+	var fp: Node = inst.get_node_or_null("%FriendsPanel")
+	if fp == null:
+		_fail("VOLTAR: hub sem %FriendsPanel")
+		inst.queue_free()
+		await process_frame
+		return
+	lan.call("join_room", "K7H4MP")
+	if not bool(lan.call("is_guest")):
+		_fail("join_room não marcou guest")
+		lan.call("close_session")
+		inst.queue_free()
+		await process_frame
+		return
+	var voltar: Button = _find_button(fp, "VOLTAR")
+	if voltar == null:
+		_fail("tela Entrar sem botão VOLTAR")
+		lan.call("close_session")
+		inst.queue_free()
+		await process_frame
+		return
+	voltar.pressed.emit()
+	await process_frame
+	if bool(lan.call("is_guest")) or bool(lan.call("in_session")):
+		_fail("VOLTAR na tela Entrar não chamou close_session")
+		lan.call("close_session")
+		inst.queue_free()
+		await process_frame
+		return
+	inst.queue_free()
+	await process_frame
+	_pass("VOLTAR na tela Entrar chama close_session")
+
+
+func _test_host_leave_keeps_room(lan: Node) -> void:
+	var code: String = str(lan.call("host_room"))
+	if code.is_empty() or not RoomCode.is_valid(code):
+		_fail("host_leave: host_room code=%s" % code)
+		lan.call("close_session")
+		return
+	lan.set("in_stage", true)
+	if not lan.has_method("host_leave_stage_to_map"):
+		_fail("LanSession sem host_leave_stage_to_map")
+		lan.call("close_session")
+		return
+	lan.call("host_leave_stage_to_map")
+	if bool(lan.get("in_stage")):
+		_fail("host_leave_stage_to_map não zerou in_stage")
+		lan.call("close_session")
+		return
+	if not bool(lan.call("is_host")) or not bool(lan.call("in_session")):
+		_fail("host_leave_stage_to_map fechou a sala")
+		lan.call("close_session")
+		return
+	lan.call("close_session")
+	_pass("host sai ao mapa: in_stage=false e sala permanece")
+
+
+func _test_guest_clears_packed(lan: Node) -> void:
+	lan.call("join_room", "K7H4MP")
+	if not bool(lan.call("is_guest")):
+		_fail("guest packed: join_room falhou")
+		lan.call("close_session")
+		return
+	lan.call("_rpc_welcome", "HostSmoke", "tanjiro")
+	if not bool(lan.call("has_peer")):
+		_fail("guest packed: handshake local não marcou peer")
+		lan.call("close_session")
+		return
+	var packed: PackedScene = load("res://scenes/battle/stage_w1_01.tscn") as PackedScene
+	if packed == null:
+		_fail("guest packed: stage_w1_01.tscn não carrega")
+		lan.call("close_session")
+		return
+	var stage: Node = packed.instantiate()
+	root.add_child(stage)
+	await process_frame
+	if stage.get_node_or_null("Player2") == null:
+		_fail("guest packed: coop não spawnou Player2")
+		stage.queue_free()
+		lan.call("close_session")
+		await process_frame
+		return
+	var live_ai: int = 0
+	for n: Node in root.get_tree().get_nodes_in_group("enemy"):
+		if not is_instance_valid(n):
+			continue
+		if n.is_queued_for_deletion():
+			continue
+		if n.get("net_puppet") == true:
+			continue
+		live_ai += 1
+	stage.queue_free()
+	lan.call("close_session")
+	await process_frame
+	if live_ai > 0:
+		_fail("guest _ready deixou %d oni packed com AI" % live_ai)
+		return
+	_pass("guest _ready limpa group enemy (net_puppet + queue_free)")
 
 
 func _finish() -> void:

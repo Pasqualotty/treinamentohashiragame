@@ -142,6 +142,8 @@ func _setup_coop_if_needed() -> void:
 	if not _coop:
 		_local_pawn = _player
 		return
+	if LanSession.is_guest():
+		_clear_guest_packed_enemies()
 	LanSession.mark_entered_stage()
 	if _player != null:
 		_player.set("coop_slot", 0)
@@ -158,6 +160,19 @@ func _setup_coop_if_needed() -> void:
 	_local_pawn = _player if LanSession.is_host() else _player2
 	if _local_pawn != null:
 		_local_pawn.set("is_local_pawn", true)
+
+
+func _clear_guest_packed_enemies() -> void:
+	## Guest não chama WaveDirector._clear_preplaced_enemies. Sem isto o Enemy1
+	## packed nas stage_*.tscn corre AI local no mesmo frame da física.
+	var tree := get_tree()
+	if tree == null:
+		return
+	for n: Node in tree.get_nodes_in_group("enemy"):
+		if not is_instance_valid(n):
+			continue
+		n.set("net_puppet", true)
+		n.queue_free()
 
 
 func _spawn_player2() -> void:
@@ -521,6 +536,8 @@ func _return_to_map(count_as_victory: bool) -> void:
 	_returning = true
 	if not count_as_victory and not _completed:
 		Game.lose_run_coins()
+	if _coop and is_instance_valid(LanSession) and LanSession.is_host():
+		LanSession.host_leave_stage_to_map()
 	SceneRouter.to_world_map()
 
 
