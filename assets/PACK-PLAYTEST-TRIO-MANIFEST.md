@@ -14,8 +14,8 @@
 | zenitsu | base + blink | bust | 1 frame cada | haori amarelo, 1 katana |
 | inosuke | base + blink | bust | 1 frame cada | máscara javali, **duas** lâminas |
 
-Hub 01 breathe: não gerado nesta onda (opcional).  
-Sheets 7/4/3 do Tanjiro **não** foram copiados pro trio — piso jogável primeiro.
+Hub 01 breathe: gerado na frente `anim-quarteto` (`hub_idle/01.png` no trio; Tanjiro **não**).  
+Sheets 7/4/3: ver `assets/PACK-ANIM-QUARTETO-MANIFEST.md`.
 
 ## Pipeline
 
@@ -32,7 +32,7 @@ Sheets 7/4/3 do Tanjiro **não** foram copiados pro trio — piso jogável prime
 - Nezuko run/attack: obi às vezes vermelho/branco em vez de laranja sólido (drift leve de pose). Cara/kimono/bambu batem.  
 - Zenitsu attack: lâmina na mão + saya no cinto (uma katana desembainhada, não segunda arma).  
 - Inosuke side/run: cabeça mais “javali de verdade” que a máscara-de-pelúcia da base frente — ainda é silhueta de javali + duas lâminas, não Tanjiro.  
-- Trio: 1 frame por anim de combate (não paridade 7/4/3 do Tanjiro).  
+- Trio combate na onda 1 era 1 frame; paridade 7/4/3 + dash: `assets/PACK-ANIM-QUARTETO-MANIFEST.md`.  
 - Os outros 10 ids do catálogo continuam Tanjiro + `accent`.
 
 ## Como ver

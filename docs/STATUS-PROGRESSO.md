@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-10 (elenco 15 + feel + oni aperta + loja/skills)  
+**Atualizado:** 2026-09-10 (quarteto sheets reais + dash no corpo)  
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -35,8 +35,8 @@
 | Faixa | O que é | Status (snapshot) | Gate / prova |
 |-------|---------|-------------------|--------------|
 | **Playable base** | Input, ondas, moedas, portal trancado, smokes | ✅ 2026-08-07 | `smoke_playable_w1` + e2e combat |
-| **Feel de combate** | Hitstop com refresh, dash ease-out + SFX, VFX pixel, knock hold no oni de rua | 🟡 hit/dash fechados; body sheet = outra frente | `smoke_combat_feel` + e2e + playtest humano |
-| **Anim combate** | Sheets idle/run/atk no player canônico | 🟡 residual (MVP tem slash legível) | visual + smoke player |
+| **Feel de combate** | Hitstop com refresh, dash ease-out + SFX, VFX pixel, knock hold no oni de rua | ✅ VFX/feel onda 1; body dash nesta frente | `smoke_combat_feel` + e2e + playtest humano |
+| **Anim combate** | Sheets idle/run/atk/dash no quarteto (paridade Tanjiro) | ✅ 2026-09-10 trio 7/4/3 + dash 3 nos 4 | visual + `smoke_character_select` counts |
 | **Touch premium** | Layout polegares, hit areas, labels | 🟡 pós-hotfix mouse-safe | checklist sobrinho + `q1` |
 | **Cerimônia de fase** | Intro/clear/portal/feedback de onda | 🟡 parcial (label de onda + saída) | e2e waves + humano |
 | **Áudio pass** | BGM hub/stage, SFX hit/coin/ui | 🟡 loops + sfx existem; boss BGM não | ouvir no device |

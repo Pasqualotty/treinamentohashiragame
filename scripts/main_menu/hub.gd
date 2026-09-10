@@ -60,6 +60,10 @@ const PULSE_COLOR := Color(1.12, 1.08, 0.85, 1.0)
 
 var _idle_tex: Texture2D
 var _blink_tex: Texture2D
+## Trio: hub_idle/01.png (breathe). Tanjiro NÃO usa — 01 legado é pose errada.
+var _breathe_tex: Texture2D
+var _breath_pose: bool = false
+var _blink_on: bool = false
 
 var _bg_frames: Array[Texture2D] = []
 var _bg_i: int = 0
@@ -154,10 +158,16 @@ func _load_idle_frames() -> void:
 func _load_idle_frames_for(def: CharacterDef) -> void:
 	_idle_tex = null
 	_blink_tex = null
+	_breathe_tex = null
+	_breath_pose = false
+	_blink_on = false
 	if def != null and def.hub_frames_dir != "":
 		var d: String = def.hub_frames_dir.rstrip("/")
 		_idle_tex = _load_tex("%s/%02d.png" % [d, IDLE_FRAME])
 		_blink_tex = _load_tex("%s/%02d.png" % [d, BLINK_FRAME])
+		# 01 do Tanjiro é pose/golpe legado — não entra no loop de respiração.
+		if def.id != "tanjiro":
+			_breathe_tex = _load_tex("%s/01.png" % d)
 	if _idle_tex == null:
 		_idle_tex = _load_tex("%s/%02d.png" % [HUB_IDLE_DIR, IDLE_FRAME])
 		_blink_tex = _load_tex("%s/%02d.png" % [HUB_IDLE_DIR, BLINK_FRAME])
@@ -167,16 +177,43 @@ func _load_idle_frames_for(def: CharacterDef) -> void:
 		push_warning("Hub: nenhum frame de idle encontrado")
 
 
+func _apply_hub_pose() -> void:
+	if character_art == null:
+		return
+	if _blink_on and _blink_tex != null:
+		character_art.texture = _blink_tex
+		return
+	if _breath_pose and _breathe_tex != null:
+		character_art.texture = _breathe_tex
+		return
+	if _idle_tex != null:
+		character_art.texture = _idle_tex
+
+
 func _start_breathing() -> void:
 	if character_art == null or _idle_tex == null:
 		return
 	if _breath_tween and _breath_tween.is_valid():
 		_breath_tween.kill()
 	_breath_tween = create_tween().set_loops()
+	if _breathe_tex != null:
+		_breath_tween.tween_callback(_show_breathe_pose)
 	_breath_tween.tween_property(character_art, "scale", BREATH_SCALE, BREATH_PERIOD) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if _breathe_tex != null:
+		_breath_tween.tween_callback(_show_idle_pose)
 	_breath_tween.tween_property(character_art, "scale", Vector2.ONE, BREATH_PERIOD) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _show_breathe_pose() -> void:
+	_breath_pose = true
+	_apply_hub_pose()
+
+
+func _show_idle_pose() -> void:
+	_breath_pose = false
+	_apply_hub_pose()
 
 
 func _start_blink_loop() -> void:
@@ -198,11 +235,13 @@ func _queue_next_blink() -> void:
 
 
 func _show_blink_frame() -> void:
-	character_art.texture = _blink_tex
+	_blink_on = true
+	_apply_hub_pose()
 
 
 func _show_idle_frame() -> void:
-	character_art.texture = _idle_tex
+	_blink_on = false
+	_apply_hub_pose()
 
 
 ## --- Fundo ----------------------------------------------------------------
