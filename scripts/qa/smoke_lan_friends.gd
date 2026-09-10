@@ -710,13 +710,14 @@ func _test_mode_doors(lan: Node) -> void:
 		lan.call("close_session")
 		return
 	if not bool(lan.call("is_host")):
-		_fail("Brawl sem cena fechou a sala")
+		_fail("Brawl fechou a sala")
 		lan.call("close_session")
 		return
-	var saw_brawl := false
+	var brawl_exists := ResourceLoader.exists(GameMode.scene_path(GameMode.Id.BRAWL))
+	var saw_brawl_missing := false
 	for t in toasts:
-		if t.contains("Mapa de batalha"):
-			saw_brawl = true
+		if t == GameMode.TOAST_BRAWL_MISSING:
+			saw_brawl_missing = true
 			break
 	toasts.clear()
 	if not bool(lan.call("set_game_mode", GameMode.Id.DUEL)):
@@ -724,24 +725,33 @@ func _test_mode_doors(lan: Node) -> void:
 		lan.call("close_session")
 		return
 	if not bool(lan.call("is_host")):
-		_fail("1v1 sem cena fechou a sala")
+		_fail("1v1 fechou a sala")
 		lan.call("close_session")
 		return
-	var saw_duel := false
+	var duel_exists := ResourceLoader.exists(GameMode.scene_path(GameMode.Id.DUEL))
+	var saw_duel_missing := false
 	for t in toasts:
-		if t.contains("1v1"):
-			saw_duel = true
+		if t == GameMode.TOAST_DUEL_MISSING:
+			saw_duel_missing = true
 			break
 	if lan.toast_requested.is_connected(cb):
 		lan.toast_requested.disconnect(cb)
 	lan.call("close_session")
-	if not saw_brawl:
+	if brawl_exists:
+		if saw_brawl_missing:
+			_fail("Brawl com cena ainda avisou que não chegou")
+			return
+	elif not saw_brawl_missing:
 		_fail("Brawl sem cena não avisou em PT")
 		return
-	if not saw_duel:
+	if duel_exists:
+		if saw_duel_missing:
+			_fail("1v1 com cena ainda avisou que não chegou")
+			return
+	elif not saw_duel_missing:
 		_fail("1v1 sem cena não avisou em PT")
 		return
-	_pass("portas Brawl/1v1: toast PT, sala fica")
+	_pass("portas Brawl/1v1: cena ou toast PT, sala fica")
 
 
 func _test_four_hunters(lan: Node) -> void:
