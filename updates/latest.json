@@ -1,8 +1,8 @@
 {
-	"version_code": 5,
-	"version_name": "0.0.5",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.5/TreinamentoHashira.apk",
-	"changelog": "Volumes mais baixos: musica e efeitos.",
-	"size_bytes": 78191261,
-	"sha256": "34dc55a343bc46b5419fbdfbbb18ba6210f43459ba3f35368b919c2a59f7c8d7"
+	"version_code": 6,
+	"version_name": "0.0.6",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.6/TreinamentoHashira.apk",
+	"changelog": "Amigos no botao do treino. Personagens sem cara cortada. Da pra entrar na sala da outra casa com o computador ligado.",
+	"size_bytes": 131402296,
+	"sha256": "3f63323c02f4ab4ee56010fe3a1df075089fbaf168017315d0032d5818d6839e"
 }
