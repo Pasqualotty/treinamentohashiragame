@@ -399,13 +399,7 @@ func _test_scenes(router: Node) -> void:
 		root.add_child(inst)
 		await process_frame
 		if p == SELECT_SCENE:
-			var grid: Node = inst.find_child("Grid", true, false)
-			if grid == null:
-				_fail("character_select sem Grid")
-				inst.queue_free()
-				return
-			if grid.get_child_count() != CharacterCatalog.EXPECTED_IDS.size():
-				_fail("grid cards=%d esperado %d" % [grid.get_child_count(), CharacterCatalog.EXPECTED_IDS.size()])
+			if not _assert_select_layout(inst):
 				inst.queue_free()
 				return
 		inst.queue_free()
@@ -470,6 +464,61 @@ func _test_scenes(router: Node) -> void:
 		return
 	hub_restante.queue_free()
 	_pass("tela PERSONAGENS instancia 15 cards + hub troca textura")
+
+
+func _assert_select_layout(inst: Node) -> bool:
+	var grid: GridContainer = inst.find_child("Grid", true, false) as GridContainer
+	if grid == null:
+		_fail("character_select sem Grid")
+		return false
+	if grid.columns != 3:
+		_fail("grid columns=%d want 3" % grid.columns)
+		return false
+	if grid.get_child_count() != CharacterCatalog.EXPECTED_IDS.size():
+		_fail("grid cards=%d esperado %d" % [grid.get_child_count(), CharacterCatalog.EXPECTED_IDS.size()])
+		return false
+	var back: Button = inst.find_child("BackButton", true, false) as Button
+	if back == null:
+		_fail("character_select sem BackButton")
+		return false
+	if back.custom_minimum_size.y < 44.0:
+		_fail("BackButton min height=%.0f" % back.custom_minimum_size.y)
+		return false
+	if back.autowrap_mode != TextServer.AUTOWRAP_OFF:
+		_fail("BackButton autowrap=%d" % int(back.autowrap_mode))
+		return false
+	var current: Label = inst.find_child("CurrentLabel", true, false) as Label
+	if current == null or current.autowrap_mode != TextServer.AUTOWRAP_OFF:
+		_fail("CurrentLabel deve ficar numa linha")
+		return false
+	for card in grid.get_children():
+		var btn: Button = _find_first_button(card)
+		if btn == null:
+			_fail("card sem Button")
+			return false
+		if btn.custom_minimum_size.y < 44.0:
+			_fail("card btn min height=%.0f (%s)" % [btn.custom_minimum_size.y, btn.text])
+			return false
+		if btn.text == "Escolher" or btn.text == "Selecionado":
+			if btn.autowrap_mode != TextServer.AUTOWRAP_OFF:
+				_fail("%s autowrap=%d" % [btn.text, int(btn.autowrap_mode)])
+				return false
+		else:
+			if btn.autowrap_mode != TextServer.AUTOWRAP_WORD_SMART:
+				_fail("cadeado autowrap=%d (%s)" % [int(btn.autowrap_mode), btn.text])
+				return false
+	_pass("layout 3 colunas + toque>=44 + Escolher numa linha")
+	return true
+
+
+func _find_first_button(n: Node) -> Button:
+	if n is Button:
+		return n as Button
+	for c in n.get_children():
+		var found: Button = _find_first_button(c)
+		if found != null:
+			return found
+	return null
 
 
 func _finish() -> void:
