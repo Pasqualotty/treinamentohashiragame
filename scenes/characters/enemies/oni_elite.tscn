@@ -19,11 +19,14 @@ collision_layer = 4
 collision_mask = 1
 floor_stop_on_slope = true
 script = ExtResource("1_oni")
-max_hp = 60
+max_hp = 96
 coin_reward = 20
-patrol_speed = 45.0
-chase_speed = 95.0
-attack_damage = 7
+patrol_speed = 70.0
+chase_speed = 142.0
+detect_range = 300.0
+telegraph_time = 0.36
+attack_cooldown = 0.5
+attack_damage = 11
 attack_knockback = Vector2(170, -50)
 
 [node name="Sprite" type="Sprite2D" parent="."]
@@ -58,7 +61,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 7
+damage = 11
 knockback = Vector2(170, -50)
 team = &"enemy"
 
@@ -73,5 +76,5 @@ offset_right = 56.0
 offset_bottom = -64.0
 theme_override_colors/font_color = Color(1, 0.55, 0.45, 1)
 theme_override_font_sizes/font_size = 13
-text = "HP 60/60"
+text = "HP 96/96"
 horizontal_alignment = 1

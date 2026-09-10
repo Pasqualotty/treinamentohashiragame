@@ -5,10 +5,10 @@ enum AttackKind { CHARGE, FIRE_POOL }
 
 @export var charge_speed: float = 500.0
 @export var charge_max_time: float = 0.7
-@export var charge_damage: int = 14
+@export var charge_damage: int = 18
 @export var charge_knockback: Vector2 = Vector2(250.0, -70.0)
 @export var pool_time: float = 1.15
-@export var pool_damage: int = 10
+@export var pool_damage: int = 14
 @export var pool_knockback: Vector2 = Vector2(80.0, -140.0)
 
 @onready var fire_pool: Hitbox = %FirePoolHitbox

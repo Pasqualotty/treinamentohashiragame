@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-10 (elenco 15 + arte do quarteto + feel hit/dash)  
+**Atualizado:** 2026-09-10 (elenco 15 + feel hit/dash + oni aperta)  
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -11,7 +11,7 @@
 
 ## Onde estamos (1 frase)
 
-**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub → mapa (seletor de mundo) → fase → portal → loja/save. Mundo seguinte abre ao limpar o boss. Placeholders de tema (trem / distrito / castelo / céu vermelho). **Gate de playtest** + suite `tools/run_smokes.ps1`.
+**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub → mapa (seletor de mundo) → fase → portal → loja/save. Mundo seguinte abre ao limpar o boss. Placeholders de tema (trem / distrito / castelo / céu vermelho). **Gate de playtest** + suite `tools/run_smokes.ps1`. Playtest do sobrinho agora tem pressão real nos oni (HP/agressão/ondas; sem one-shot).
 
 ### Hotfix playability 2026-08-07 (crítico)
 
@@ -182,3 +182,4 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | 2026-08-07 | **Playable pass:** touch mouse-safe, ondas W1, coins magnet, player feel, smoke PASS |
 | 2026-08-07 | **Visual pass:** chroma moeda (sem magenta), botões lacados labeled, escala coin/player/oni |
 | 2026-08-07 | **Playtest gate:** e2e combat reforçado, `run_smokes.ps1`, PLAYTEST-SOBRINHO, seção premium wave |
+| 2026-09-10 | **Desafio oni:** fraco 48/7 + poise no swing; elite mais rápido; W2/W3 fase 1 deixam de clonar o tutorial |

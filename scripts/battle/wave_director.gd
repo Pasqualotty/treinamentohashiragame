@@ -342,7 +342,7 @@ func _waves_for_stage(id: String) -> Array:
 			return [
 				["weak", "weak"],
 				["weak", "weak", "weak"],
-				["weak", "elite"],
+				["weak", "weak", "elite"],
 			]
 		"w1_02":
 			return [
@@ -354,7 +354,7 @@ func _waves_for_stage(id: String) -> Array:
 			return [
 				["weak", "weak", "elite"],
 				["elite", "weak", "weak", "weak"],
-				["weak", "elite", "elite"],
+				["weak", "elite", "elite", "weak"],
 			]
 		"w1_04":
 			# Apresenta o `ranged` num layout vertical: o player aprende a subir
@@ -362,7 +362,7 @@ func _waves_for_stage(id: String) -> Array:
 			return [
 				["weak", "ranged"],
 				["ranged", "weak", "weak"],
-				["elite", "ranged", "weak"],
+				["elite", "ranged", "weak", "weak"],
 			]
 		"w1_05":
 			# Apresenta o `charger` na arena aberta e fecha misturando os quatro

@@ -128,19 +128,20 @@ func _check_w1_phases_and_telegraph() -> void:
 	if int(boss.get("phase")) != 0:
 		_fail("W1 nasceu fora de P1")
 
-	boss.set("hp", 180)
+	var max_hp: int = int(boss.get("max_hp"))
+	boss.set("hp", int(max_hp * 0.59))
 	boss.call("_check_phase_transition")
 	if int(boss.get("phase")) != 1:
-		_fail("W1 hp=180 não entrou em P2 (phase=%s)" % str(boss.get("phase")))
+		_fail("W1 hp=%d/%d não entrou em P2 (phase=%s)" % [int(boss.get("hp")), max_hp, str(boss.get("phase"))])
 	else:
-		print("  OK W1 P2 em 60% HP")
+		print("  OK W1 P2 em 60%% HP")
 
-	boss.set("hp", 75)
+	boss.set("hp", int(max_hp * 0.24))
 	boss.call("_check_phase_transition")
 	if int(boss.get("phase")) != 2:
-		_fail("W1 hp=75 não entrou em P3 (phase=%s)" % str(boss.get("phase")))
+		_fail("W1 hp=%d/%d não entrou em P3 (phase=%s)" % [int(boss.get("hp")), max_hp, str(boss.get("phase"))])
 	else:
-		print("  OK W1 P3 em 25% HP")
+		print("  OK W1 P3 em 25%% HP")
 
 	var hb: Hitbox = boss.get_node_or_null("Hitbox") as Hitbox
 	if hb == null:

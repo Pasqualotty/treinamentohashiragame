@@ -21,7 +21,7 @@ const HURT_RECOIL_DUR: float = 0.2
 ## Duração do "coice" visual no instante do disparo (overlay em RECOVER).
 const FIRE_KICK_DUR: float = 0.22
 
-@export var max_hp: int = 22
+@export var max_hp: int = 32
 ## Valor da moeda spawnada no chão (creditada só no pickup).
 @export var coin_reward: int = 12
 @export var patrol_speed: float = 48.0
@@ -33,9 +33,9 @@ const FIRE_KICK_DUR: float = 0.22
 @export var min_range: float = 150.0
 @export var telegraph_time: float = 0.5
 @export var attack_recovery: float = 0.5
-@export var attack_cooldown: float = 1.5
+@export var attack_cooldown: float = 1.25
 @export var patrol_half_width: float = 90.0
-@export var projectile_damage: int = 6
+@export var projectile_damage: int = 8
 @export var projectile_speed: float = 360.0
 @export var projectile_knockback: Vector2 = Vector2(115.0, -30.0)
 
@@ -43,7 +43,7 @@ const FIRE_KICK_DUR: float = 0.22
 @onready var hurtbox: Hurtbox = %Hurtbox
 @onready var hp_label: Label = %HpLabel
 
-var hp: int = 22
+var hp: int = 32
 var state: State = State.PATROL
 var facing: float = -1.0
 var _home_x: float = 0.0

@@ -19,19 +19,19 @@ const COIN_SCENE: PackedScene = preload("res://scenes/combat/coin_pickup.tscn")
 ## poise de estado, mas ainda mostra um leve jolt visual).
 const HURT_RECOIL_DUR: float = 0.2
 
-@export var max_hp: int = 38
+@export var max_hp: int = 52
 ## Valor da moeda spawnada no chão (creditada só no pickup).
 @export var coin_reward: int = 16
 @export var patrol_speed: float = 58.0
-@export var chase_speed: float = 100.0
+@export var chase_speed: float = 118.0
 @export var charge_speed: float = 430.0
 @export var detect_range: float = 260.0
 @export var charge_trigger_range: float = 220.0
 @export var telegraph_time: float = 0.5
 @export var charge_max_time: float = 0.55
 @export var recovery_time: float = 0.6
-@export var attack_cooldown: float = 1.5
-@export var attack_damage: int = 9
+@export var attack_cooldown: float = 1.25
+@export var attack_damage: int = 12
 @export var attack_knockback: Vector2 = Vector2(220.0, -60.0)
 @export var patrol_half_width: float = 100.0
 
@@ -40,7 +40,7 @@ const HURT_RECOIL_DUR: float = 0.2
 @onready var hitbox: Hitbox = %Hitbox
 @onready var hp_label: Label = %HpLabel
 
-var hp: int = 38
+var hp: int = 52
 var state: State = State.PATROL
 var facing: float = -1.0
 var _home_x: float = 0.0

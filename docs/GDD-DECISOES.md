@@ -257,6 +257,13 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 | Onis | **2 tipos** | ✅ |
 | Distribuição | APK sideload + OTA próprio (GitHub Releases) | ✅ |
 
+### Desafio oni (2026-09-10)
+
+- Telegraph obrigatório: wind-up cancela no hit; swing (ATTACK) do fraco/elite completa.
+- Fraco 48 HP / 7 dano. Elite 96 HP / 11 dano (mais rápido que o fraco).
+- W1 onda 1 = 2 fracos. Portal só abre depois das ondas (`waves_finished`).
+- Drop (`coin_reward`) inalterado.
+
 ---
 
 ## 8. Playtest

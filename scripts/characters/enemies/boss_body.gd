@@ -15,7 +15,7 @@ const HURT_RECOIL_DUR: float = 0.2
 
 @export var boss_display_name: String = "Chefe"
 @export var skip_intro: bool = false
-@export var max_hp: int = 280
+@export var max_hp: int = 380
 @export var coin_reward: int = 70
 @export var patrol_speed: float = 50.0
 @export var chase_speed: float = 120.0
@@ -31,7 +31,7 @@ const HURT_RECOIL_DUR: float = 0.2
 @onready var hitbox: Hitbox = %Hitbox
 @onready var hp_label: Label = get_node_or_null("%HpLabel") as Label
 
-var hp: int = 280
+var hp: int = 380
 var state: int = State.INTRO
 var phase: int = BossCommon.PHASE_P1
 var facing: float = -1.0
