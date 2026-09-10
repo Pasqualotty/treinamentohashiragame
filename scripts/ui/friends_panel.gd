@@ -29,6 +29,8 @@ var _scroll: ScrollContainer
 var _backdrop: ColorRect
 var _drawer: Control
 var _slide: Tween
+var _mode_btns: Dictionary = {}
+var _mode_label: Label
 
 
 func _ready() -> void:
@@ -283,6 +285,17 @@ func _build() -> void:
 	_status_label.add_theme_color_override("font_color", Palette.CREAM)
 	_fit_label(_status_label, true)
 	_host_box.add_child(_status_label)
+	_mode_label = Label.new()
+	_mode_label.text = "Modo"
+	_mode_label.add_theme_font_size_override("font_size", 14)
+	_mode_label.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(_mode_label, false)
+	_host_box.add_child(_mode_label)
+	for mid in GameMode.all_ids():
+		var mb := _plate_btn(GameMode.label_of(mid), _make_mode_handler(mid))
+		mb.set_meta("mode_id", mid)
+		_mode_btns[mid] = mb
+		_host_box.add_child(mb)
 	_host_box.add_child(_plate_btn("Fechar sala", _on_close_room))
 
 	_join_box = VBoxContainer.new()
@@ -384,6 +397,7 @@ func _plate_btn(text: String, cb: Callable) -> Button:
 	var btn := Button.new()
 	btn.text = text
 	btn.clip_text = false
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.custom_minimum_size = Vector2(0, TOUCH_MIN)
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.focus_mode = Control.FOCUS_NONE
@@ -415,6 +429,8 @@ func _bind_session() -> void:
 		LanSession.toast_requested.connect(show_toast)
 	if not LanSession.session_closed.is_connected(_on_session_closed):
 		LanSession.session_closed.connect(_on_session_closed)
+	if LanSession.has_signal("mode_changed") and not LanSession.mode_changed.is_connected(_on_mode_changed):
+		LanSession.mode_changed.connect(_on_mode_changed)
 	if not Game.friends_changed.is_connected(_refresh_list):
 		Game.friends_changed.connect(_refresh_list)
 
@@ -537,8 +553,60 @@ func _on_create_pressed() -> void:
 	if code.is_empty():
 		return
 	_code_label.text = code
-	_status_label.text = "Esperando amigo…"
+	_sync_mode_buttons()
+	_refresh_host_status()
 	_show(View.HOST)
+
+
+func _make_mode_handler(mode_id: int) -> Callable:
+	return func() -> void:
+		_on_mode_pressed(mode_id)
+
+
+func _on_mode_pressed(mode_id: int) -> void:
+	if not is_instance_valid(LanSession) or not LanSession.is_host():
+		return
+	if not LanSession.set_game_mode(mode_id):
+		_sync_mode_buttons()
+		return
+	_sync_mode_buttons()
+	_refresh_host_status()
+
+
+func _on_mode_changed(_mode_id: int) -> void:
+	_sync_mode_buttons()
+	_refresh_host_status()
+
+
+func _sync_mode_buttons() -> void:
+	var current: int = GameMode.Id.VS_ONI_2
+	if is_instance_valid(LanSession):
+		current = int(LanSession.game_mode)
+	for mid in _mode_btns.keys():
+		var btn: Button = _mode_btns[mid] as Button
+		if btn == null:
+			continue
+		var selected: bool = int(mid) == current
+		var bg: Color = Palette.with_alpha(Palette.GOLD, 0.95) if selected else Palette.with_alpha(Palette.GOLD_DIM, 0.85)
+		var border: Color = Palette.GOLD_BRIGHT if selected else Palette.GOLD
+		btn.add_theme_stylebox_override("normal", _gold_sb(bg, border))
+		btn.add_theme_font_size_override("font_size", 17 if selected else 16)
+
+
+func _refresh_host_status() -> void:
+	if _status_label == null or not is_instance_valid(LanSession):
+		return
+	if not LanSession.is_host():
+		return
+	var mode_id: int = int(LanSession.game_mode)
+	if GameMode.is_vs_oni(mode_id) and GameMode.max_clients_for(mode_id) > 1:
+		var n: int = LanSession.hunter_count() if LanSession.has_peer() else 1
+		var cap: int = GameMode.hunter_cap(mode_id)
+		_status_label.text = "Caçadores %d/%d" % [n, cap]
+	elif LanSession.has_peer():
+		_status_label.text = "Amigo entrou"
+	else:
+		_status_label.text = "Esperando amigo…"
 
 
 func _on_join_open_pressed() -> void:
@@ -577,19 +645,20 @@ func _on_close_room() -> void:
 
 func _on_room_ready(code: String) -> void:
 	_code_label.text = code
-	_status_label.text = "Esperando amigo…"
+	_sync_mode_buttons()
+	_refresh_host_status()
 	_show(View.HOST)
 
 
 func _on_peer_joined(_nick: String) -> void:
-	_status_label.text = "Amigo entrou"
+	_refresh_host_status()
 	if is_instance_valid(LanSession) and LanSession.is_guest():
 		_show(View.GUEST_WAIT)
 	_refresh_list()
 
 
 func _on_peer_left() -> void:
-	_status_label.text = "Esperando amigo…"
+	_refresh_host_status()
 
 
 func _on_join_failed(reason: String) -> void:

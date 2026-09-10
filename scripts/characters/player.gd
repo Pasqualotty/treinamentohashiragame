@@ -55,7 +55,7 @@ signal combo_changed(count: int)
 @export var stats: PlayerStats
 ## Id do CharacterDef aplicado neste spawn (smoke / HUD).
 var applied_character_id: String = ""
-## Slot coop: 0 = anfitrião, 1 = amigo. Solo fica 0.
+## Slot coop: 0 = anfitrião, 1–3 = amigos. Solo fica 0.
 var coop_slot: int = 0
 ## HUD liga neste pawn (touch do aparelho).
 var is_local_pawn: bool = true

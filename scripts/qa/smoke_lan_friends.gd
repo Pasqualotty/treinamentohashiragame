@@ -49,6 +49,10 @@ func _run() -> void:
 	await _test_guest_clears_packed(lan)
 	_test_boot_never_conectando()
 	_test_max_clients(lan)
+	_test_game_mode_contract()
+	await _test_mode_options()
+	_test_mode_doors(lan)
+	await _test_four_hunters(lan)
 	_test_meio_parse()
 	_test_meio_self_test()
 	_test_meio_pc_off(lan)
@@ -568,10 +572,229 @@ func _test_boot_never_conectando() -> void:
 
 
 func _test_max_clients(lan: Node) -> void:
+	lan.call("close_session")
 	if int(lan.get("MAX_CLIENTS")) != 1:
-		_fail("MAX_CLIENTS=%s (deve ser 1)" % lan.get("MAX_CLIENTS"))
+		_fail("MAX_CLIENTS default=%s (deve ser 1)" % lan.get("MAX_CLIENTS"))
 		return
-	_pass("max_clients=1")
+	var code: String = str(lan.call("host_room"))
+	if code.is_empty():
+		_fail("max_clients: host_room falhou")
+		return
+	if int(lan.get("MAX_CLIENTS")) != 1:
+		_fail("2 vs oni MAX_CLIENTS=%s (deve ser 1)" % lan.get("MAX_CLIENTS"))
+		lan.call("close_session")
+		return
+	if not bool(lan.call("set_game_mode", GameMode.Id.VS_ONI_4)):
+		_fail("set_game_mode 4 vs oni falhou")
+		lan.call("close_session")
+		return
+	if int(lan.get("MAX_CLIENTS")) != 3:
+		_fail("4 vs oni MAX_CLIENTS=%s (deve ser 3)" % lan.get("MAX_CLIENTS"))
+		lan.call("close_session")
+		return
+	if not bool(lan.call("is_four_vs_oni")):
+		_fail("is_four_vs_oni falso após modo 4")
+		lan.call("close_session")
+		return
+	lan.call("close_session")
+	if int(lan.get("MAX_CLIENTS")) != 1:
+		_fail("close_session não voltou MAX_CLIENTS=1")
+		return
+	_pass("MAX_CLIENTS=1 no 2P e =3 no modo 4")
+
+
+func _test_game_mode_contract() -> void:
+	if GameMode.max_clients_for(GameMode.Id.VS_ONI_2) != 1:
+		_fail("GameMode 2 vs oni max_clients != 1")
+		return
+	if GameMode.max_clients_for(GameMode.Id.VS_ONI_4) != 3:
+		_fail("GameMode 4 vs oni max_clients != 3")
+		return
+	if GameMode.scene_path(GameMode.Id.BRAWL) != "res://scenes/modes/brawl/brawl_arena.tscn":
+		_fail("porta Brawl errada")
+		return
+	if GameMode.scene_path(GameMode.Id.DUEL) != "res://scenes/modes/duel/duel.tscn":
+		_fail("porta 1v1 errada")
+		return
+	if GameMode.label_of(GameMode.Id.VS_ONI_2) != "2 vs oni":
+		_fail("label 2 vs oni")
+		return
+	if GameMode.label_of(GameMode.Id.VS_ONI_4) != "4 vs oni":
+		_fail("label 4 vs oni")
+		return
+	if GameMode.label_of(GameMode.Id.BRAWL) != "Mapa de batalha":
+		_fail("label Mapa de batalha")
+		return
+	if GameMode.label_of(GameMode.Id.DUEL) != "1v1":
+		_fail("label 1v1")
+		return
+	var blob: String = FileAccess.get_file_as_string("res://scripts/net/game_mode.gd")
+	blob += FileAccess.get_file_as_string("res://scripts/ui/friends_panel.gd")
+	if blob.contains("partida"):
+		_fail("texto usa a palavra partida")
+		return
+	_pass("contrato GameMode (4 opções, MAX_CLIENTS, portas)")
+
+
+func _test_mode_options() -> void:
+	var packed: PackedScene = load(HUB) as PackedScene
+	if packed == null:
+		_fail("modos: hub.tscn não carrega")
+		return
+	var inst: Node = packed.instantiate()
+	root.add_child(inst)
+	for i in range(8):
+		await process_frame
+	var fp: Node = inst.get_node_or_null("%FriendsPanel")
+	if fp == null:
+		_fail("modos: hub sem %FriendsPanel")
+		inst.queue_free()
+		await process_frame
+		return
+	_open_drawer(fp)
+	for i in range(4):
+		await process_frame
+	var criar: Button = _find_button(fp, "Criar sala")
+	if criar == null:
+		_fail("modos: sem Criar sala")
+		inst.queue_free()
+		await process_frame
+		return
+	criar.pressed.emit()
+	for i in range(6):
+		await process_frame
+	var want: Array[String] = ["2 vs oni", "4 vs oni", "Mapa de batalha", "1v1"]
+	for t in want:
+		var b: Button = _find_button(fp, t)
+		if b == null:
+			_fail("sala sem opção %s" % t)
+			inst.queue_free()
+			await process_frame
+			return
+		if b.size.y < 44.0:
+			_fail("opção %s toque baixo: %.0f" % [t, b.size.y])
+			inst.queue_free()
+			await process_frame
+			return
+		if t.contains(" ") and _space_px(b) < 3.0:
+			_fail("opção %s: U+0020 advance=%.2f" % [t, _space_px(b)])
+			inst.queue_free()
+			await process_frame
+			return
+	var play: Button = inst.get_node_or_null("%PlayButton") as Button
+	if play != null and play.text.contains("2 vs oni"):
+		_fail("JOGAR ouro virou seletor de modo")
+		inst.queue_free()
+		await process_frame
+		return
+	var lan: Node = root.get_node_or_null("LanSession")
+	if lan != null:
+		lan.call("close_session")
+	inst.queue_free()
+	await process_frame
+	_pass("sala mostra 4 opções legíveis; JOGAR intacto")
+
+
+func _test_mode_doors(lan: Node) -> void:
+	var code: String = str(lan.call("host_room"))
+	if code.is_empty():
+		_fail("portas: host_room falhou")
+		return
+	var toasts: Array[String] = []
+	var cb := func(t: String) -> void:
+		toasts.append(t)
+	if not lan.toast_requested.is_connected(cb):
+		lan.toast_requested.connect(cb)
+	if not bool(lan.call("set_game_mode", GameMode.Id.BRAWL)):
+		_fail("set_game_mode Brawl falhou")
+		lan.call("close_session")
+		return
+	if not bool(lan.call("is_host")):
+		_fail("Brawl sem cena fechou a sala")
+		lan.call("close_session")
+		return
+	var saw_brawl := false
+	for t in toasts:
+		if t.contains("Mapa de batalha"):
+			saw_brawl = true
+			break
+	toasts.clear()
+	if not bool(lan.call("set_game_mode", GameMode.Id.DUEL)):
+		_fail("set_game_mode 1v1 falhou")
+		lan.call("close_session")
+		return
+	if not bool(lan.call("is_host")):
+		_fail("1v1 sem cena fechou a sala")
+		lan.call("close_session")
+		return
+	var saw_duel := false
+	for t in toasts:
+		if t.contains("1v1"):
+			saw_duel = true
+			break
+	if lan.toast_requested.is_connected(cb):
+		lan.toast_requested.disconnect(cb)
+	lan.call("close_session")
+	if not saw_brawl:
+		_fail("Brawl sem cena não avisou em PT")
+		return
+	if not saw_duel:
+		_fail("1v1 sem cena não avisou em PT")
+		return
+	_pass("portas Brawl/1v1: toast PT, sala fica")
+
+
+func _test_four_hunters(lan: Node) -> void:
+	lan.call("close_session")
+	lan.call("join_room", "K7H4MP")
+	if not bool(lan.call("is_guest")):
+		_fail("4P: join_room falhou")
+		lan.call("close_session")
+		return
+	lan.call("_rpc_welcome", "HostSmoke", "tanjiro", 1, GameMode.Id.VS_ONI_4)
+	var roster: Array = [
+		{"slot": 0, "nick": "HostSmoke", "char_id": "tanjiro"},
+		{"slot": 1, "nick": "G1", "char_id": "tanjiro"},
+		{"slot": 2, "nick": "G2", "char_id": "nezuko"},
+		{"slot": 3, "nick": "G3", "char_id": "zenitsu"},
+	]
+	lan.call("_rpc_roster", GameMode.Id.VS_ONI_4, roster)
+	if not bool(lan.call("is_four_vs_oni")):
+		_fail("4P: modo não ficou VS_ONI_4")
+		lan.call("close_session")
+		return
+	if int(lan.call("hunter_count")) != 4:
+		_fail("4P: hunter_count=%s" % lan.call("hunter_count"))
+		lan.call("close_session")
+		return
+	var packed: PackedScene = load("res://scenes/battle/stage_w1_01.tscn") as PackedScene
+	if packed == null:
+		_fail("4P: stage_w1_01.tscn não carrega")
+		lan.call("close_session")
+		return
+	var stage: Node = packed.instantiate()
+	root.add_child(stage)
+	await process_frame
+	var missing: Array[String] = []
+	for name in ["Player2", "Player3", "Player4"]:
+		if stage.get_node_or_null(name) == null:
+			missing.append(name)
+	var cam: Node = stage.get_node_or_null("CoopCamera")
+	var ntargets: int = 0
+	if cam != null:
+		var tg: Variant = cam.get("_targets")
+		if tg is Array:
+			ntargets = (tg as Array).size()
+	stage.queue_free()
+	lan.call("close_session")
+	await process_frame
+	if not missing.is_empty():
+		_fail("4P não spawnou %s" % str(missing))
+		return
+	if ntargets < 4:
+		_fail("câmera 4P targets=%d (precisa 4)" % ntargets)
+		return
+	_pass("4P: 4 caçadores + câmera nos vivos")
 
 
 func _test_meio_self_test() -> void:

@@ -33,6 +33,7 @@ var _wave_director: Node
 var _player2: Node2D
 var _coop: bool = false
 var _local_pawn: Node2D
+var _hunters: Array[Node2D] = []
 
 
 func _ready() -> void:
@@ -139,27 +140,92 @@ func _coop_session() -> bool:
 
 func _setup_coop_if_needed() -> void:
 	_coop = _coop_session()
+	_hunters.clear()
 	if not _coop:
 		_local_pawn = _player
+		if _player != null:
+			_hunters.append(_player)
 		return
 	if LanSession.is_guest():
 		_clear_guest_packed_enemies()
 	LanSession.mark_entered_stage()
+	var local_slot: int = int(LanSession.local_coop_slot)
+	if LanSession.is_host():
+		local_slot = 0
+	var roster: Array = LanSession.get_roster()
 	if _player != null:
 		_player.set("coop_slot", 0)
-		_player.set("is_local_pawn", LanSession.is_host())
-		_player.set("accept_local_input", LanSession.is_host())
-		_player.set("follow_host_snap", LanSession.is_guest())
+		_player.set("is_local_pawn", local_slot == 0)
+		_player.set("accept_local_input", local_slot == 0)
+		_player.set("follow_host_snap", LanSession.is_guest() and local_slot != 0)
 		if LanSession.is_guest() and _player.has_method("reload_character_kit"):
-			_player.call("reload_character_kit", LanSession.remote_character_id)
+			var host_char: String = LanSession.remote_character_id
+			_player.call("reload_character_kit", host_char)
 		var cam := _player.get_node_or_null("Camera2D") as Camera2D
 		if cam:
 			cam.enabled = false
-		_spawn_player2()
-		_make_coop_camera(cam)
-	_local_pawn = _player if LanSession.is_host() else _player2
+		_hunters.append(_player)
+		for item in roster:
+			if typeof(item) != TYPE_DICTIONARY:
+				continue
+			var slot: int = int((item as Dictionary).get("slot", 0))
+			if slot <= 0:
+				continue
+			var cid: String = str((item as Dictionary).get("char_id", "tanjiro"))
+			var spawned := _spawn_hunter(slot, cid, local_slot)
+			if spawned != null:
+				_hunters.append(spawned)
+				if slot == 1:
+					_player2 = spawned
+		_make_coop_camera(cam if _player != null else null)
+	_local_pawn = _hunter_at(local_slot)
+	if _local_pawn == null:
+		_local_pawn = _player if LanSession.is_host() else _player2
 	if _local_pawn != null:
 		_local_pawn.set("is_local_pawn", true)
+
+
+func _spawn_hunter(slot: int, char_id: String, local_slot: int) -> Node2D:
+	if _player == null:
+		return null
+	var p: Node = PLAYER_SCENE.instantiate()
+	p.name = "Player%d" % (slot + 1)
+	p.set("coop_slot", slot)
+	var is_local: bool = slot == local_slot
+	p.set("forced_character_id", char_id)
+	p.set("skip_local_upgrades", true)
+	p.set("accept_local_input", false)
+	p.set("follow_host_snap", LanSession.is_guest())
+	p.set("is_local_pawn", is_local)
+	add_child(p)
+	if p is Node2D:
+		(p as Node2D).global_position = (_player as Node2D).global_position + Vector2(80.0 * float(slot), 0.0)
+	if p is CharacterBody2D:
+		var body := p as CharacterBody2D
+		body.floor_snap_length = 12.0
+		body.collision_mask = 1
+		body.collision_layer = 2
+	var cam := p.get_node_or_null("Camera2D") as Camera2D
+	if cam:
+		cam.enabled = false
+	return p as Node2D
+
+
+func _spawn_player2() -> void:
+	var spawned := _spawn_hunter(1, LanSession.remote_character_id if LanSession.is_host() else Game.current_character_id, 1 if LanSession.is_guest() else 0)
+	if spawned != null:
+		_player2 = spawned
+
+
+func _hunter_at(slot: int) -> Node2D:
+	for h in _hunters:
+		if h != null and is_instance_valid(h) and int(h.get("coop_slot")) == slot:
+			return h
+	return null
+
+
+func _is_four_vs_oni() -> bool:
+	return is_instance_valid(LanSession) and LanSession.has_method("is_four_vs_oni") and bool(LanSession.call("is_four_vs_oni"))
 
 
 func _clear_guest_packed_enemies() -> void:
@@ -175,38 +241,15 @@ func _clear_guest_packed_enemies() -> void:
 		n.queue_free()
 
 
-func _spawn_player2() -> void:
-	if _player == null:
-		return
-	var p2: Node = PLAYER_SCENE.instantiate()
-	p2.name = "Player2"
-	p2.set("coop_slot", 1)
-	p2.set("forced_character_id", LanSession.remote_character_id if LanSession.is_host() else Game.current_character_id)
-	p2.set("skip_local_upgrades", true)
-	p2.set("accept_local_input", false)
-	p2.set("follow_host_snap", LanSession.is_guest())
-	p2.set("is_local_pawn", LanSession.is_guest())
-	add_child(p2)
-	if p2 is Node2D:
-		(p2 as Node2D).global_position = (_player as Node2D).global_position + Vector2(80.0, 0.0)
-	_player2 = p2 as Node2D
-	if p2 is CharacterBody2D:
-		var body := p2 as CharacterBody2D
-		body.floor_snap_length = 12.0
-		body.collision_mask = 1
-		body.collision_layer = 2
-
-
 func _make_coop_camera(from: Camera2D) -> void:
 	var cam := Camera2D.new()
 	cam.set_script(COOP_CAM_SCRIPT)
 	cam.name = "CoopCamera"
 	add_child(cam)
 	var targets: Array[Node2D] = []
-	if _player != null:
-		targets.append(_player)
-	if _player2 != null:
-		targets.append(_player2)
+	for h in _hunters:
+		if h != null and is_instance_valid(h):
+			targets.append(h)
 	if cam.has_method("setup"):
 		cam.call("setup", from, targets)
 
@@ -288,7 +331,7 @@ func _on_wave_started(wave_index: int, total_waves: int, _count: int) -> void:
 
 
 func _on_wave_cleared(_wave_index: int, _total_waves: int) -> void:
-	for p: Node in [_player, _player2]:
+	for p: Node in _hunters:
 		if p != null and p.has_method("heal"):
 			p.call("heal", 12)
 
@@ -363,9 +406,17 @@ func _physics_process(_delta: float) -> void:
 		if _player == null:
 			return
 	if _coop:
-		for p: Node2D in [_player, _player2]:
+		for p: Node2D in _hunters:
 			if p != null and p.global_position.y > fall_death_y:
-				report_player_death()
+				if _is_four_vs_oni():
+					if int(p.get("hp")) > 0:
+						p.set("hp", 0)
+						if p.has_method("_enter_dead"):
+							p.call("_enter_dead")
+					if not _any_hunter_alive():
+						report_player_death()
+				else:
+					report_player_death()
 				return
 		return
 	if _player.global_position.y > fall_death_y:
@@ -735,11 +786,29 @@ func _wire_player_hits() -> void:
 
 
 func _wire_player_death() -> void:
-	for p: Node in [_player, _player2]:
+	for p: Node in _hunters:
 		if p == null:
 			continue
-		if p.has_signal("died") and not p.is_connected("died", report_player_death):
+		if not p.has_signal("died"):
+			continue
+		if _is_four_vs_oni():
+			if not p.is_connected("died", _on_hunter_down):
+				p.connect("died", _on_hunter_down)
+		elif not p.is_connected("died", report_player_death):
 			p.connect("died", report_player_death)
+
+
+func _on_hunter_down() -> void:
+	if _any_hunter_alive():
+		return
+	report_player_death()
+
+
+func _any_hunter_alive() -> bool:
+	for p: Node in _hunters:
+		if BossCommon.is_player_alive(p):
+			return true
+	return false
 
 
 func _on_player_hitbox_hit(_hurtbox: Variant, _hit_data: Variant) -> void:
@@ -766,6 +835,9 @@ func _all_enemies_defeated() -> bool:
 
 func _find_player() -> Node2D:
 	var from_group: Array[Node] = get_tree().get_nodes_in_group("player")
+	for n: Node in from_group:
+		if int(n.get("coop_slot")) == 0:
+			return n as Node2D
 	if not from_group.is_empty():
 		return from_group[0] as Node2D
 	return get_node_or_null("Player") as Node2D

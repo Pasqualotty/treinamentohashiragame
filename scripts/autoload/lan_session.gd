@@ -1,10 +1,9 @@
 extends Node
-## Sessão LAN 2P. Autoload fino: peer, beacon, handshake, RPCs de sessão.
-## Combate, moeda e loja não moram aqui.
+## Sessão LAN 2P/4P. Autoload fino: peer, beacon, handshake, RPCs de sessão.
+## Combate, moeda e loja não moram aqui. Modo: `GameMode` (scripts/net/game_mode.gd).
 
 const ENET_PORT := 17777
 const PROTO := 1
-const MAX_CLIENTS := 1
 const BEACON_HZ := 2.0
 const INPUT_HZ := 20.0
 const ONI_SYNC_HZ := 10.0
@@ -27,8 +26,15 @@ signal session_closed
 signal stage_cleared_event(stage_id: String, coins: int)
 signal stage_wipe
 signal waves_unlocked
+signal mode_changed(mode_id: int)
 
 enum Role { NONE, HOST, GUEST }
+
+## 1 = 2 vs oni (host + 1). 3 = 4 vs oni (host + 3).
+var MAX_CLIENTS: int = 1
+var game_mode: int = GameMode.Id.VS_ONI_2
+## Guest: slot que este celular controla (host = 0).
+var local_coop_slot: int = 0
 
 var role: int = Role.NONE
 var room_code: String = ""
@@ -36,6 +42,9 @@ var remote_nick: String = ""
 var remote_character_id: String = "tanjiro"
 var guest_peer_id: int = 0
 var in_stage: bool = false
+## peer_id -> {slot, nick, char_id}
+var _guests: Dictionary = {}
+var _roster: Array = []
 
 var _beacon: LanBeacon = LanBeacon.new()
 var _beacon_t: float = 0.0
@@ -83,6 +92,89 @@ func in_session() -> bool:
 
 func in_stage_session() -> bool:
 	return in_session() and in_stage and _handshake_ok
+
+
+func hunter_count() -> int:
+	return get_roster().size() if has_peer() else 1
+
+
+func is_four_vs_oni() -> bool:
+	return game_mode == GameMode.Id.VS_ONI_4
+
+
+func get_roster() -> Array:
+	if is_guest() and not _roster.is_empty():
+		return _roster.duplicate()
+	var out: Array = []
+	var host_char: String = str(Game.current_character_id)
+	var host_nick: String = _nick()
+	if is_guest():
+		host_char = remote_character_id if not remote_character_id.is_empty() else "tanjiro"
+		host_nick = remote_nick if not remote_nick.is_empty() else "Anfitrião"
+	out.append({"slot": 0, "nick": host_nick, "char_id": host_char})
+	if is_guest():
+		var gs: int = local_coop_slot if local_coop_slot > 0 else 1
+		out.append({"slot": gs, "nick": _nick(), "char_id": str(Game.current_character_id)})
+		return out
+	for g in _guests.values():
+		if typeof(g) == TYPE_DICTIONARY:
+			out.append(g)
+	return out
+
+
+func set_game_mode(mode_id: int) -> bool:
+	if not is_host():
+		return false
+	if GameMode.is_vs_oni(mode_id):
+		var want: int = GameMode.max_clients_for(mode_id)
+		if not _resize_server(want):
+			return false
+		game_mode = mode_id
+		mode_changed.emit(mode_id)
+		return true
+	game_mode = mode_id
+	mode_changed.emit(mode_id)
+	var path := GameMode.scene_path(mode_id)
+	if path.is_empty() or not ResourceLoader.exists(path):
+		toast_requested.emit(GameMode.missing_toast(mode_id))
+		return true
+	if _handshake_ok:
+		announce_stage(path)
+	SceneRouter.go_to(path)
+	return true
+
+
+func _resize_server(want: int) -> bool:
+	if want == MAX_CLIENTS:
+		return true
+	if not is_host() or room_code.is_empty():
+		return false
+	if _handshake_ok or not _guests.is_empty():
+		toast_requested.emit("Fecha a sala para mudar o número de caçadores")
+		return false
+	var code := room_code
+	_beacon.stop()
+	_unhook_peer_signals()
+	if multiplayer.multiplayer_peer != null:
+		var old: MultiplayerPeer = multiplayer.multiplayer_peer
+		multiplayer.multiplayer_peer = null
+		if old is ENetMultiplayerPeer:
+			(old as ENetMultiplayerPeer).close()
+	MAX_CLIENTS = want
+	var peer := ENetMultiplayerPeer.new()
+	var err := peer.create_server(ENET_PORT, MAX_CLIENTS)
+	if err != OK:
+		join_failed.emit("Não deu para abrir a sala")
+		MAX_CLIENTS = 1
+		return false
+	multiplayer.multiplayer_peer = peer
+	_hook_peer_signals()
+	room_code = code
+	var nick := _nick()
+	if not _beacon.start_broadcast(room_code, ENET_PORT, nick, _version_code()):
+		toast_requested.emit("Beacon da sala falhou — use o IP no PC")
+	_beacon_t = 0.0
+	return true
 
 
 func set_sala_meio(raw: String) -> bool:
@@ -133,6 +225,9 @@ func _nick() -> String:
 
 func host_room() -> String:
 	close_session()
+	game_mode = GameMode.Id.VS_ONI_2
+	MAX_CLIENTS = GameMode.max_clients_for(game_mode)
+	local_coop_slot = 0
 	room_code = RoomCode.generate()
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_server(ENET_PORT, MAX_CLIENTS)
@@ -241,10 +336,15 @@ func close_session() -> void:
 	_oni_t = 0.0
 	_next_oni_id = 1
 	_guest_onis.clear()
+	_guests.clear()
+	_roster.clear()
 	in_stage = false
 	remote_nick = ""
 	remote_character_id = "tanjiro"
 	guest_peer_id = 0
+	local_coop_slot = 0
+	game_mode = GameMode.Id.VS_ONI_2
+	MAX_CLIENTS = 1
 	_handshake_ok = false
 	_unhook_peer_signals()
 	if multiplayer.multiplayer_peer != null:
@@ -354,14 +454,29 @@ func _on_peer_connected(id: int) -> void:
 
 func _on_peer_disconnected(id: int) -> void:
 	if role == Role.HOST:
-		guest_peer_id = 0
-		_handshake_ok = false
+		var rec: Variant = _guests.get(id, {})
+		var slot: int = 1
+		if typeof(rec) == TYPE_DICTIONARY:
+			slot = int((rec as Dictionary).get("slot", 1))
+		_guests.erase(id)
+		if guest_peer_id == id:
+			guest_peer_id = 0
+			if not _guests.is_empty():
+				guest_peer_id = int(_guests.keys()[0])
+		if _guests.is_empty():
+			_handshake_ok = false
+			peer_left.emit()
+			if in_stage:
+				_drop_pawn_slot(slot)
+				toast_requested.emit("Amigo saiu — segue solo")
+			else:
+				toast_requested.emit("Amigo saiu")
+			return
 		peer_left.emit()
 		if in_stage:
-			_drop_guest_pawn()
-			toast_requested.emit("Amigo saiu — segue solo")
-		else:
-			toast_requested.emit("Amigo saiu")
+			_drop_pawn_slot(slot)
+		toast_requested.emit("Amigo saiu")
+		_broadcast_roster()
 		return
 	if role == Role.GUEST:
 		toast_requested.emit("Anfitrião saiu")
@@ -370,13 +485,43 @@ func _on_peer_disconnected(id: int) -> void:
 
 
 func _drop_guest_pawn() -> void:
+	_drop_pawn_slot(1)
+
+
+func _drop_pawn_slot(slot: int) -> void:
 	var tree := get_tree()
 	if tree == null:
 		return
 	for n: Node in tree.get_nodes_in_group("player"):
-		if int(n.get("coop_slot")) == 1:
+		if int(n.get("coop_slot")) == slot:
 			n.remove_from_group("player")
 			n.queue_free()
+
+
+func _next_free_slot() -> int:
+	var used: Dictionary = {}
+	for g in _guests.values():
+		if typeof(g) == TYPE_DICTIONARY:
+			used[int((g as Dictionary).get("slot", 0))] = true
+	for s in range(1, MAX_CLIENTS + 1):
+		if not used.has(s):
+			return s
+	return -1
+
+
+func _slot_of_peer(peer_id: int) -> int:
+	var rec: Variant = _guests.get(peer_id, null)
+	if typeof(rec) == TYPE_DICTIONARY:
+		return int((rec as Dictionary).get("slot", 1))
+	return 1
+
+
+func _broadcast_roster() -> void:
+	if not is_host():
+		return
+	var arr: Array = get_roster()
+	if _handshake_ok:
+		_rpc_roster.rpc(game_mode, arr)
 
 
 @rpc("any_peer", "reliable")
@@ -389,31 +534,62 @@ func _rpc_hello(proto: int, version_code: int, nick: String, char_id: String) ->
 		handshake_rejected.emit("Atualize o APK — versões diferentes")
 		call_deferred("_drop_peer", sender)
 		return
-	remote_nick = Game.sanitize_player_name(nick)
-	if remote_nick.is_empty():
-		remote_nick = "Amigo"
-	remote_character_id = char_id if char_id != "" else "tanjiro"
+	if in_stage:
+		_rpc_reject.rpc_id(sender, "A fase já começou")
+		call_deferred("_drop_peer", sender)
+		return
+	if _guests.size() >= MAX_CLIENTS:
+		_rpc_reject.rpc_id(sender, "Sala cheia")
+		call_deferred("_drop_peer", sender)
+		return
+	var slot: int = _next_free_slot()
+	if slot < 1:
+		_rpc_reject.rpc_id(sender, "Sala cheia")
+		call_deferred("_drop_peer", sender)
+		return
+	var clean := Game.sanitize_player_name(nick)
+	if clean.is_empty():
+		clean = "Amigo"
+	var cid: String = char_id if char_id != "" else "tanjiro"
+	_guests[sender] = {"slot": slot, "nick": clean, "char_id": cid}
+	remote_nick = clean
+	remote_character_id = cid
 	guest_peer_id = sender
 	_handshake_ok = true
-	Game.add_friend(remote_nick)
-	_rpc_welcome.rpc_id(sender, _nick(), str(Game.current_character_id))
+	Game.add_friend(clean)
+	_rpc_welcome.rpc_id(sender, _nick(), str(Game.current_character_id), slot, game_mode)
+	_broadcast_roster()
 	toast_requested.emit("Amigo entrou")
-	peer_joined.emit(remote_nick)
+	peer_joined.emit(clean)
 
 
 @rpc("authority", "reliable")
-func _rpc_welcome(host_nick: String, host_char: String) -> void:
+func _rpc_welcome(host_nick: String, host_char: String, assigned_slot: int = 1, mode_id: int = 0) -> void:
 	if role != Role.GUEST:
 		return
 	remote_nick = Game.sanitize_player_name(host_nick)
 	if remote_nick.is_empty():
 		remote_nick = "Anfitrião"
 	remote_character_id = host_char if host_char != "" else "tanjiro"
-	guest_peer_id = multiplayer.get_unique_id()
+	if multiplayer.multiplayer_peer != null:
+		guest_peer_id = multiplayer.get_unique_id()
+	local_coop_slot = assigned_slot if assigned_slot > 0 else 1
+	game_mode = mode_id
 	_handshake_ok = true
 	Game.add_friend(remote_nick)
 	toast_requested.emit("Amigo entrou")
 	peer_joined.emit(remote_nick)
+
+
+@rpc("authority", "reliable")
+func _rpc_roster(mode_id: int, roster: Array) -> void:
+	if role != Role.GUEST:
+		return
+	game_mode = mode_id
+	_roster.clear()
+	for item in roster:
+		if typeof(item) == TYPE_DICTIONARY:
+			_roster.append(item)
 
 
 @rpc("authority", "reliable")
@@ -467,9 +643,11 @@ func _rpc_input(packed: PackedByteArray) -> void:
 		return
 	if packed.size() < InputFrame.PACK_SIZE:
 		return
-	var p2 := _pawn(1)
-	if p2 != null and p2.has_method("apply_input_frame"):
-		p2.call(
+	var sender: int = multiplayer.get_remote_sender_id()
+	var slot: int = _slot_of_peer(sender)
+	var pawn := _pawn(slot)
+	if pawn != null and pawn.has_method("apply_input_frame"):
+		pawn.call(
 			"apply_input_frame",
 			InputFrame.unpack_axis(packed),
 			InputFrame.unpack_held(packed),
@@ -554,7 +732,8 @@ func broadcast_waves_done() -> void:
 
 func _broadcast_player_snaps() -> void:
 	var buf := PackedByteArray()
-	for slot in [0, 1]:
+	var nslots: int = maxi(hunter_count(), 2)
+	for slot in range(nslots):
 		var p := _pawn(slot)
 		_append_player_snap(buf, p)
 	if _handshake_ok:
@@ -601,10 +780,13 @@ func _append_player_snap(buf: PackedByteArray, p: Node) -> void:
 
 
 func _apply_player_snaps(data: PackedByteArray) -> void:
-	if data.size() < 40:
+	if data.size() < 20:
 		return
-	for slot in [0, 1]:
+	var nslots: int = data.size() / 20
+	for slot in range(nslots):
 		var off: int = slot * 20
+		if off + 20 > data.size():
+			break
 		var p := _pawn(slot)
 		if p == null or not p.has_method("apply_host_snap"):
 			continue
@@ -701,15 +883,31 @@ func _apply_leash() -> void:
 		return
 	if not _pawn_alive(p1) or not _pawn_alive(p2):
 		return
-	var a := p1 as Node2D
-	var b := p2 as Node2D
-	var dx: float = b.global_position.x - a.global_position.x
-	if absf(dx) <= LEASH_X:
+	var n: int = hunter_count()
+	if n <= 2:
+		var a := p1 as Node2D
+		var b := p2 as Node2D
+		var dx: float = b.global_position.x - a.global_position.x
+		if absf(dx) <= LEASH_X:
+			return
+		if dx > 0.0:
+			b.global_position.x = a.global_position.x + LEASH_X
+		else:
+			a.global_position.x = b.global_position.x + LEASH_X
 		return
-	if dx > 0.0:
-		b.global_position.x = a.global_position.x + LEASH_X
-	else:
-		a.global_position.x = b.global_position.x + LEASH_X
+	var host_n := p1 as Node2D
+	for slot in range(1, n):
+		var p := _pawn(slot)
+		if p == null or not _pawn_alive(p):
+			continue
+		var g := p as Node2D
+		var dxx: float = g.global_position.x - host_n.global_position.x
+		if absf(dxx) <= LEASH_X:
+			continue
+		if dxx > 0.0:
+			g.global_position.x = host_n.global_position.x + LEASH_X
+		else:
+			g.global_position.x = host_n.global_position.x - LEASH_X
 
 
 func _pawn(slot: int) -> Node:

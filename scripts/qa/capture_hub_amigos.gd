@@ -39,6 +39,15 @@ func _run() -> void:
 	if not await _save(out_dir.path_join("hub-amigos-gaveta-1280.png")):
 		quit(1)
 		return
+	var lan: Node = root.get_node_or_null("LanSession")
+	if lan != null and lan.has_method("host_room"):
+		lan.call("host_room")
+	await create_timer(0.45).timeout
+	if not await _save(out_dir.path_join("hub-amigos-modos-1280.png")):
+		quit(1)
+		return
+	if lan != null and lan.has_method("close_session"):
+		lan.call("close_session")
 	print("CAPTURE_HUB_AMIGOS DONE")
 	quit(0)
 

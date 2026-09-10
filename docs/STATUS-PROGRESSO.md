@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-10 (elenco 15 + sheets do quarteto + sala 2P LAN **ou** casa↔casa) 
+**Atualizado:** 2026-09-10 (sala: 2 vs oni + 4 vs oni + portas mapa/1v1) 
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -11,7 +11,7 @@
 
 ## Onde estamos (1 frase)
 
-**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub (Amigos à direita) → mapa (seletor de mundo) → fase → portal → loja/save. **Sala 2P:** mesmo Wi-Fi **ou** o amigo na casa dele (PC do Matheus ligado). Mundo seguinte abre ao limpar o boss.
+**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub (Amigos à direita) → mapa (seletor de mundo) → fase → portal → loja/save. **Sala:** 2 vs oni ou 4 vs oni (cada celular um caçador); mapa/1v1 = portas. Mundo seguinte abre ao limpar o boss.
 
 ### Hotfix playability 2026-08-07 (crítico)
 
@@ -78,7 +78,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
 | Créditos fan game | ✅ engrenagem do hub |
 | Pause na fase | ✅ Continuar / Mapa / Hub |
 | SceneRouter (shop/credits/mapa) | ✅ (hotfix 2026-08-07) |
-| Amigos + sala 2P | ✅ LAN Wi-Fi + casa↔casa (PC do meio 3a); código 6; chamar pelo nome; sem Firebase |
+| Amigos + sala | ✅ LAN Wi-Fi + casa↔casa; modos na sala (2 vs oni / 4 vs oni / mapa / 1v1); código 6; sem Firebase |
 
 ---
 
@@ -106,7 +106,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
 | UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
 | PERSONAGENS no hub | ✅ tela select real (15; portrait nos 15; locked recusa; save do id) |
-| Amigos / sala 2P | ✅ Wi-Fi **ou** outra casa (PC ligado); clube/notícias/eventos ainda fora |
+| Amigos / sala | ✅ Wi-Fi **ou** outra casa; 2 ou 4 vs oni; mapa/1v1 = porta; clube/notícias/eventos ainda fora |
 | Missões / XP / clube no hub | GDD: fase 2+ / fora |
 
 ### 3) Conteúdo em escala (Fase F)
