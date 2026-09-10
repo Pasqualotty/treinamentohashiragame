@@ -35,6 +35,17 @@ const IMPACT_PATHS: PackedStringArray = [
 	"res://assets/fx/impact/04.png",
 	"res://assets/fx/impact/05.png",
 ]
+const DASH_DUST_PATHS: PackedStringArray = [
+	"res://assets/fx/dash/00.png",
+	"res://assets/fx/dash/01.png",
+	"res://assets/fx/dash/02.png",
+	"res://assets/fx/dash/03.png",
+]
+const DASH_STREAK_PATHS: PackedStringArray = [
+	"res://assets/fx/dash/streak_00.png",
+	"res://assets/fx/dash/streak_01.png",
+	"res://assets/fx/dash/streak_02.png",
+]
 
 ## Cores tema (Style Bible) reutilizadas pelos callers.
 const COLOR_WATER: Color = Color(0.357, 0.553, 0.937, 1.0)    # #5B8DEF — respiração da água
@@ -48,6 +59,7 @@ const COLOR_ASH: Color = Color(0.55, 0.55, 0.6, 1.0)
 const MAX_LIVE: int = 24
 
 var _dot_texture: ImageTexture = null
+var _shard_texture: ImageTexture = null
 var _fade_gradient: Gradient = null
 
 
@@ -122,15 +134,24 @@ func afterimage(src: AnimatedSprite2D) -> void:
 	spr.texture = tex
 	spr.global_position = src.global_position
 	spr.flip_h = src.flip_h
-	spr.scale = src.scale
+	spr.scale = Vector2(src.scale.x * 1.08, src.scale.y)
 	spr.rotation = src.rotation
 	spr.z_index = src.z_index - 1
-	spr.modulate = Color(0.48, 0.84, 1.0, 0.5)
+	spr.modulate = Color(COLOR_WATER.r, COLOR_WATER.g, COLOR_WATER.b, 0.65)
 	host.add_child(spr)
 	spr.global_position = src.global_position
 	var tw := create_tween()
-	tw.tween_property(spr, "modulate:a", 0.0, 0.16)
+	tw.tween_property(spr, "modulate:a", 0.0, 0.24)
 	tw.tween_callback(spr.queue_free)
+
+
+func dash_burst(pos: Vector2, facing: float) -> void:
+	## Um sheet de dash (poeira + streak). Sem flood de sparks.
+	var f: float = signf(facing) if not is_zero_approx(facing) else 1.0
+	if not DASH_STREAK_PATHS.is_empty() and ResourceLoader.exists(DASH_STREAK_PATHS[0]):
+		_play_sheet(DASH_STREAK_PATHS, pos + Vector2(f * 8.0, -18.0), f, 0.18, 96.0)
+	elif not DASH_DUST_PATHS.is_empty():
+		_play_sheet(DASH_DUST_PATHS, pos, f, 0.28, 72.0)
 
 
 func _play_sheet(paths: PackedStringArray, pos: Vector2, facing: float, life: float, draw_size: float, vx: float = 0.0) -> void:
@@ -142,13 +163,13 @@ func _play_sheet(paths: PackedStringArray, pos: Vector2, facing: float, life: fl
 		inst.call("play_sheet", paths, life, draw_size, facing, vx)
 
 
-func dust(pos: Vector2) -> void:
+func dust(pos: Vector2, facing: float = 0.0) -> void:
 	var inst: Node2D = _instantiate(DUST_PUFF_SCENE)
 	if inst == null:
 		return
 	inst.global_position = pos
 	if inst.has_method("play"):
-		inst.call("play")
+		inst.call("play", facing)
 
 
 func damage_number(pos: Vector2, value: int, crit: bool = false) -> void:
@@ -176,6 +197,12 @@ func get_dot_texture() -> ImageTexture:
 	if _dot_texture == null:
 		_dot_texture = _build_dot_texture()
 	return _dot_texture
+
+
+func get_shard_texture() -> ImageTexture:
+	if _shard_texture == null:
+		_shard_texture = _build_shard_texture()
+	return _shard_texture
 
 
 ## Gradiente branco-opaco → branco-transparente, usado como `color_ramp`
@@ -235,4 +262,15 @@ func _build_dot_texture() -> ImageTexture:
 			var a: float = clampf(1.0 - d, 0.0, 1.0)
 			a = a * a
 			img.set_pixel(x, y, Color(1.0, 1.0, 1.0, a))
+	return ImageTexture.create_from_image(img)
+
+
+func _build_shard_texture() -> ImageTexture:
+	## Shard 6×6 hard-edge (pixel), não blob suave.
+	var size: int = 6
+	var img: Image = Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	for y in range(size):
+		for x in range(size):
+			var on: bool = (x + y >= 2) and (x + y <= 8) and (absi(x - y) <= 3)
+			img.set_pixel(x, y, Color(1.0, 1.0, 1.0, 1.0) if on else Color(0, 0, 0, 0))
 	return ImageTexture.create_from_image(img)

@@ -1,12 +1,18 @@
 extends Node
 ## Juice de combate: hitstop curto + camera shake leve por tipo de hit.
 ## Autoload `CombatFeel`. Seguro se camera/time_scale falhar.
+## Hit durante busy **refresh** o stop (não dropa o 2º hit do combo).
 
-const HITSTOP_DEFAULT: float = 0.045
+const HITSTOP_DEFAULT: float = 0.060
 const HITSTOP_SCALE: float = 0.08
-const SHAKE_HIT: float = 3.5
+const HITSTOP_MIN: float = 0.02
+const HITSTOP_MAX: float = 0.10
+const HITSTOP_BASIC: float = 0.060
+const HITSTOP_SKILL: float = 0.078
+const HITSTOP_ULT: float = 0.085
+const SHAKE_HIT: float = 5.0
 const SHAKE_ULT: float = 7.0
-const SHAKE_HIT_DUR: float = 0.10
+const SHAKE_HIT_DUR: float = 0.12
 const SHAKE_ULT_DUR: float = 0.18
 
 ## Intensidade base por tipo (feel calibrado — não redesenha dano).
@@ -32,14 +38,26 @@ var _zoom_token: int = 0
 
 func hit_impact(intensity: float = 1.0, is_ultimate: bool = false) -> void:
 	## Combo padrão ao acertar: hitstop + shake.
-	var stop_t: float = HITSTOP_DEFAULT * clampf(intensity, 0.5, 2.0)
+	var stop_t: float = HITSTOP_BASIC * clampf(intensity, 0.5, 2.0)
 	if is_ultimate:
-		stop_t = clampf(stop_t * 1.35, 0.04, 0.065)
+		stop_t = HITSTOP_ULT * clampf(intensity, 0.5, 1.5)
 	hitstop(stop_t)
 	if is_ultimate:
 		shake(SHAKE_ULT * intensity, SHAKE_ULT_DUR)
 	else:
 		shake(SHAKE_HIT * intensity, SHAKE_HIT_DUR)
+
+
+func hitstop_for_kind(kind: StringName) -> float:
+	match kind:
+		&"skill":
+			return HITSTOP_SKILL
+		&"ultimate":
+			return HITSTOP_ULT
+		&"hurt":
+			return 0.0
+		_:
+			return HITSTOP_BASIC
 
 
 func hit_impact_typed(kind: StringName, intensity_mul: float = 1.0) -> void:
@@ -61,19 +79,23 @@ func hit_impact_typed(kind: StringName, intensity_mul: float = 1.0) -> void:
 			return
 		_:
 			base = INTENSITY_BASIC
-	hit_impact(base * intensity_mul, is_ult)
+	var stop_t: float = hitstop_for_kind(kind) * clampf(intensity_mul, 0.5, 1.5)
+	hitstop(stop_t)
+	if is_ult:
+		shake(SHAKE_ULT * base * intensity_mul, SHAKE_ULT_DUR)
+	else:
+		shake(SHAKE_HIT * base * intensity_mul, SHAKE_HIT_DUR)
 
 
 func hitstop(duration_sec: float = HITSTOP_DEFAULT) -> void:
-	## Congela o jogo por `duration_sec` em tempo real (0.03–0.06s).
-	if _hitstop_busy:
-		return
-	duration_sec = clampf(duration_sec, 0.02, 0.08)
+	## Congela o jogo por `duration_sec` em tempo real. Se já está busy,
+	## refresh (novo token) em vez de ignorar o 2º hit.
+	duration_sec = clampf(duration_sec, HITSTOP_MIN, HITSTOP_MAX)
 	_hitstop_busy = true
 	_hitstop_watchdog_token += 1
 	var my_watch: int = _hitstop_watchdog_token
 	var prev: float = Engine.time_scale
-	if prev <= 0.001 or prev > 1.0:
+	if prev <= 0.001 or prev > 1.0 or prev < HITSTOP_SCALE:
 		prev = 1.0
 	Engine.time_scale = HITSTOP_SCALE
 	var tree: SceneTree = get_tree()

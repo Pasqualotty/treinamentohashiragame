@@ -113,6 +113,9 @@ func _physics_process(delta: float) -> void:
 
 
 func _ai_patrol(delta: float) -> void:
+	if KnockCarry.holds(_hurt_recoil_t):
+		velocity.x = KnockCarry.apply_friction(velocity.x, KNOCK_FRICTION, delta)
+		return
 	var player: Node2D = _find_player()
 	if player and _dist_to(player) <= detect_range:
 		state = State.CHASE
@@ -134,6 +137,9 @@ func _ai_patrol(delta: float) -> void:
 
 
 func _ai_chase(delta: float) -> void:
+	if KnockCarry.holds(_hurt_recoil_t):
+		velocity.x = KnockCarry.apply_friction(velocity.x, KNOCK_FRICTION, delta)
+		return
 	var player: Node2D = _find_player()
 	if player == null or _dist_to(player) > detect_range * 1.5:
 		state = State.PATROL

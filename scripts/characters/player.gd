@@ -125,7 +125,6 @@ var _flash_left: float = 0.0
 var _base_modulate: Color = Color.WHITE
 var _run_bob_t: float = 0.0
 var _afterimage_t: float = 0.0
-var _dash_spark_t: float = 0.0
 var _base_sprite_scale: float = 0.18
 var _sprite_base_y: float = -48.0
 const FLASH_HURT: Color = Color(1.5, 0.45, 0.45, 1.0)
@@ -310,12 +309,8 @@ func try_dash() -> bool:
 	velocity.x = _facing * stats.dash_speed
 	velocity.y = 0.0
 	_disable_hitbox()
-	if is_instance_valid(Fx):
-		Fx.dust(global_position)
-		Fx.spark(global_position + Vector2(0.0, -28.0), Fx.COLOR_WATER, 10)
-		Fx.flash(Color(0.55, 0.9, 1.0, 0.12), 0.12)
+	CombatVfx.dash_start(global_position, _facing, sprite)
 	_afterimage_t = 0.0
-	_dash_spark_t = 0.0
 	return true
 
 
@@ -440,19 +435,26 @@ func _apply_horizontal_feel(axis: float, delta: float) -> void:
 
 func _process_dash(delta: float) -> void:
 	_dash_time_left -= delta
-	velocity.x = _facing * stats.dash_speed
-	velocity.y = 0.0
+	var dur: float = stats.dash_duration if stats and stats.dash_duration > 0.0 else 0.15
+	var p: float = 1.0 - clampf(_dash_time_left / dur, 0.0, 1.0)
+	velocity.x = _facing * stats.dash_speed * (1.0 - p * p)
+	if is_on_floor():
+		velocity.y = 0.0
+	else:
+		velocity.y = minf(velocity.y + stats.gravity * 0.35 * delta, stats.max_fall_speed)
 	_afterimage_t -= delta
-	_dash_spark_t -= delta
-	if is_instance_valid(Fx):
-		if _afterimage_t <= 0.0 and sprite:
-			_afterimage_t = 0.028
-			Fx.afterimage(sprite)
-		if _dash_spark_t <= 0.0:
-			_dash_spark_t = 0.05
-			Fx.spark(global_position + Vector2(0.0, -24.0), Fx.COLOR_WATER, 2)
+	if _afterimage_t <= 0.0 and sprite:
+		_afterimage_t = CombatVfx.DASH_TICK_SEC
+		CombatVfx.dash_tick(sprite, global_position, _facing)
 	if _dash_time_left <= 0.0:
-		velocity.x = 0.0
+		var axis: float = Input.get_axis("move_left", "move_right")
+		if not is_zero_approx(axis):
+			_facing = signf(axis)
+			var accel: float = stats.move_accel if stats.move_accel > 0.0 else stats.move_speed * 12.0
+			velocity.x = move_toward(velocity.x, axis * stats.move_speed, accel * delta)
+		else:
+			var friction: float = stats.move_friction if stats.move_friction > 0.0 else stats.move_speed * 14.0
+			velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 		_set_state(State.IDLE if is_on_floor() else State.JUMP)
 
 
@@ -475,9 +477,13 @@ func _process_action(delta: float) -> void:
 		velocity.y = minf(velocity.y + stats.gravity * delta, stats.max_fall_speed)
 
 	# Skill 2 investida: avanca durante active.
-	if _state == State.SKILL_2 and _action_timer >= _action_startup \
-			and _action_timer < _action_startup + _action_active:
+	# Basic: passo curto no active (peso do swing).
+	var in_active: bool = _action_timer >= _action_startup \
+			and _action_timer < _action_startup + _action_active
+	if _state == State.SKILL_2 and in_active:
 		velocity.x = _facing * stats.skill_2_lunge_speed
+	elif _state == State.ATTACK_BASIC and in_active:
+		velocity.x = _facing * stats.attack_step_speed
 	else:
 		velocity.x = 0.0
 
@@ -719,10 +725,9 @@ func _begin_action(
 			_:
 				slash_kind = &"basic"
 		var slash_pos: Vector2 = global_position + Vector2(offset_x * 0.55 * _facing, -28.0)
-		Fx.slash(slash_pos, _facing, slash_kind)
-		if new_state == State.SKILL_1:
+		CombatVfx.swing_slash(slash_pos, _facing, slash_kind)
+		if new_state == State.SKILL_1 and is_instance_valid(Fx):
 			Fx.water(slash_pos + Vector2(_facing * 24.0, 0.0), _facing)
-			Fx.spark(slash_pos, Fx.COLOR_WATER, 14)
 	_sync_attack_frame_to_action()
 
 
@@ -781,27 +786,9 @@ func _on_hitbox_hit(_hurtbox: Hurtbox, hit_data: HitData) -> void:
 		CombatFeel.hit_impact_typed(kind, 1.0)
 		if is_finisher and CombatFeel.has_method("zoom_punch"):
 			CombatFeel.zoom_punch(CombatFeel.ZOOM_PUNCH_KILL, CombatFeel.ZOOM_PUNCH_DUR)
-	if is_instance_valid(Fx):
-		var spark_color: Color = Fx.COLOR_WHITE
-		var spark_amount: int = 12
-		var is_crit: bool = false
-		match kind:
-			&"skill":
-				spark_color = Fx.COLOR_WATER
-			&"ultimate":
-				spark_color = Fx.COLOR_GOLD
-				spark_amount = 18
-				is_crit = true
-			_:
-				spark_color = Fx.COLOR_WHITE
-		if is_finisher:
-			spark_color = Fx.COLOR_GOLD
-			spark_amount = 16
-			is_crit = true
-		var hit_pos: Vector2 = hitbox.global_position if hitbox else global_position
-		Fx.spark(hit_pos, spark_color, spark_amount)
-		Fx.impact(hit_pos)
-		Fx.damage_number(hit_pos + Vector2(0.0, -18.0), hit_data.damage if hit_data else 0, is_crit)
+	var is_crit: bool = is_finisher or kind == &"ultimate"
+	var hit_pos: Vector2 = hitbox.global_position if hitbox else global_position
+	CombatVfx.hit_burst(hit_pos, kind, hit_data.damage if hit_data else 0, is_crit)
 
 
 func _apply_lifesteal(hit_data: HitData) -> void:
@@ -1170,7 +1157,7 @@ func _update_run_bob(delta: float) -> void:
 			if stats and stats.dash_duration > 0.0:
 				dash_ratio = clampf(_dash_time_left / stats.dash_duration, 0.0, 1.0)
 			sprite.position = Vector2(0.0, base_y)
-			sprite.scale = Vector2(s * lerpf(1.0, 1.16, dash_ratio), s * lerpf(1.0, 0.86, dash_ratio))
+			sprite.scale = Vector2(s * lerpf(1.0, 1.20, dash_ratio), s * lerpf(1.0, 0.82, dash_ratio))
 			sprite.rotation = 0.0
 		State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE:
 			_run_bob_t = 0.0

@@ -20,6 +20,8 @@ extends Resource
 @export var dash_speed: float = 560.0
 @export var dash_duration: float = 0.14
 @export var dash_cooldown: float = 1.0
+## Passo curto no active do ataque básico (peso do swing). Loja não mexe.
+@export var attack_step_speed: float = 110.0
 
 # --- Vida ---
 @export var max_hp: int = 100

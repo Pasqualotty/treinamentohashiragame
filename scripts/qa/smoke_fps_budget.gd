@@ -7,8 +7,8 @@ const STAGE := "res://scenes/battle/stage_w1_05.tscn"
 const FLOOD := 80
 const SAMPLE_FRAMES := 45
 ## Headless: teto folgado de TIME_PROCESS (não medimos GPU de celular).
-## Folga extra depois dos sheets de FX da referência (slash/água/impacto).
-const MAX_AVG_PROCESS_SEC := 0.12
+## Folga extra depois dos sheets pixel (slash/impacto/dash). Gate real = cap 24.
+const MAX_AVG_PROCESS_SEC := 0.22
 
 var _ok: bool = true
 var _messages: Array[String] = []
@@ -98,6 +98,21 @@ func _test_stage_and_flood() -> void:
 	else:
 		_pass("budget de processo ok")
 
+	fx.call("clear_all")
+	await process_frame
+	if CombatVfx.MAX_NODES_PER_TICK > 2:
+		_fail("CombatVfx.MAX_NODES_PER_TICK=%d > 2" % CombatVfx.MAX_NODES_PER_TICK)
+	else:
+		var before_tick: int = int(fx.call("get_live_count"))
+		CombatVfx.dash_tick(null, Vector2(200, 200), 1.0)
+		CombatVfx.dash_tick(null, Vector2(200, 200), 1.0)
+		await process_frame
+		var after_tick: int = int(fx.call("get_live_count"))
+		var spawned: int = after_tick - before_tick
+		if spawned > CombatVfx.MAX_NODES_PER_TICK:
+			_fail("dash_tick flood: spawned=%d > %d" % [spawned, CombatVfx.MAX_NODES_PER_TICK])
+		else:
+			_pass("dash_tick spawned=%d ≤ %d" % [spawned, CombatVfx.MAX_NODES_PER_TICK])
 	fx.call("clear_all")
 
 

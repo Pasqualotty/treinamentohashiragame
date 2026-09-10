@@ -10,7 +10,7 @@ const COLOR_BASIC: Color = Color(1.0, 0.92, 0.85, 0.95)
 const COLOR_SKILL: Color = Color(0.357, 0.553, 0.937, 0.95)
 const COLOR_ULTIMATE: Color = Color(0.55, 0.78, 1.0, 1.0)
 const DURATION: float = 0.22
-const ARC_SPAN: float = 1.15
+const ARC_SPAN: float = 0.95
 
 
 func play(facing: float, kind: StringName = &"basic") -> void:
@@ -19,22 +19,23 @@ func play(facing: float, kind: StringName = &"basic") -> void:
 		return
 	var f: float = signf(facing) if not is_zero_approx(facing) else 1.0
 	var color: Color = COLOR_BASIC
-	var radius: float = 46.0
-	var width: float = 5.0
+	var radius: float = 42.0
+	var width: float = 8.0
 	match kind:
 		&"skill":
 			color = COLOR_SKILL
-			radius = 58.0
-			width = 6.5
+			radius = 52.0
+			width = 10.0
 		&"ultimate":
 			color = COLOR_ULTIMATE
-			radius = 78.0
-			width = 9.0
+			radius = 68.0
+			width = 12.0
 		_:
 			color = COLOR_BASIC
-			radius = 46.0
-			width = 5.0
+			radius = 42.0
+			width = 8.0
 
+	line.antialiased = false
 	line.default_color = color
 	line.width = width
 	line.points = _arc_points(f, radius)
@@ -43,7 +44,7 @@ func play(facing: float, kind: StringName = &"basic") -> void:
 	var tw: Tween = create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(self, "modulate:a", 0.0, DURATION).set_ease(Tween.EASE_OUT)
-	tw.tween_property(line, "width", 0.5, DURATION).set_ease(Tween.EASE_IN)
+	tw.tween_property(line, "width", 2.0, DURATION).set_ease(Tween.EASE_IN)
 	tw.chain().tween_callback(queue_free)
 
 

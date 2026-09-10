@@ -1,7 +1,7 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-10 (W1–W5 + elenco 15 + arte própria do quarteto)  
-**Marca:** **MVP W1 + 5 mundos + elenco 15**  
+**Atualizado:** 2026-09-10 (elenco 15 + arte do quarteto + feel hit/dash)  
+**Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
 **Playtest humano 10 min:** `docs/PLAYTEST-SOBRINHO.md`  
@@ -35,7 +35,7 @@
 | Faixa | O que é | Status (snapshot) | Gate / prova |
 |-------|---------|-------------------|--------------|
 | **Playable base** | Input, ondas, moedas, portal trancado, smokes | ✅ 2026-08-07 | `smoke_playable_w1` + e2e combat |
-| **Feel de combate** | Hitstop, juice, SFX de hit, knockback legível | 🟡 frentes paralelas / residual | playtest humano + e2e |
+| **Feel de combate** | Hitstop com refresh, dash ease-out + SFX, VFX pixel, knock hold no oni de rua | 🟡 hit/dash fechados; body sheet = outra frente | `smoke_combat_feel` + e2e + playtest humano |
 | **Anim combate** | Sheets idle/run/atk no player canônico | 🟡 residual (MVP tem slash legível) | visual + smoke player |
 | **Touch premium** | Layout polegares, hit areas, labels | 🟡 pós-hotfix mouse-safe | checklist sobrinho + `q1` |
 | **Cerimônia de fase** | Intro/clear/portal/feedback de onda | 🟡 parcial (label de onda + saída) | e2e waves + humano |
