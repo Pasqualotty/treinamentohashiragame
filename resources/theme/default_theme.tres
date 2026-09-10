@@ -1,8 +1,20 @@
-[gd_resource type="Theme" load_steps=12 format=3]
+[gd_resource type="Theme" load_steps=15 format=3]
 
 [ext_resource type="FontFile" path="res://assets/fonts/NotoSans-Regular.ttf" id="1_body_reg"]
 [ext_resource type="FontFile" path="res://assets/fonts/NotoSans-SemiBold.ttf" id="2_body_semi"]
 [ext_resource type="FontFile" path="res://assets/fonts/NotoSans-Bold.ttf" id="3_body_bold"]
+
+[sub_resource type="FontVariation" id="FontVar_body"]
+base_font = ExtResource("1_body_reg")
+spacing_space = 6
+
+[sub_resource type="FontVariation" id="FontVar_semi"]
+base_font = ExtResource("2_body_semi")
+spacing_space = 6
+
+[sub_resource type="FontVariation" id="FontVar_bold"]
+base_font = ExtResource("3_body_bold")
+spacing_space = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
 bg_color = Color(0.109804, 0.137255, 0.188235, 0.92)
@@ -130,9 +142,9 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [resource]
-default_font = ExtResource("1_body_reg")
+default_font = SubResource("FontVar_body")
 default_font_size = 18
-Button/fonts/font = ExtResource("2_body_semi")
+Button/fonts/font = SubResource("FontVar_semi")
 Button/font_sizes/font_size = 20
 Button/colors/font_color = Color(1.0, 0.964706, 0.917647, 0.92)
 Button/colors/font_hover_color = Color(1.0, 0.93, 0.78, 1.0)
@@ -144,7 +156,7 @@ Button/styles/hover = SubResource("StyleBoxFlat_btn_hover")
 Button/styles/pressed = SubResource("StyleBoxFlat_btn_pressed")
 Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
 Button/styles/focus = SubResource("StyleBoxFlat_btn_focus")
-Label/fonts/font = ExtResource("1_body_reg")
+Label/fonts/font = SubResource("FontVar_body")
 Label/font_sizes/font_size = 18
 Label/colors/font_color = Color(1.0, 0.964706, 0.917647, 0.95)
 Label/colors/font_shadow_color = Color(0.0, 0.0, 0.0, 0.7)
@@ -152,12 +164,12 @@ Label/constants/shadow_offset_x = 1
 Label/constants/shadow_offset_y = 1
 Panel/styles/panel = SubResource("StyleBoxFlat_panel_default")
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel_default")
-ProgressBar/fonts/font = ExtResource("1_body_reg")
+ProgressBar/fonts/font = SubResource("FontVar_body")
 ProgressBar/font_sizes/font_size = 16
 ProgressBar/colors/font_color = Color(1.0, 0.964706, 0.917647, 1.0)
 ProgressBar/styles/background = SubResource("StyleBoxFlat_pb_bg")
 ProgressBar/styles/fill = SubResource("StyleBoxFlat_pb_fill")
-LineEdit/fonts/font = ExtResource("1_body_reg")
+LineEdit/fonts/font = SubResource("FontVar_body")
 LineEdit/font_sizes/font_size = 18
-RichTextLabel/normal_fonts/normal_font = ExtResource("1_body_reg")
-RichTextLabel/bold_fonts/bold_font = ExtResource("3_body_bold")
+RichTextLabel/normal_fonts/normal_font = SubResource("FontVar_body")
+RichTextLabel/bold_fonts/bold_font = SubResource("FontVar_bold")

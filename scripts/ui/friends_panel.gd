@@ -1,12 +1,18 @@
 extends Control
-## Coluna direita do hub: lista de amigos + sala LAN. Isolado do Ken Burns.
+## Gaveta direita do hub: lista de amigos + sala LAN. Começa fechada.
+## Abre por cima do hub — sem change_scene / go_to.
 
 enum View { LIST, HOST, JOIN, GUEST_WAIT }
 
 const COL_MIN_WIDTH := 320.0
+const DRAWER_W := 360.0
 const TOUCH_MIN := 48.0
+const SLIDE_SEC := 0.22
+
+const _UiFont := preload("res://scripts/ui/ui_font.gd")
 
 var _view: int = View.LIST
+var _drawer_open: bool = false
 var _list_box: VBoxContainer
 var _host_box: VBoxContainer
 var _join_box: VBoxContainer
@@ -20,15 +26,24 @@ var _toast: Label
 var _toast_tween: Tween
 var _meio_input: LineEdit
 var _scroll: ScrollContainer
+var _backdrop: ColorRect
+var _drawer: Control
+var _slide: Tween
 
 
 func _ready() -> void:
+	_UiFont.ensure_theme_space()
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	offset_left = 0.0
+	offset_top = 0.0
+	offset_right = 0.0
+	offset_bottom = 0.0
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size.x = COL_MIN_WIDTH
 	_build()
 	_bind_session()
 	_load_meio_field()
 	_refresh_list()
+	_set_drawer_open(false, true)
 	call_deferred("_sync_rows_width")
 	if is_instance_valid(LanSession) and LanSession.is_guest() and LanSession.has_peer():
 		show_host_picks_stage()
@@ -36,14 +51,118 @@ func _ready() -> void:
 		_show(View.LIST)
 
 
+func is_drawer_open() -> bool:
+	return _drawer_open
+
+
+func open_drawer() -> void:
+	_set_drawer_open(true, false)
+
+
+func close_drawer() -> void:
+	_set_drawer_open(false, false)
+
+
+func toggle_drawer() -> void:
+	_set_drawer_open(not _drawer_open, false)
+
+
+func _set_drawer_open(want: bool, instant: bool) -> void:
+	_drawer_open = want
+	if _backdrop == null or _drawer == null:
+		return
+	if want:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+		_drawer.mouse_filter = Control.MOUSE_FILTER_STOP
+		_drawer.visible = true
+		_backdrop.visible = true
+	_layout_drawer(want, instant)
+	if want:
+		call_deferred("_sync_rows_width")
+	elif instant:
+		_apply_closed_filters()
+	elif _slide != null and _slide.is_valid():
+		if not _slide.finished.is_connected(_apply_closed_filters):
+			_slide.finished.connect(_apply_closed_filters, CONNECT_ONE_SHOT)
+
+
+func _apply_closed_filters() -> void:
+	if _drawer_open:
+		return
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _backdrop != null:
+		_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+func _layout_drawer(p_open: bool, instant: bool) -> void:
+	var target_left: float = (-DRAWER_W - 16.0) if p_open else 16.0
+	var target_right: float = -16.0 if p_open else (DRAWER_W + 16.0)
+	var target_a: float = 0.45 if p_open else 0.0
+	if instant:
+		if _slide != null and _slide.is_valid():
+			_slide.kill()
+		_drawer.offset_left = target_left
+		_drawer.offset_right = target_right
+		_backdrop.color.a = target_a
+		return
+	if _slide != null and _slide.is_valid():
+		_slide.kill()
+	_slide = create_tween().set_parallel(true)
+	_slide.tween_property(_drawer, "offset_left", target_left, SLIDE_SEC) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_slide.tween_property(_drawer, "offset_right", target_right, SLIDE_SEC) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_slide.tween_property(_backdrop, "color:a", target_a, SLIDE_SEC)
+
+
+func _on_backdrop_gui(event: InputEvent) -> void:
+	if not _drawer_open:
+		return
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			close_drawer()
+	elif event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+		close_drawer()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not _drawer_open:
+		return
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
+		close_drawer()
+		get_viewport().set_input_as_handled()
+
+
 func _build() -> void:
+	_backdrop = ColorRect.new()
+	_backdrop.color = Color(0, 0, 0, 0)
+	_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_backdrop.gui_input.connect(_on_backdrop_gui)
+	add_child(_backdrop)
+
+	_drawer = Control.new()
+	_drawer.anchor_left = 1.0
+	_drawer.anchor_top = 0.0
+	_drawer.anchor_right = 1.0
+	_drawer.anchor_bottom = 1.0
+	_drawer.offset_top = 12.0
+	_drawer.offset_bottom = -12.0
+	_drawer.offset_left = 16.0
+	_drawer.offset_right = DRAWER_W + 16.0
+	_drawer.custom_minimum_size.x = COL_MIN_WIDTH
+	_drawer.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_drawer)
+
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Palette.with_alpha(Palette.PANEL, 0.82)
+	sb.bg_color = Palette.with_alpha(Palette.PANEL, 0.92)
 	sb.border_color = Palette.with_alpha(Palette.GOLD, 0.55)
 	sb.set_border_width_all(2)
 	sb.set_corner_radius_all(12)
@@ -52,7 +171,7 @@ func _build() -> void:
 	sb.content_margin_top = 12
 	sb.content_margin_bottom = 12
 	panel.add_theme_stylebox_override("panel", sb)
-	add_child(panel)
+	_drawer.add_child(panel)
 
 	var root := VBoxContainer.new()
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -60,16 +179,25 @@ func _build() -> void:
 	root.add_theme_constant_override("separation", 10)
 	panel.add_child(root)
 
+	var head := HBoxContainer.new()
+	head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_theme_constant_override("separation", 8)
+	root.add_child(head)
 	var title := Label.new()
 	title.text = "AMIGOS"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	title.add_theme_color_override("font_color", Palette.CREAM)
 	title.add_theme_color_override("font_shadow_color", Palette.SHADOW)
 	title.add_theme_constant_override("shadow_offset_x", 1)
 	title.add_theme_constant_override("shadow_offset_y", 1)
 	title.add_theme_font_size_override("font_size", 20)
 	_fit_label(title, false)
-	root.add_child(title)
+	head.add_child(title)
+	var fechar := _plate_btn("Fechar", close_drawer)
+	fechar.size_flags_horizontal = Control.SIZE_SHRINK_END
+	fechar.custom_minimum_size = Vector2(120, TOUCH_MIN)
+	head.add_child(fechar)
 
 	_list_box = VBoxContainer.new()
 	_list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -464,6 +592,7 @@ func _on_code_gui(event: InputEvent) -> void:
 
 
 func show_host_picks_stage() -> void:
+	open_drawer()
 	show_toast("O anfitrião escolhe a fase")
 	if is_instance_valid(LanSession) and LanSession.is_guest():
 		_show(View.GUEST_WAIT)

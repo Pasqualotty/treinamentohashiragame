@@ -178,6 +178,21 @@ func _test_legacy_without_friends() -> void:
 	_pass("save legado sem friends = []")
 
 
+func _open_drawer(fp: Node) -> void:
+	if fp != null and fp.has_method("open_drawer"):
+		fp.call("open_drawer")
+
+
+func _space_px(c: Control) -> float:
+	var font: Font = c.get_theme_font("font")
+	var size: int = c.get_theme_font_size("font_size")
+	if font == null:
+		return 0.0
+	var with_sp: float = font.get_string_size("a a", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var no_sp: float = font.get_string_size("aa", HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	return with_sp - no_sp
+
+
 func _test_hub_panel() -> void:
 	var packed: PackedScene = load(HUB) as PackedScene
 	if packed == null:
@@ -190,25 +205,38 @@ func _test_hub_panel() -> void:
 	root.add_child(inst)
 	for i in range(10):
 		await process_frame
+	var amigos: Button = inst.get_node_or_null("%FriendsButton") as Button
+	if amigos == null or amigos.text != "AMIGOS":
+		_fail("hub sem botão AMIGOS")
+		inst.queue_free()
+		await process_frame
+		return
+	if amigos.size.y < 44.0 or amigos.size.x < 200.0:
+		_fail("AMIGOS toque baixo: %s" % amigos.size)
+		inst.queue_free()
+		await process_frame
+		return
 	var fp: Node = inst.get_node_or_null("%FriendsPanel")
 	if fp == null:
 		_fail("hub sem %FriendsPanel")
 		inst.queue_free()
 		await process_frame
 		return
-	if not fp.visible:
-		_fail("FriendsPanel invisível")
+	if fp.has_method("is_drawer_open") and bool(fp.call("is_drawer_open")):
+		_fail("gaveta já aberta no hub")
+		inst.queue_free()
+		await process_frame
+		return
+	_open_drawer(fp)
+	for i in range(8):
+		await process_frame
+	if fp.has_method("is_drawer_open") and not bool(fp.call("is_drawer_open")):
+		_fail("open_drawer não abriu a gaveta")
 		inst.queue_free()
 		await process_frame
 		return
 	if _find_label(fp, "Computador da sala") == null:
 		_fail("FriendsPanel sem campo Computador da sala")
-		inst.queue_free()
-		await process_frame
-		return
-	var panel := fp as Control
-	if panel.size.x < 300.0:
-		_fail("FriendsPanel estreito demais: %.0f" % panel.size.x)
 		inst.queue_free()
 		await process_frame
 		return
@@ -239,6 +267,22 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
+	if _space_px(criar) < 3.0:
+		_fail("Criar sala: U+0020 advance=%.2f" % _space_px(criar))
+		inst.queue_free()
+		await process_frame
+		return
+	var hint: Label = inst.find_child("MapHint", true, false) as Label
+	if hint == null:
+		_fail("hub sem MapHint")
+		inst.queue_free()
+		await process_frame
+		return
+	if _space_px(hint) < 3.0:
+		_fail("MapHint: U+0020 advance=%.2f" % _space_px(hint))
+		inst.queue_free()
+		await process_frame
+		return
 	if _find_button(fp, "Entrar") == null:
 		_fail("sem botão Entrar")
 		inst.queue_free()
@@ -249,9 +293,23 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
+	if _find_button(fp, "Fechar") == null:
+		_fail("gaveta sem Fechar")
+		inst.queue_free()
+		await process_frame
+		return
+	if fp.has_method("close_drawer"):
+		fp.call("close_drawer")
+		for i in range(6):
+			await process_frame
+		if bool(fp.call("is_drawer_open")):
+			_fail("close_drawer não fechou")
+			inst.queue_free()
+			await process_frame
+			return
 	inst.queue_free()
 	await process_frame
-	_pass("hub tem %FriendsPanel + Computador da sala")
+	_pass("hub botão AMIGOS + gaveta + espaço U+0020")
 
 
 func _test_host_close(lan: Node) -> void:
@@ -345,6 +403,9 @@ func _test_join_voltar(lan: Node) -> void:
 		inst.queue_free()
 		await process_frame
 		return
+	_open_drawer(fp)
+	for i in range(4):
+		await process_frame
 	lan.call("join_room", "K7H4MP")
 	if not bool(lan.call("is_guest")):
 		_fail("join_room não marcou guest")
@@ -570,6 +631,9 @@ func _test_hub_computador_field() -> void:
 		inst.queue_free()
 		await process_frame
 		return
+	_open_drawer(fp)
+	for i in range(4):
+		await process_frame
 	var edit: LineEdit = _find_line_placeholder(fp, "só o Wi-Fi")
 	if edit == null:
 		_fail("campo Computador da sala sem LineEdit")
@@ -606,6 +670,9 @@ func _test_call_name_not_x() -> void:
 		inst.queue_free()
 		await process_frame
 		return
+	_open_drawer(fp)
+	for i in range(6):
+		await process_frame
 	var xbtn: Button = _find_friend_remove_btn(fp, "SobrinhoQA")
 	if xbtn == null:
 		_fail("chamar: sem botão x do SobrinhoQA")
