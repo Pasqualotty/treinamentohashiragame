@@ -87,7 +87,7 @@ Data: ________  Dispositivo: ________  Quem jogou: ________
 Não entra no CI. Dois APKs (ou 2 instâncias Play no PC com `127.0.0.1`).
 
 1. Os dois no **mesmo Wi-Fi da casa** (sem rede de convidado isolado). Campo **Computador da sala** pode ficar vazio.
-2. Host: hub → Amigos → **Criar sala** → código de 6 na cara (tap copia).
+2. Host: hub → Amigos → **Criar sala** → código de 6 na cara (tap copia). Escolhe **2 vs oni** (já vem marcado).
 3. Guest: **Entrar** → cola o código. Se não achar em ~2 s, abre “IP do anfitrião”.
 4. Host toca **JOGAR** → mapa → `w1_01`. Guest **não** escolhe fase (“O anfitrião escolhe a fase”).
 5. Os dois aparecem na fase; cada um controla o **próprio** caçador (touch no celular dele).
@@ -111,6 +111,18 @@ Não entra no CI. O PC do meio tem que estar **alcançável** (mesmo Wi-Fi ainda
 7. Desligue o script do PC: o jogo **ainda abre**. Criar/Entrar avisa “O computador da sala está desligado”. Loading **não** fala “Conectando-se…”.
 
 **Se o PC não estiver ligado:** casa↔casa não entra; o Wi-Fi da sala continua.
+
+---
+
+## 4 celulares (4 vs oni)
+
+Não entra no CI. Quatro APKs (ou 4 instâncias Play).
+
+1. Host: Amigos → **Criar sala** → toca **4 vs oni** (antes dos amigos entrarem).
+2. Até 3 amigos **Entrar** com o código. Cada celular = um caçador.
+3. Host **JOGAR** → mapa → fase. Guest não escolhe fase.
+4. A câmera segue quem está vivo. Oni corre no mais perto.
+5. **Mapa de batalha** e **1v1** na sala: se ainda não chegou, toast em PT e a sala não some.
 
 ---
 
