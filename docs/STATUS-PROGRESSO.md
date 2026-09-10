@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-10 (elenco 15 + sheets do quarteto + dash no corpo + amigos LAN 2P) 
+**Atualizado:** 2026-09-10 (elenco 15 + sheets do quarteto + sala 2P LAN **ou** casa↔casa) 
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -11,7 +11,7 @@
 
 ## Onde estamos (1 frase)
 
-**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub (Amigos à direita) → mapa (seletor de mundo) → fase → portal → loja/save. **Sala LAN 2P** no mesmo Wi-Fi (código 6). Mundo seguinte abre ao limpar o boss.
+**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub (Amigos à direita) → mapa (seletor de mundo) → fase → portal → loja/save. **Sala 2P:** mesmo Wi-Fi **ou** o amigo na casa dele (PC do Matheus ligado). Mundo seguinte abre ao limpar o boss.
 
 ### Hotfix playability 2026-08-07 (crítico)
 
@@ -78,7 +78,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
 | Créditos fan game | ✅ engrenagem do hub |
 | Pause na fase | ✅ Continuar / Mapa / Hub |
 | SceneRouter (shop/credits/mapa) | ✅ (hotfix 2026-08-07) |
-| Amigos + sala LAN 2P | ✅ lista no hub, ENet, código 6, sem nuvem |
+| Amigos + sala 2P | ✅ LAN Wi-Fi + casa↔casa (PC do meio 3a); código 6; chamar pelo nome; sem Firebase |
 
 ---
 
@@ -106,7 +106,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
 | UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
 | PERSONAGENS no hub | ✅ tela select real (15; portrait nos 15; locked recusa; save do id) |
-| Amigos / sala LAN | ✅ 2P mesmo Wi-Fi; clube/notícias/eventos ainda fora |
+| Amigos / sala 2P | ✅ Wi-Fi **ou** outra casa (PC ligado); clube/notícias/eventos ainda fora |
 | Missões / XP / clube no hub | GDD: fase 2+ / fora |
 
 ### 3) Conteúdo em escala (Fase F)
@@ -186,3 +186,4 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | 2026-08-07 | **Playtest gate:** e2e combat reforçado, `run_smokes.ps1`, PLAYTEST-SOBRINHO, seção premium wave |
 | 2026-09-10 | **Desafio oni:** fraco 48/7 + poise no swing; elite mais rápido; W2/W3 fase 1 deixam de clonar o tutorial |
 | 2026-09-10 | **Economia/skills:** loja `[50, 200, 420]`; Dano ripple nas skills/ult; kits com atk/s1/s2/ult/CD explícitos. Números canônicos em `GDD-DECISOES.md` §6/§9. |
+| 2026-09-10 | **Sala de outra casa:** PC do meio (3a) + chamar pelo nome. LAN Wi-Fi da onda 2 permanece. Sem Firebase/Play/Hostinger. |

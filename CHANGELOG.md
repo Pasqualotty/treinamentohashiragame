@@ -1,5 +1,12 @@
 # Changelog — Treinamento Hashira
 
+## Unreleased — sala de outra casa
+
+- Amigo na casa dele entra na sala (2 vs oni) pelo **computador da sala** no PC do Matheus
+- LAN da onda 2 permanece (beacon Wi-Fi primeiro)
+- Toque no nome chama se o PC vir o nick; código de 6 continua
+- Sem Firebase, Play Games, Hostinger; `max_clients = 1`; JOGAR ainda abre o mapa
+
 ## 0.0.3 — efeitos + próxima fase (2026-09-01)
 
 - Cortes, dash e hits com os efeitos do treino (slash, água, impacto)

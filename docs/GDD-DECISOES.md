@@ -35,7 +35,7 @@ Ordem **obrigatória** (confirmada com prints):
 [2] TELA DE CARREGAMENTO DO JOGO  (refs: loading)
       • Arte de fundo / key art do jogo (Demon Slayer estilo nosso)
       • Barra de progresso 0% → 100%
-      • Texto opcional: “Carregando…” (não “Conectando-se…” — somos offline)
+      • Texto opcional: “Carregando…” (não “Conectando-se…” — boot sem rede)
       • Enquanto isso: carregar resources, save, cenas leves
 
 [3] ESTADO PADRÃO (HUB)  (ref: hub Brawl-like)
@@ -69,7 +69,7 @@ Ordem **obrigatória** (confirmada com prints):
 
 **Nossas regras de loading:**
 
-- Offline-first: texto **“Carregando…”** / “Preparando o dojo…” — **não** “Conectando-se…” (não há servidor no MVP).
+- Offline-first no **boot**: texto **“Carregando…”** / “Preparando o dojo…” — **não** “Conectando-se…”. Check de sala/PC só **depois** do hub (Criar/Entrar).
 - Barra reflete progresso real (load de cenas/assets) + mínimo de tempo pra não piscar (ex. 0.8s floor).
 - Arte: key art própria (pixel / paint) — placeholder no começo.
 - **Não** reutilizar assets de Brawl Stars.
@@ -110,7 +110,7 @@ Ordem **obrigatória** (confirmada com prints):
 | Esquerda LOJA | Shop | **Loja de upgrades** | ✅ |
 | Esquerda lista chars | Brawlers | **Personagens** (15 no catálogo; Tanjiro starter; Nezuko livre) | ✅ tela select |
 | Esquerda missões / XP | Battle pass vibe | Missões / XP | ⏳ fase 2 |
-| Direita **Amigos** | Social | **Lista local + sala LAN 2P** (mesmo Wi-Fi) | ✅ |
+| Direita **Amigos** | Social | **Lista local + sala 2P** (Wi-Fi **ou** casa↔casa via PC da sala) | ✅ |
 | Direita Clube / Notícias / Eventos | Social online | Fora | ❌ omitir |
 | Baixo seletor de modo | Combate solitário + mapa | **Mapa / próxima fase** + info do mundo | ✅ |
 | Setas + / skin | Skins | Trocar personagem / skin | ⏳ char select simples OK |
@@ -126,18 +126,20 @@ Ordem **obrigatória** (confirmada com prints):
 │  GENS  │         idle / showcase           │ • Sobrinho   [x]      │
 │        │                                   │ [ CRIAR SALA ]        │
 │        │                                   │ [ ENTRAR    ]         │
+│        │                                   │ Computador da sala    │
+│        │                                   │ [ host:porta     ]    │
 ├────────┴───────────────┬─────────────────┴───────────────────────┤
 │  W1 · próxima fase        │            [  JOGAR  ]                  │
 └─────────────────────────┴─────────────────────────────────────────┘
 ```
 
 **Sala (host):** código de 6 caracteres (tap = copiar) + “Esperando amigo…” / “Amigo entrou” + Fechar sala.  
-**Entrar (guest):** código 6, auto-uppercase; se o beacon não achar em ~2,5s, IP do anfitrião (recolhido; 127.0.0.1 no PC).  
+**Entrar (guest):** código 6, auto-uppercase. Beacon Wi-Fi primeiro (~2,5 s); senão o **computador da sala**. Fallback: IP do anfitrião (recolhido; `127.0.0.1` no PC).  
 **JOGAR:** sempre abre o **mapa**. Só o **host** escolhe a fase. Guest no hub: “O anfitrião escolhe a fase”.
 
-**LAN (fechado):** 2 jogadores, mesmo Wi-Fi. ENet 17777 + beacon UDP 17778. Código filtra o beacon (não é o IP). Host simula a fase; o amigo manda input. Sem nuvem, Firebase, Play Games. Save `friends` = nomes, **sem IP**. Cap 16. Handshake `proto=1` + `version_code` — APK diferente recusa em PT.
+**2P (fechado nesta onda):** 2 jogadores. Mesmo Wi-Fi **ou** cada um na sua casa (PC do Matheus ligado só pra achar o amigo; se o NAT bloquear, o mesmo PC carrega o ENet). ENet 17777 + beacon UDP 17778. Código filtra o beacon (não é o IP). Host simula a fase; o amigo manda input. Sem Firebase, Play Games, Hostinger. Save `friends` = nomes, **sem IP**. Cap 16. Handshake `proto=1` + `version_code` — APK diferente recusa em PT. `max_clients = 1`.
 
-**Não entra:** 3+ jogadores, split-screen, clube, notícias, eventos, ranking, sync de loja.
+**Não entra:** 3+ jogadores, mapa de batalha, 1v1, split-screen, clube, notícias, eventos, ranking, sync de loja.
 
 **JOGAR (fechado):** opção **A** — abre o **mapa do mundo**; o jogador escolhe a fase (ou boss se desbloqueado).  
 Não entra direto na fase a partir do hub.
@@ -325,13 +327,15 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 - PC/editor: check não bate na rede.
 - Fluxo de publicação: `docs/AUTO-UPDATE.md`
 
-### Amigos / LAN 2P (2026-09-10)
+### Amigos / sala 2P (2026-09-10, casa↔casa 2026-09-10)
 
 - Direita do hub = **Amigos** (lista + sala). Clube / notícias / eventos continuam fora.
-- Mesmo Wi-Fi, 2 jogadores. Host escolhe a fase no mapa. JOGAR não pula o mapa.
+- 2 jogadores. Wi-Fi da casa **ou** casa↔casa com o **PC do Matheus ligado** (campo Computador da sala). Host escolhe a fase no mapa. JOGAR não pula o mapa.
+- Beacon primeiro; senão o PC. PC desligado: o jogo abre; Criar/Entrar avisa em PT. Boot **não** fala “Conectando-se…”.
+- Toque no **nome** = chamar se o PC vir o nick. O **x** apaga. Código de 6 continua (Zap).
 - Moedas da run = pote do grupo; no clear os dois bankam no save local. Morte de qualquer um = wipe.
-- Loading/boot **não** falam “Conectando-se…”. Textos de sala: “Criar sala”, “Entrar”, “Procurando na rede…”, “Amigo entrou”.
-- Sem persistir IP. Sem conta na nuvem.
+- Textos de sala: “Criar sala”, “Entrar”, “Procurando na rede…”, “Procurando o amigo…”, “Amigo entrou”, “O computador da sala está desligado”.
+- Sem persistir IP. Sem Firebase / Play Games / Hostinger. `max_clients = 1`. Sem coop 4, mapa Brawl, 1v1.
 
 ### Ainda pos-MVP
 
@@ -352,3 +356,4 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-10 | Hub centro = personagem atual (não sempre Tanjiro). Elenco 15 com Nezuko playtest (unlock livre, kit = stats do Tanjiro). |
 | 2026-09-10 | Loja `[50, 200, 420]`; HP +15; Dano +3 com ripple de skill/ult; kits com números explícitos. Upgrades globais. |
 | 2026-09-10 | Amigos no hub + sala LAN 2P (ENet + código 6 + beacon UDP). Sem nuvem. |
+| 2026-09-10 | Casa↔casa: PC do meio (3a) + chamar pelo nome. LAN da onda 2 fica. Sem Firebase/Play/Hostinger. |

@@ -1,41 +1,62 @@
-# 12 — LAN coop (2 jogadores, mesmo Wi-Fi)
+# 12 — Coop 2P: LAN **ou** casa↔casa
 
-Fan game sideload. **Sem nuvem, Firebase, Play Games, relay ou NAT pela internet.**
+Fan game sideload. **Sem Firebase, sem Play Games, sem Hostinger, sem conta Google.**  
+2 jogadores. `max_clients = 1`. Host escolhe a fase no **mapa**. JOGAR solo **não** muda.
 
 ## Portas
 
 | O quê | Porta | Proto |
 |-------|-------|--------|
 | Jogo (ENet) | **17777** | UDP |
-| Beacon (achar o host) | **17778** | UDP broadcast |
+| Beacon (achar o host no Wi-Fi) | **17778** | UDP broadcast |
+| Computador da sala (pedido) | **17779** | UDP JSON |
+| Computador da sala (relay ENet) | **17780** | UDP (porta do pedido + 1) |
 
-`max_clients = 1` (host + 1 guest). `proto = 1`.
+`proto = 1`. Handshake também manda `version_code`.
 
-## Como o amigo acha o host
+## Ordem de join (não inverter)
 
-1. Host: `ENet.create_server(17777, max=1)` e gera código de **6** no charset `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (sem 0/O/I/1).
-2. Enquanto a sala está aberta: beacon ~2 Hz, JSON ASCII < 512 B:
+1. **Beacon Wi-Fi** (~2,5 s). Se achar, conecta no IP do pacote. LAN da onda 2 **não some**.
+2. Se não achar e o campo **Computador da sala** estiver preenchido: pergunta ao PC (código de 6 → caminho). O guest entra no **relay** do PC (`host:porta+1`); o PC carrega o ENet até o celular anfitrião.
+3. Se o PC estiver desligado: o jogo **já abriu**; Criar/Entrar avisa em PT (“O computador da sala está desligado”). Boot **nunca** “Conectando-se…”.
+4. Fallback QA: “IP do anfitrião” (`127.0.0.1` no PC).
 
+Campo vazio = **só LAN**. Playtest: colar `IP_DO_PC:17779` (ou hostname).
+
+## Computador da sala (saída 3a)
+
+Serviço fino no **PC do Matheus**, ligado na hora do playtest:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/ligar_computador_da_sala.ps1
 ```
-magic=HASHIRA, proto=1, code, port=17777, name (≤14, sanitizado), version_code
-```
 
-3. Guest escuta 17778, filtra pelo código, conecta ENet no IP **do pacote** (o código **não** é o IPv4).
-4. Handshake: `proto` + `version_code` (`AutoUpdater.get_local_version_code()`). APK diferente → texto em PT, volta ao hub.
+- Acha o código de 6 → IP/porta do host (o IP vem do datagrama, **não** do JSON do celular).
+- Se o NAT da operadora bloquear o caminho direto, o **mesmo** PC relaya o UDP do ENet.
+- Nick + “está numa sala / não está”. Sem e-mail, telefone, Google.
+- Desligou o PC: casa↔casa para; o Wi-Fi da sala continua.
 
-**Fallback IP:** se ~2,5 s sem beacon, o painel mostra “IP do anfitrião”. `127.0.0.1` é o caminho de **QA no PC** (broadcast de loopback costuma falhar).
+Não é nuvem de produto. Não abre porta no roteador da família como caminho principal (só desespero, fora desta frente).
 
-**Não persistir IP** no `user://save.json` (fica velho no DHCP + PII). Lista `friends` = `{name, added_unix}` só.
+## Código de 6 e chamar
+
+Charset `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (sem 0/O/I/1). Zap ainda vale.
+
+Toque no **nome** da lista (não o **x**): se o PC vir o nick online, manda o chamado. Offline: “O amigo não está aí agora”. Sem o PC: “Cole o computador da sala para chamar. Ou mande o código.”
+
+## Save
+
+`friends` = `{name, added_unix}` só. **Sem IP** (nem o do computador da sala). O endereço do PC vive no autoload da sessão, não no `user://save.json`.
 
 ## Quem simula
 
-Host é a verdade: ondas, hitbox, clear, morte. Guest manda `InputFrame` (~20 Hz: axis + bitmask). Host devolve `PlayerSnap` ×2. Onis: só o host roda AI; spawn via RPC; guest instancia sem AI.
+Host no celular é a verdade (ondas, hitbox, clear, morte). Guest manda `InputFrame`. O PC do meio **não** simula combate — só apresenta e, se preciso, carrega pacotes.
 
-Desconexão: host cai → guest hub. Guest cai → host segue solo (o corpo do amigo some; onis não caçam fantasma).
+Desconexão: host cai → guest hub. Guest cai → host segue solo.
 
 ## Permissões Android
 
-Já tinha `INTERNET` (OTA). Esta frente liga:
+Já tinha `INTERNET` (OTA). Continua:
 
 - `ACCESS_NETWORK_STATE`
 - `ACCESS_WIFI_STATE`
@@ -43,21 +64,19 @@ Já tinha `INTERNET` (OTA). Esta frente liga:
 
 **Não** location / contacts / bluetooth.
 
-Se o Wi-Fi tiver “isolamento de estação”, o beacon não chega. Texto na UI: mesmo Wi-Fi, sem convidado isolado.
+## Duas instâncias no PC (QA)
 
-## Duas instâncias no PC
-
-1. Abra duas cópias do editor **ou** duas janelas Play (projetos / `--path` distintos se precisar).
-2. Host: Criar sala.
-3. Guest: Entrar + IP `127.0.0.1` (o beacon em loopback quase nunca funciona).
-4. Host JOGAR → mapa → fase. Os dois devem aparecer em `w1_01`.
+1. Ligar `tools/ligar_computador_da_sala.ps1`.
+2. Duas cópias Play. Host: Criar sala. Guest: campo `127.0.0.1:17779` + código (beacon de loopback costuma falhar; o PC cobre).
+3. Host JOGAR → mapa → fase.
 
 ## Autoload
 
-`LanSession` (`scripts/autoload/lan_session.gd`). Solo: `multiplayer_peer` nulo depois de `close_session()`. `close_session` no fechar a janela, sair da sala, e ao voltar splash.
+`LanSession` (`scripts/autoload/lan_session.gd`) + `SalaMeioClient` (`scripts/net/sala_meio_client.gd`).  
+Combate **não** mora no `Game`. `hub.gd` **não** lotar — o campo e o toque no nome ficam no `FriendsPanel`.
 
-Combate **não** mora no `Game`. Save `SAVE_VERSION` continua **1**; chave `friends` é aditiva.
+`close_session` no fechar a janela, sair da sala, e ao voltar splash. **Não** apaga o texto do computador da sala (autoload).
 
 ## JOGAR / mapa
 
-Solo intocado. Com 2 na sala: só o host navega o mapa. Guest no hub: “O anfitrião escolhe a fase”. `rpc_load_stage` **depois** o host também entra na cena.
+Solo intocado. Com 2 na sala: só o host navega o mapa. Guest no hub: “O anfitrião escolhe a fase”.
