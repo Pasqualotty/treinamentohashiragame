@@ -68,6 +68,7 @@ const ANIM_IDLE: StringName = &"idle"
 const ANIM_RUN: StringName = &"run"
 const ANIM_ATTACK: StringName = &"attack"
 const ANIM_HURT: StringName = &"hurt"
+const ANIM_DASH: StringName = &"dash"
 
 ## Multi-frame combat (chroma limpo) — paths sob assets/characters/player/combat/
 const IDLE_FRAME_PATHS: Array[String] = [
@@ -958,15 +959,20 @@ func _setup_sprite_frames() -> void:
 	var run_paths: Array[String] = RUN_FRAME_PATHS
 	var attack_paths: Array[String] = ATTACK_FRAME_PATHS
 	var hurt_paths: Array[String] = HURT_FRAME_PATHS
+	var dash_paths: Array[String] = []
 	if def != null:
 		idle_paths = def.combat_anim_paths("idle_side", IDLE_FRAME_PATHS)
 		run_paths = def.combat_anim_paths("run", RUN_FRAME_PATHS)
 		attack_paths = def.combat_anim_paths("attack", ATTACK_FRAME_PATHS)
 		hurt_paths = def.combat_anim_paths("hurt", HURT_FRAME_PATHS)
+		var empty_dash: Array[String] = []
+		dash_paths = def.combat_anim_paths("dash", empty_dash)
 	_add_anim_from_paths(frames, ANIM_IDLE, idle_paths, 11.0, true)
 	_add_anim_from_paths(frames, ANIM_RUN, run_paths, 14.0, true)
 	_add_anim_from_paths(frames, ANIM_ATTACK, attack_paths, 12.0, false)
 	_add_anim_from_paths(frames, ANIM_HURT, hurt_paths, 1.0, false)
+	if dash_paths.size() >= 1:
+		_add_anim_from_paths(frames, ANIM_DASH, dash_paths, 16.0, false)
 	sprite.sprite_frames = frames
 	sprite.centered = true
 	# Escala por altura da primeira textura disponível (pés no chão via position.y).
@@ -1005,7 +1011,7 @@ func _add_anim_from_paths(
 
 
 func _first_texture(frames: SpriteFrames) -> Texture2D:
-	for anim: StringName in [ANIM_IDLE, ANIM_RUN, ANIM_ATTACK, ANIM_HURT]:
+	for anim: StringName in [ANIM_IDLE, ANIM_RUN, ANIM_ATTACK, ANIM_HURT, ANIM_DASH]:
 		if frames.has_animation(anim) and frames.get_frame_count(anim) > 0:
 			return frames.get_frame_texture(anim, 0)
 	return null
@@ -1018,7 +1024,15 @@ func _sync_sprite_to_state() -> void:
 	if _flash_left <= 0.0 and _state != State.DEAD:
 		sprite.modulate = _base_modulate
 	match _state:
-		State.RUN, State.DASH:
+		State.DASH:
+			if (
+				sprite.sprite_frames.has_animation(ANIM_DASH)
+				and sprite.sprite_frames.get_frame_count(ANIM_DASH) >= 1
+			):
+				_play_anim(ANIM_DASH)
+			else:
+				_play_anim(ANIM_RUN)
+		State.RUN:
 			_play_anim(ANIM_RUN)
 		State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE:
 			# Ataque: controlamos frame por fase de hitbox (não auto-play solto).

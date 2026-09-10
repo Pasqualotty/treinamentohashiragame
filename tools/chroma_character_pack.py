@@ -56,7 +56,7 @@ def assert_png(path: Path) -> None:
         raise SystemExit(f"not a real PNG: {path} header={head.hex()}")
 
 
-def chroma_key(im: Image.Image) -> Image.Image:
+def chroma_key(im: Image.Image, key_black: bool = False) -> Image.Image:
     arr = np.array(im.convert("RGBA"))
     r = arr[:, :, 0].astype(np.int16)
     g = arr[:, :, 1].astype(np.int16)
@@ -65,11 +65,14 @@ def chroma_key(im: Image.Image) -> Image.Image:
     mag = (r > 180) & (b > 180) & (g < 130)
     # Imagine desta onda: rosa quente (B às vezes < 180)
     hot_pink = (r > 200) & (g < 45) & (b > 90)
-    black = (r < 18) & (g < 18) & (b < 18)
     mask2 = (r > 150) & (b > 150) & (g < 160)
     dominate = (r + b) > (g * 2 + 40)
+    punch = mag | hot_pink | (mask2 & dominate)
+    if key_black:
+        black = (r < 18) & (g < 18) & (b < 18)
+        punch = punch | black
     alpha = arr[:, :, 3].copy()
-    alpha[mag | hot_pink | black | (mask2 & dominate)] = 0
+    alpha[punch] = 0
     arr[:, :, 3] = alpha
     return Image.fromarray(arr)
 
@@ -101,13 +104,22 @@ def _fit(im: Image.Image, size: tuple[int, int], feet_bottom: bool) -> Image.Ima
     return canvas
 
 
-def normalize(im: Image.Image, kind: str) -> Image.Image:
-    keyed = chroma_key(im)
+def normalize(
+    im: Image.Image,
+    kind: str,
+    *,
+    flip: bool = False,
+    key_black: bool = False,
+) -> Image.Image:
+    keyed = chroma_key(im, key_black=key_black)
+    # Default NÃO flipa. Onda 1 flipava todo combate e a 2ª passagem
+    # inverte Nezuko run (já-esquerda). Flip só por arquivo, se o frame
+    # NOVO nasceu olhando direita.
+    if flip:
+        keyed = keyed.transpose(Image.FLIP_LEFT_RIGHT)
     if kind == "hub":
         return _fit(keyed, HUB_SIZE, feet_bottom=True)
     if kind == "combat":
-        # player.gd: flip_h quando facing > 0. Arte canônica olha pra ESQUERDA.
-        keyed = keyed.transpose(Image.FLIP_LEFT_RIGHT)
         return _fit(keyed, COMBAT_SIZE, feet_bottom=True)
     return _fit(keyed, PORTRAIT_SIZE, feet_bottom=False)
 
@@ -125,19 +137,27 @@ def make_tanjiro_portrait() -> Path:
     return dst
 
 
-def process_one(src: Path, dest: Path, kind: str) -> None:
+def process_one(
+    src: Path,
+    dest: Path,
+    kind: str,
+    *,
+    flip: bool = False,
+    key_black: bool = False,
+    review_root: str = "assets/pack_anim_quarteto",
+) -> None:
     im = Image.open(src).convert("RGBA")
-    out = normalize(im, kind)
+    out = normalize(im, kind, flip=flip, key_black=key_black)
     dest.parent.mkdir(parents=True, exist_ok=True)
     out.save(dest, "PNG")
     assert_png(dest)
-    # cópia de review
-    review = ROOT / "assets/pack_playtest_trio" / dest.relative_to(ROOT / "assets/characters")
+    review = ROOT / review_root / dest.relative_to(ROOT / "assets/characters")
     review.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(dest, review)
 
 
-def main() -> None:
+def _process_v1_pack() -> None:
+    """Onda 1 — NÃO rerodar nos 00 (fliparia Nezuko run de novo)."""
     missing: list[str] = []
     done = 0
     for src_name, rel, kind in PACK_MAP:
@@ -146,7 +166,15 @@ def main() -> None:
             missing.append(src_name)
             continue
         dest = ROOT / rel
-        process_one(src, dest, kind)
+        # key_black+flip=True era o pipeline v1. Explicit — never the default.
+        process_one(
+            src,
+            dest,
+            kind,
+            flip=(kind == "combat"),
+            key_black=True,
+            review_root="assets/pack_playtest_trio",
+        )
         print("OK", rel, dest.stat().st_size)
         done += 1
     portrait = make_tanjiro_portrait()
@@ -158,6 +186,49 @@ def main() -> None:
         print("MISSING", len(missing), missing)
         raise SystemExit(2)
     print(f"processed {done} staged + tanjiro portrait")
+
+
+def main() -> None:
+    import argparse
+
+    p = argparse.ArgumentParser(
+        description="PNG real + chroma + canvas. Default NÃO flipa e NÃO reprocessa 00."
+    )
+    p.add_argument("--src", type=Path, help="arquivo gerado (Imagine/JPEG ok)")
+    p.add_argument("--dest", type=Path, help="destino relativo ao ROOT ou absoluto")
+    p.add_argument("--kind", choices=("hub", "combat", "portrait"))
+    p.add_argument(
+        "--flip",
+        action="store_true",
+        default=False,
+        help="FLIP_LEFT_RIGHT só neste arquivo (frame novo que nasceu à direita)",
+    )
+    p.add_argument(
+        "--key-black",
+        action="store_true",
+        default=False,
+        help="também chaveia RGB quase-preto (pipeline v1; perigoso em cabelo)",
+    )
+    p.add_argument(
+        "--reprocess-v1",
+        action="store_true",
+        help="RERODA o PACK_MAP da onda 1 (00s). Perigoso — não usar nesta frente.",
+    )
+    args = p.parse_args()
+    if args.reprocess_v1:
+        _process_v1_pack()
+        return
+    if args.src is None or args.dest is None or args.kind is None:
+        p.error("use --src --dest --kind (flip=false default). Sem --reprocess-v1.")
+    dest = args.dest if args.dest.is_absolute() else ROOT / args.dest
+    process_one(
+        args.src,
+        dest,
+        args.kind,
+        flip=args.flip,
+        key_black=args.key_black,
+    )
+    print("OK", dest, dest.stat().st_size, "flip=", args.flip)
 
 
 if __name__ == "__main__":

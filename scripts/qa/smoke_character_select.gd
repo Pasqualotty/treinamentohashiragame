@@ -299,12 +299,24 @@ func _test_own_art() -> void:
 		if not def.has_combat_art():
 			_fail("%s sem combat sheets" % character_id)
 			return
+		var combat_root: String = def.combat_frames_dir.rstrip("/")
 		for sub: String in ["idle_side", "run", "attack", "hurt"]:
-			var frame_path: String = "%s/%s/00.png" % [def.combat_frames_dir.rstrip("/"), sub]
+			var frame_path: String = "%s/%s/00.png" % [combat_root, sub]
 			if not FileAccess.file_exists(frame_path):
 				_fail("%s sem %s" % [character_id, frame_path])
 				return
-	_pass("quarteto tem portrait/hub/combat no disco")
+		var min_subs: PackedStringArray = ["idle_side", "run", "attack", "hurt", "dash"]
+		var min_counts: PackedInt32Array = [7, 4, 3, 1, 3]
+		for i: int in range(min_subs.size()):
+			var sub: String = min_subs[i]
+			var listed: Array[String] = CharacterDef.list_png_sequence("%s/%s" % [combat_root, sub])
+			if listed.size() < min_counts[i]:
+				_fail(
+					"%s %s count=%d want>=%d"
+					% [character_id, sub, listed.size(), min_counts[i]]
+				)
+				return
+	_pass("quarteto tem portrait/hub/combat + counts idle7/run4/atk3/hurt1/dash3")
 
 	var prev_id: String = str(_game.get("current_character_id"))
 	var packed: PackedScene = load(PLAYER) as PackedScene
@@ -344,9 +356,29 @@ func _test_own_art() -> void:
 			_fail("%s modulate != WHITE (%s)" % [character_id, str(spr.modulate)])
 			player.queue_free()
 			return
+		if spr.sprite_frames.get_frame_count(&"idle") < 7:
+			_fail("%s idle frames=%d" % [character_id, spr.sprite_frames.get_frame_count(&"idle")])
+			player.queue_free()
+			return
+		if spr.sprite_frames.get_frame_count(&"run") < 4:
+			_fail("%s run frames=%d" % [character_id, spr.sprite_frames.get_frame_count(&"run")])
+			player.queue_free()
+			return
+		if spr.sprite_frames.get_frame_count(&"attack") < 3:
+			_fail("%s attack frames=%d" % [character_id, spr.sprite_frames.get_frame_count(&"attack")])
+			player.queue_free()
+			return
+		if not spr.sprite_frames.has_animation(&"dash"):
+			_fail("%s sem anim dash" % character_id)
+			player.queue_free()
+			return
+		if spr.sprite_frames.get_frame_count(&"dash") < 3:
+			_fail("%s dash frames=%d" % [character_id, spr.sprite_frames.get_frame_count(&"dash")])
+			player.queue_free()
+			return
 		player.queue_free()
 	_game.set("current_character_id", prev_id)
-	_pass("player carrega path do id + WHITE")
+	_pass("player carrega path do id + WHITE + counts")
 
 
 func _test_scenes(router: Node) -> void:

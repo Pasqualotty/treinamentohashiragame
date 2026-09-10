@@ -39,3 +39,6 @@ desktop.ini
 
 export/*.idsig
 
+# Staging Imagine (JPEG mentido) — só Pillow PNG entra em characters/
+assets/_staging_anim_quarteto/
+
