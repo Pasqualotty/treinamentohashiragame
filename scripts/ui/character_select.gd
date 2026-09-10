@@ -1,5 +1,14 @@
 extends Control
 ## Tela PERSONAGENS — 15 do catálogo. Locked recusa; unlocked grava o id atual.
+## Layout 1280×720: 3 colunas, wrap por palavra, botão de escolha numa linha.
+
+const TOUCH_MIN := 48.0
+const CARD_MIN_H := 220.0
+const KIT_FONT := 12
+const CHOOSE_FONT := 16
+const LOCK_FONT := 13
+
+const _UiFont := preload("res://scripts/ui/ui_font.gd")
 
 @onready var grid: GridContainer = %Grid
 @onready var status_label: Label = %StatusLabel
@@ -9,9 +18,31 @@ var _navigating: bool = false
 
 
 func _ready() -> void:
+	_UiFont.ensure_theme_space()
+	_lock_header_wrap()
 	_rebuild()
 	if not SceneRouter.navigation_failed.is_connected(_on_navigation_failed):
 		SceneRouter.navigation_failed.connect(_on_navigation_failed)
+
+
+func _lock_header_wrap() -> void:
+	grid.columns = 3
+	var title := get_node_or_null("TopBar/Title") as Label
+	if title != null:
+		title.autowrap_mode = TextServer.AUTOWRAP_OFF
+		title.clip_text = false
+	current_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	current_label.clip_text = false
+	current_label.size_flags_horizontal = Control.SIZE_SHRINK_END
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status_label.clip_text = false
+	var back := get_node_or_null("BackButton") as Button
+	if back != null:
+		back.autowrap_mode = TextServer.AUTOWRAP_OFF
+		back.clip_text = false
+		back.custom_minimum_size = Vector2(168, TOUCH_MIN)
+		back.add_theme_font_size_override("font_size", 18)
+		_apply_slim_button_styles(back)
 
 
 func _rebuild() -> void:
@@ -32,7 +63,7 @@ func _make_card(def: CharacterDef) -> Control:
 	var selected: bool = def.id == Game.current_character_id
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 176)
+	panel.custom_minimum_size = Vector2(0, CARD_MIN_H)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style := StyleBoxFlat.new()
 	style.bg_color = Palette.with_alpha(Palette.PANEL, 0.94)
@@ -46,7 +77,7 @@ func _make_card(def: CharacterDef) -> Control:
 	panel.add_theme_stylebox_override("panel", style)
 
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 4)
+	col.add_theme_constant_override("separation", 6)
 	panel.add_child(col)
 
 	if def.has_portrait_art():
@@ -67,6 +98,8 @@ func _make_card(def: CharacterDef) -> Control:
 	var name_lbl := Label.new()
 	name_lbl.text = def.display_name
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
+	name_lbl.clip_text = false
 	name_lbl.add_theme_font_size_override("font_size", 18)
 	name_lbl.add_theme_color_override("font_color", Palette.CREAM)
 	col.add_child(name_lbl)
@@ -75,21 +108,49 @@ func _make_card(def: CharacterDef) -> Control:
 	kit_lbl.text = "%s · %s" % [def.skill_1_name, def.skill_2_name]
 	kit_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	kit_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	kit_lbl.add_theme_font_size_override("font_size", 12)
+	kit_lbl.clip_text = false
+	kit_lbl.max_lines_visible = 2
+	kit_lbl.add_theme_font_size_override("font_size", KIT_FONT)
 	kit_lbl.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.75))
 	col.add_child(kit_lbl)
 
 	var btn := Button.new()
 	btn.focus_mode = Control.FOCUS_ALL
+	btn.custom_minimum_size = Vector2(0, TOUCH_MIN)
+	btn.clip_text = false
+	btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_apply_slim_button_styles(btn)
 	if unlocked:
 		btn.text = "Selecionado" if selected else "Escolher"
 		btn.disabled = selected
+		btn.autowrap_mode = TextServer.AUTOWRAP_OFF
+		btn.add_theme_font_size_override("font_size", CHOOSE_FONT)
 		btn.pressed.connect(_on_choose.bind(def.id))
 	else:
 		btn.text = "🔒 %s" % def.lock_label()
 		btn.disabled = true
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		btn.add_theme_font_size_override("font_size", LOCK_FONT)
 	col.add_child(btn)
 	return panel
+
+
+func _apply_slim_button_styles(btn: Button) -> void:
+	var theme: Theme = ThemeDB.get_project_theme()
+	for kind in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var src: StyleBox = btn.get_theme_stylebox(kind)
+		if src == null and theme != null:
+			src = theme.get_stylebox(kind, "Button")
+		if src == null:
+			continue
+		var flat := src.duplicate() as StyleBoxFlat
+		if flat == null:
+			continue
+		flat.content_margin_left = 8
+		flat.content_margin_right = 8
+		flat.content_margin_top = 8
+		flat.content_margin_bottom = 8
+		btn.add_theme_stylebox_override(kind, flat)
 
 
 func _make_swatch(def: CharacterDef) -> ColorRect:

@@ -40,13 +40,18 @@ theme_override_colors/font_color = Color(0.98, 0.92, 0.75, 1)
 theme_override_fonts/font = ExtResource("2_display")
 theme_override_font_sizes/font_size = 28
 text = "Personagens"
+autowrap_mode = 0
+clip_text = false
 
 [node name="CurrentLabel" type="Label" parent="TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 8
 theme_override_colors/font_color = Color(1, 0.9, 0.45, 1)
 theme_override_font_sizes/font_size = 20
 text = "Em campo: Tanjiro"
+autowrap_mode = 0
+clip_text = false
 
 [node name="StatusLabel" type="Label" parent="."]
 unique_name_in_owner = true
@@ -56,11 +61,13 @@ anchor_right = 1.0
 offset_left = 24.0
 offset_top = 68.0
 offset_right = -24.0
-offset_bottom = 96.0
+offset_bottom = 100.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.75, 0.8, 0.7, 1)
 theme_override_font_sizes/font_size = 15
 text = "Toque num caçador liberado para levá-lo à fase."
+autowrap_mode = 1
+clip_text = false
 
 [node name="Scroll" type="ScrollContainer" parent="."]
 layout_mode = 1
@@ -68,7 +75,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 24.0
-offset_top = 104.0
+offset_top = 108.0
 offset_right = -24.0
 offset_bottom = -88.0
 grow_horizontal = 2
@@ -80,9 +87,9 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 12
-columns = 4
+theme_override_constants/h_separation = 14
+theme_override_constants/v_separation = 14
+columns = 3
 
 [node name="BackButton" type="Button" parent="."]
 layout_mode = 1
@@ -90,10 +97,14 @@ anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 24.0
-offset_top = -64.0
-offset_right = 160.0
-offset_bottom = -24.0
+offset_top = -72.0
+offset_right = 220.0
+offset_bottom = -20.0
 grow_vertical = 0
+custom_minimum_size = Vector2(168, 48)
+theme_override_font_sizes/font_size = 18
 text = "← Hub"
+autowrap_mode = 0
+clip_text = false
 
 [connection signal="pressed" from="BackButton" to="." method="_on_back_pressed"]
