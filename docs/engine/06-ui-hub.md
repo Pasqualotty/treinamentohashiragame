@@ -15,7 +15,7 @@
 
 - Showcase lê o `CharacterDef` atual (`hub_frames_dir` / 00 + 03).  
 - `character_changed` **recarrega** a textura (não só o nome).  
-- Pack próprio → `modulate = WHITE`. Sem pack → fallback Tanjiro + `accent`.  
+- Pack próprio → `modulate = WHITE`. Os **15** ids do catálogo têm pack; o ramo sem pack (Tanjiro + `accent`) só existe se um path quebrar no disco.  
 - **Sem** fundo magenta (PNG com alpha).
 
 ## Botões temáticos

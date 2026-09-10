@@ -35,8 +35,8 @@
 ## Pipeline
 
 1. **Uma base nova por caçador** (`image_gen`). Tanjiro: `tanjiro_idle_front_base` só para poses **dele**.  
-2. Trio (Nezuko / Zenitsu / Inosuke): **nunca** `image_edit` da base do Tanjiro.  
-3. Poses = `image_edit` da base daquele id. Inosuke = duas lâminas de propósito; Nezuko = sem katana.  
+2. Trio (Nezuko / Zenitsu / Inosuke) **e** os 11 restantes (`kanao`…`muzan`): **nunca** `image_edit` da base do Tanjiro.  
+3. Poses = `image_edit` da base daquele id. Inosuke = duas lâminas de propósito; Nezuko = sem katana. Uzui = duas lâminas; Gyomei = machado+flail (sem katana); Obanai = cobra; Yoriichi ≠ Tanjiro de cabelo longo; Muzan sem gore.  
 4. Onis / tiles / UI podem ser gen novos, mesma frase de estilo.  
 5. Import Godot: Filter **Off**, Mipmaps **Off**.  
 6. JPEG do Imagine → PNG real (`89 50 4E 47`) + chroma antes de `res://`.

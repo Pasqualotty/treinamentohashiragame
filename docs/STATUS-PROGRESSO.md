@@ -104,7 +104,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | Sheets AAA multi-frame (run/atk/ult mais fluidos) | MVP usa sheets legíveis; upgrade de arte depois |
 | BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
 | UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
-| PERSONAGENS no hub | ✅ tela select real (15; portrait no quarteto; locked recusa; save do id) |
+| PERSONAGENS no hub | ✅ tela select real (15; portrait nos 15; locked recusa; save do id) |
 | Missões / XP / social no hub | GDD: fase 2+ / fora offline |
 
 ### 3) Conteúdo em escala (Fase F)
@@ -112,7 +112,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 - ✅ Elenco 15 (Tanjiro + Nezuko + trio + Hashiras + Yoriichi + Muzan) — um player, 15 `CharacterDef`
 - ✅ Mundos W2–W5 no mapa
 - Arte final / BGM por mundo (hoje placeholder recolorido)
-- Arte própria por caçador: **onda 4** (Tanjiro fiel + Nezuko / Zenitsu / Inosuke). Os outros 10 ainda modulate em cima dos frames do Tanjiro.
+- Arte própria por caçador: **15/15** com pack (hub + portrait + combate). Residual de silhueta Tanjiro + `accent` = **0**. Os 11 que faltavam (`kanao`…`muzan`) entram na frente `elenco-restante`.
 
 ### 4) Release “sério” (Fase G)
 

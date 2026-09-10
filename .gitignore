@@ -37,5 +37,8 @@ desktop.ini
 .claude/worktrees/
 .claude/settings.local.json
 
+# Staging Imagine (JPEG/.png cru) — só entra o PNG chroma em assets/
+tools/_staging_elenco/
+
 export/*.idsig
 

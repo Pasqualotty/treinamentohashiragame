@@ -32,8 +32,8 @@
 
 ### Cara dos caçadores (3 linhas)
 
-1. PERSONAGENS → escolher **Nezuko** (livre) → hub e fase com cara/roupa dela, sem Tanjiro rosa.
-2. **Zenitsu** só depois do chefe do Mundo 1; **Inosuke** depois do chefe do Mundo 2. Sem esses clears, o card locked já mostra portrait (não swatch).
+1. PERSONAGENS → **15 cards com cara** (não retângulo de cor). Escolher **Nezuko** (livre) → hub e fase com cara/roupa dela, sem Tanjiro rosa.
+2. **Zenitsu** só depois do chefe do Mundo 1; **Inosuke** depois do chefe do Mundo 2. Os outros 11 (Kanao…Muzan) continuam locked no save novo: toque recusa, mas o card já mostra portrait.
 3. Voltar pro **Tanjiro**: hub e fase voltam ao pack fiel (haori xadrez, sem wash amarelo).
 
 ---
