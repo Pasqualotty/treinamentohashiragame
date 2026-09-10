@@ -34,7 +34,17 @@ func _run() -> void:
 				ok = false
 				messages.append("esperava 4 upgrades, got %d" % ups.size())
 			else:
-				messages.append("catalog OK (%d upgrades)" % ups.size())
+				for item in ups:
+					if typeof(item) != TYPE_DICTIONARY:
+						ok = false
+						messages.append("upgrade do catálogo não é dict")
+						continue
+					var costs: Array = item.get("costs", [])
+					if costs.size() < 1 or int(costs[0]) != 50:
+						ok = false
+						messages.append("custo lv1 de %s != 50" % str(item.get("id", "?")))
+				if ok:
+					messages.append("catalog OK (%d upgrades, lv1=50)" % ups.size())
 
 	# Autoload Game (não usar identificador global em -s)
 	var game: Node = root.get_node_or_null("Game")
@@ -62,9 +72,9 @@ func _run() -> void:
 			elif int(game.call("get_upgrade_level", "max_hp")) != 1:
 				ok = false
 				messages.append("nível max_hp esperado 1")
-			elif int(game.get("coins_banked")) != 470:
+			elif int(game.get("coins_banked")) != 450:
 				ok = false
-				messages.append("coins após compra: %s (esp 470)" % str(game.get("coins_banked")))
+				messages.append("coins após compra: %s (esp 450)" % str(game.get("coins_banked")))
 			else:
 				messages.append("buy_upgrade + custo OK")
 
@@ -75,11 +85,29 @@ func _run() -> void:
 				messages.append("build_player_stats null")
 			else:
 				var max_hp: float = float(stats.get("max_hp"))
-				if max_hp < 109.9:
+				if max_hp < 114.9:
 					ok = false
 					messages.append("max_hp após upgrade: %s" % str(max_hp))
 				else:
 					messages.append("apply stats OK (max_hp=%.1f)" % max_hp)
+
+			var bought_atk: bool = bool(game.call("buy_upgrade", "attack"))
+			if not bought_atk:
+				ok = false
+				messages.append("buy_upgrade attack falhou com coins restantes")
+			else:
+				var atk_stats: Resource = game.call("build_player_stats") as Resource
+				if atk_stats == null:
+					ok = false
+					messages.append("build_player_stats após attack null")
+				else:
+					var s1: int = int(atk_stats.get("skill_1_damage"))
+					var ult: int = int(atk_stats.get("ultimate_damage"))
+					if s1 <= 14 or ult <= 32:
+						ok = false
+						messages.append("ripple Dano: s1=%d ult=%d (esp >14 e >32)" % [s1, ult])
+					else:
+						messages.append("ripple Dano OK (s1=%d ult=%d)" % [s1, ult])
 
 			game.call("save_game")
 			var save_path: String = str(game.call("get_save_path"))

@@ -7,6 +7,10 @@ const SAVE_VERSION := 1
 const UPGRADE_CATALOG_PATH := "res://resources/upgrades/catalog.json"
 const DEFAULT_PLAYER_STATS := "res://resources/player/player_stats.tres"
 const DASH_COOLDOWN_FLOOR := 0.35
+## Ripple do upgrade Dano: mesmo nível global sobe skills/ult (não só o básico).
+const ATTACK_SKILL_1_RIPPLE := 4
+const ATTACK_SKILL_2_RIPPLE := 3
+const ATTACK_ULTIMATE_RIPPLE := 6
 ## Limite do nome de cacador. Fonte unica: a tela de nome usa isto no LineEdit.
 const MAX_PLAYER_NAME_LEN := 14
 
@@ -315,6 +319,9 @@ func apply_upgrades_to_stats(base: PlayerStats) -> PlayerStats:
 				s.max_hp = maxf(1.0, s.max_hp + delta)
 			"attack_damage":
 				s.attack_damage = maxi(1, s.attack_damage + int(round(delta)))
+				s.skill_1_damage = maxi(1, s.skill_1_damage + ATTACK_SKILL_1_RIPPLE * level)
+				s.skill_2_damage = maxi(1, s.skill_2_damage + ATTACK_SKILL_2_RIPPLE * level)
+				s.ultimate_damage = maxi(1, s.ultimate_damage + ATTACK_ULTIMATE_RIPPLE * level)
 			"move_speed":
 				s.move_speed = maxf(40.0, s.move_speed + delta)
 			"dash_cooldown":
@@ -433,7 +440,7 @@ func _ensure_catalog() -> void:
 		def.stat_key = str(d.get("stat_key", ""))
 		def.value_per_level = float(d.get("value_per_level", 0.0))
 		def.costs = []
-		var costs_raw: Array = d.get("costs", [30, 60, 120])
+		var costs_raw: Array = d.get("costs", [50, 200, 420])
 		for c in costs_raw:
 			def.costs.append(int(c))
 		if def.id != "":
@@ -444,10 +451,10 @@ func _ensure_catalog() -> void:
 
 func _load_fallback_catalog() -> void:
 	var defs: Array[Dictionary] = [
-		{"id": "max_hp", "display_name": "Vida Maxima", "description": "+10 HP por nivel.", "stat_key": "max_hp", "value_per_level": 10.0},
-		{"id": "attack", "display_name": "Dano", "description": "+2 dano por nivel.", "stat_key": "attack_damage", "value_per_level": 2.0},
-		{"id": "speed", "display_name": "Velocidade", "description": "+20 velocidade por nivel.", "stat_key": "move_speed", "value_per_level": 20.0},
-		{"id": "dash_cd", "display_name": "Dash Rapido", "description": "-0,12 s dash CD por nivel.", "stat_key": "dash_cooldown", "value_per_level": -0.12},
+		{"id": "max_hp", "display_name": "Vida Maxima", "description": "+15 de HP maximo por nivel.", "stat_key": "max_hp", "value_per_level": 15.0},
+		{"id": "attack", "display_name": "Dano", "description": "+3 no basico; skills e ultimate tambem sobem.", "stat_key": "attack_damage", "value_per_level": 3.0},
+		{"id": "speed", "display_name": "Velocidade", "description": "+20 de velocidade de movimento por nivel.", "stat_key": "move_speed", "value_per_level": 20.0},
+		{"id": "dash_cd", "display_name": "Dash Rapido", "description": "-0,12 s no cooldown do dash por nivel.", "stat_key": "dash_cooldown", "value_per_level": -0.12},
 	]
 	for d in defs:
 		var def := UpgradeDef.new()
@@ -455,7 +462,7 @@ func _load_fallback_catalog() -> void:
 		def.display_name = str(d["display_name"])
 		def.description = str(d["description"])
 		def.max_level = 3
-		def.costs = [30, 60, 120]
+		def.costs = [50, 200, 420]
 		def.stat_key = str(d["stat_key"])
 		def.value_per_level = float(d["value_per_level"])
 		_catalog.append(def)
