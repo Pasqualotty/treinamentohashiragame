@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-10 (elenco 15 + feel hit/dash + oni aperta)  
+**Atualizado:** 2026-09-10 (elenco 15 + feel + oni aperta + loja/skills)  
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -138,7 +138,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 |------|-------------|
 | Skills Tanjiro | Corte em Arco / Investida / Respiração |
 | Elenco | `CharacterCatalog` 15 ids; save `unlocked_characters` + `current_character_id` |
-| Upgrades loja | HP, Dano, Velocidade, Dash CD |
+| Upgrades loja | HP +15 · Dano +3 (ripple s1/s2/ult) · Vel +20 · Dash −0,12 · custos 50/200/420 · **globais** |
 | Morte na fase | perde moedas da run (`lose_run_coins`) |
 | Upgrades | **globais** |
 | Elite / boss moedas | elite 20 / boss clear bank da run |
@@ -183,3 +183,4 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | 2026-08-07 | **Visual pass:** chroma moeda (sem magenta), botões lacados labeled, escala coin/player/oni |
 | 2026-08-07 | **Playtest gate:** e2e combat reforçado, `run_smokes.ps1`, PLAYTEST-SOBRINHO, seção premium wave |
 | 2026-09-10 | **Desafio oni:** fraco 48/7 + poise no swing; elite mais rápido; W2/W3 fase 1 deixam de clonar o tutorial |
+| 2026-09-10 | **Economia/skills:** loja `[50, 200, 420]`; Dano ripple nas skills/ult; kits com atk/s1/s2/ult/CD explícitos. Números canônicos em `GDD-DECISOES.md` §6/§9. |

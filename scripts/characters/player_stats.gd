@@ -53,8 +53,8 @@ extends Resource
 ## pro hit 1. Expira → combo volta a 0.
 @export var attack_combo_grace: float = 0.28
 
-## Hit 2: multiplicador sobre attack_damage (upgrades de loja continuam valendo
-## pro combo inteiro, já que escalam attack_damage).
+## Hit 2: multiplicador sobre attack_damage (upgrade Dano da loja escala o
+## básico e, no mesmo nível global, ripple em skill_1 / skill_2 / ultimate).
 @export var attack_hit2_damage_mult: float = 1.2
 @export var attack_hit2_knockback: Vector2 = Vector2(210.0, -90.0)
 @export var attack_hit2_startup: float = 0.055

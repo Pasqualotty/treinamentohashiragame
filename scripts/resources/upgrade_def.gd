@@ -6,8 +6,8 @@ extends Resource
 @export var display_name: String = ""
 @export var description: String = ""
 @export var max_level: int = 3
-## Custo por nível a comprar (índice 0 = 1º nível). Ex.: [30, 60, 120]
-@export var costs: Array[int] = [30, 60, 120]
+## Custo por nível a comprar (índice 0 = 1º nível). Ex.: [50, 200, 420]
+@export var costs: Array[int] = [50, 200, 420]
 ## Chave em PlayerStats: max_hp | attack_damage | move_speed | dash_cooldown
 @export var stat_key: String = ""
 @export var value_per_level: float = 0.0

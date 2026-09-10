@@ -10,3 +10,7 @@ max_hp = 100
 attack_damage = 13
 attack_recovery = 0.07
 skill_1_damage = 18
+skill_1_cooldown = 4.0
+skill_2_damage = 16
+skill_2_cooldown = 5.0
+ultimate_damage = 42

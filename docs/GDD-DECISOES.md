@@ -241,7 +241,19 @@ HUD: barra de respiração visível; estado “cheia” com glow / botão ultima
 
 Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avisar — vira farm fácil.
 
-Valor oni fraco: **10** (checklist) — confirmar no balance.
+**Drops atuais** (pickup no chão; ao limpar a fase o bank da run vai pro save):
+
+| Fonte | Moedas no pickup |
+|-------|------------------|
+| Oni fraco | **10** |
+| Elite | **20** |
+| Ranged | **12** |
+| Charger | **16** |
+| Bosses | **70–120** (fogo 70 · dual 75 · W1 80 · castelo 85 · final 120) **além** do bank da run no clear |
+
+**Loja (4 upgrades globais, 3 níveis, custos iguais nos 4):** `50 / 200 / 420` → 720 por stat, **2880** no máximo. W1 sozinho não esgota a loja.
+
+**Poder por compra:** HP **+15** · Dano **+3** no básico **e** ripple nas skills (s1 **+4** / s2 **+3** / ult **+6** por nível) · velocidade **+20** · dash CD **−0,12 s** (chão 0,35). Sem 5º upgrade, XP, mana ou custo de skill em moeda.
 
 ---
 
@@ -286,6 +298,13 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 - [x] JOGAR → **mapa do mundo**
 - [x] Elite ~20 moedas no pickup; boss = clear da run
 
+### Economia e skills (2026-09-10)
+
+- Custos da loja: **50 / 200 / 420** nos 4 upgrades (HP · Dano · Velocidade · Dash CD).
+- Upgrade **Dano** escala básico (+3) **e** skill 1 (+4), skill 2 (+3) e ultimate (+6) no mesmo nível.
+- Upgrades continuam **globais** — não por personagem e não resetam por mundo.
+- Kits de caçador declaram atk / s1 / s2 / ult / CDs no `PlayerStats` (não no `CharacterDef`).
+
 ### Auto-update (família, 2026-08-26)
 
 - Sem Play Store. Manifesto JSON remoto + APK no GitHub Releases.
@@ -313,3 +332,4 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 | 2026-08-03 | Playtest PC: splash → loading → hub → mapa stub OK; combate ainda não; ver STATUS-PROGRESSO |
 | 2026-09-01 | Mapa com 5 mundos (W1 Montanha → W5 Céu Vermelho). W2 tranca até `w1_boss`. Ondas dos mundos novos no StageDef. Placeholder de BG por tema. |
 | 2026-09-10 | Hub centro = personagem atual (não sempre Tanjiro). Elenco 15 com Nezuko playtest (unlock livre, kit = stats do Tanjiro). |
+| 2026-09-10 | Loja `[50, 200, 420]`; HP +15; Dano +3 com ripple de skill/ult; kits com números explícitos. Upgrades globais. |
