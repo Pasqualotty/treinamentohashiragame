@@ -5,6 +5,8 @@ extends Node2D
 const COMBAT_HUD_SCENE := preload("res://scenes/ui/combat_hud.tscn")
 const TOUCH_SCENE := preload("res://scenes/ui/combat_touch_controls.tscn")
 const WAVE_SCRIPT := preload("res://scripts/battle/wave_director.gd")
+const PLAYER_SCENE := preload("res://scenes/characters/player/player.tscn")
+const COOP_CAM_SCRIPT := preload("res://scripts/battle/coop_camera.gd")
 
 @export var stage_id: String = "w1_01"
 @export var reset_run_coins_on_start: bool = true
@@ -28,6 +30,9 @@ var _hud: CanvasLayer
 var _returning: bool = false
 var _waves_done: bool = false
 var _wave_director: Node
+var _player2: Node2D
+var _coop: bool = false
+var _local_pawn: Node2D
 
 
 func _ready() -> void:
@@ -46,9 +51,11 @@ func _ready() -> void:
 
 	_player = _find_player()
 	_goal = _find_goal()
+	_setup_coop_if_needed()
 	_setup_player_physics()
 	_wire_player_hits()
 	_wire_player_death()
+	_bind_lan_stage_signals()
 
 	if _goal and lock_goal_until_waves_done and use_waves:
 		_set_goal_locked(true)
@@ -65,11 +72,21 @@ func _ready() -> void:
 			var st: Variant = _player.get("stats")
 			if st != null and st.get("max_hp") != null:
 				max_hp = float(st.get("max_hp"))
+		if _local_pawn != null:
+			var lhp: Variant = _local_pawn.get("hp")
+			if lhp != null:
+				cur_hp = float(lhp)
+			var lst: Variant = _local_pawn.get("stats")
+			if lst != null and lst.get("max_hp") != null:
+				max_hp = float(lst.get("max_hp"))
 		if _hud.has_method("set_hp"):
 			_hud.call("set_hp", cur_hp, max_hp)
-		if _player != null and _player.has_signal("hp_changed"):
-			if not _player.is_connected("hp_changed", _on_player_hp_changed):
-				_player.connect("hp_changed", _on_player_hp_changed)
+		var hud_src: Node2D = _local_pawn if _local_pawn != null else _player
+		if hud_src != null and _hud.has_method("bind_local_pawn"):
+			_hud.call("bind_local_pawn", hud_src)
+		elif hud_src != null and hud_src.has_signal("hp_changed"):
+			if not hud_src.is_connected("hp_changed", _on_player_hp_changed):
+				hud_src.connect("hp_changed", _on_player_hp_changed)
 
 	if spawn_touch_controls:
 		add_child(TOUCH_SCENE.instantiate())
@@ -79,7 +96,10 @@ func _ready() -> void:
 	_build_stage_intro_hint()
 
 	if use_waves:
-		_start_waves()
+		if _coop and is_instance_valid(LanSession) and LanSession.is_guest():
+			_waves_done = false
+		else:
+			_start_waves()
 	else:
 		_waves_done = true
 		_wire_enemies()
@@ -109,8 +129,110 @@ func _setup_player_physics() -> void:
 		body.collision_layer = 2 # player
 		# Garante câmera ativa no play.
 		var cam := body.get_node_or_null("Camera2D") as Camera2D
-		if cam:
+		if cam and not _coop:
 			cam.make_current()
+
+
+func _coop_session() -> bool:
+	return is_instance_valid(LanSession) and LanSession.in_session() and LanSession.has_peer()
+
+
+func _setup_coop_if_needed() -> void:
+	_coop = _coop_session()
+	if not _coop:
+		_local_pawn = _player
+		return
+	LanSession.mark_entered_stage()
+	if _player != null:
+		_player.set("coop_slot", 0)
+		_player.set("is_local_pawn", LanSession.is_host())
+		_player.set("accept_local_input", LanSession.is_host())
+		_player.set("follow_host_snap", LanSession.is_guest())
+		if LanSession.is_guest() and _player.has_method("reload_character_kit"):
+			_player.call("reload_character_kit", LanSession.remote_character_id)
+		var cam := _player.get_node_or_null("Camera2D") as Camera2D
+		if cam:
+			cam.enabled = false
+		_spawn_player2()
+		_make_coop_camera(cam)
+	_local_pawn = _player if LanSession.is_host() else _player2
+	if _local_pawn != null:
+		_local_pawn.set("is_local_pawn", true)
+
+
+func _spawn_player2() -> void:
+	if _player == null:
+		return
+	var p2: Node = PLAYER_SCENE.instantiate()
+	p2.name = "Player2"
+	p2.set("coop_slot", 1)
+	p2.set("forced_character_id", LanSession.remote_character_id if LanSession.is_host() else Game.current_character_id)
+	p2.set("skip_local_upgrades", true)
+	p2.set("accept_local_input", false)
+	p2.set("follow_host_snap", LanSession.is_guest())
+	p2.set("is_local_pawn", LanSession.is_guest())
+	add_child(p2)
+	if p2 is Node2D:
+		(p2 as Node2D).global_position = (_player as Node2D).global_position + Vector2(80.0, 0.0)
+	_player2 = p2 as Node2D
+	if p2 is CharacterBody2D:
+		var body := p2 as CharacterBody2D
+		body.floor_snap_length = 12.0
+		body.collision_mask = 1
+		body.collision_layer = 2
+
+
+func _make_coop_camera(from: Camera2D) -> void:
+	var cam := Camera2D.new()
+	cam.set_script(COOP_CAM_SCRIPT)
+	cam.name = "CoopCamera"
+	add_child(cam)
+	var targets: Array[Node2D] = []
+	if _player != null:
+		targets.append(_player)
+	if _player2 != null:
+		targets.append(_player2)
+	if cam.has_method("setup"):
+		cam.call("setup", from, targets)
+
+
+func _bind_lan_stage_signals() -> void:
+	if not _coop:
+		return
+	if not LanSession.stage_cleared_event.is_connected(_on_lan_stage_cleared):
+		LanSession.stage_cleared_event.connect(_on_lan_stage_cleared)
+	if not LanSession.stage_wipe.is_connected(_on_lan_wipe):
+		LanSession.stage_wipe.connect(_on_lan_wipe)
+	if not LanSession.waves_unlocked.is_connected(_on_lan_waves_done):
+		LanSession.waves_unlocked.connect(_on_lan_waves_done)
+
+
+func _on_lan_stage_cleared(sid: String, coins: int) -> void:
+	if LanSession.is_host():
+		return
+	if _completed or _dead:
+		return
+	_completed = true
+	Game.coins_run = coins
+	Game.bank_run_coins()
+	Game.mark_stage_cleared(sid)
+	if is_instance_valid(Audio):
+		Audio.play_sfx("stage_clear")
+	await _play_clear_ceremony(coins)
+
+
+func _on_lan_wipe() -> void:
+	if LanSession.is_host():
+		return
+	_dead = true
+	Game.lose_run_coins()
+	get_tree().reload_current_scene()
+
+
+func _on_lan_waves_done() -> void:
+	_waves_done = true
+	if _goal:
+		_set_goal_locked(false)
 
 
 func _start_waves() -> void:
@@ -140,6 +262,8 @@ func _on_waves_finished() -> void:
 	_waves_done = true
 	if _goal:
 		_set_goal_locked(false)
+	if _coop and is_instance_valid(LanSession) and LanSession.is_host():
+		LanSession.broadcast_waves_done()
 	print("[StageController] waves done → goal unlocked")
 
 
@@ -149,8 +273,9 @@ func _on_wave_started(wave_index: int, total_waves: int, _count: int) -> void:
 
 
 func _on_wave_cleared(_wave_index: int, _total_waves: int) -> void:
-	if _player != null and _player.has_method("heal"):
-		_player.call("heal", 12)
+	for p: Node in [_player, _player2]:
+		if p != null and p.has_method("heal"):
+			p.call("heal", 12)
 
 
 func _play_stage_intro() -> void:
@@ -222,6 +347,12 @@ func _physics_process(_delta: float) -> void:
 		_player = _find_player()
 		if _player == null:
 			return
+	if _coop:
+		for p: Node2D in [_player, _player2]:
+			if p != null and p.global_position.y > fall_death_y:
+				report_player_death()
+				return
+		return
 	if _player.global_position.y > fall_death_y:
 		report_player_death()
 
@@ -229,9 +360,13 @@ func _physics_process(_delta: float) -> void:
 func report_player_death() -> void:
 	if _completed or _dead:
 		return
+	if _coop and is_instance_valid(LanSession) and LanSession.is_guest():
+		return
 	_dead = true
 	Game.lose_run_coins()
 	print("[StageController] player death stage=%s" % stage_id)
+	if _coop and is_instance_valid(LanSession) and LanSession.is_host():
+		LanSession.broadcast_wipe()
 	if reload_on_death:
 		get_tree().reload_current_scene()
 	else:
@@ -264,10 +399,14 @@ func _on_enemy_defeated() -> void:
 func _complete_stage() -> void:
 	if _completed or _dead:
 		return
+	if _coop and is_instance_valid(LanSession) and LanSession.is_guest():
+		return
 	_completed = true
 	var banked_amount: int = int(Game.coins_run)
 	Game.bank_run_coins()
 	Game.mark_stage_cleared(stage_id)
+	if _coop and is_instance_valid(LanSession) and LanSession.is_host():
+		LanSession.broadcast_stage_cleared(stage_id, banked_amount)
 	if is_instance_valid(Audio):
 		Audio.play_sfx("stage_clear")
 	if is_instance_valid(CombatFeel):
@@ -279,15 +418,21 @@ func _complete_stage() -> void:
 
 func _go_after_clear() -> void:
 	if CeremonyCard.is_headless():
-		SceneRouter.to_world_map()
+		_navigate_coop(SceneRouter.WORLD_MAP)
 		return
 	var nxt: StageDef = WorldCatalog.next_playable_any(WorldCatalog.cleared_ids())
 	if nxt != null and not nxt.scene_path.is_empty():
 		Game.pending_stage_id = nxt.stage_id
 		Game.current_world_id = WorldCatalog.world_of(nxt.stage_id)
-		SceneRouter.go_to(nxt.scene_path)
+		_navigate_coop(nxt.scene_path)
 		return
-	SceneRouter.to_world_map()
+	_navigate_coop(SceneRouter.WORLD_MAP)
+
+
+func _navigate_coop(path: String) -> void:
+	if _coop and is_instance_valid(LanSession) and LanSession.is_host():
+		LanSession.announce_stage(path)
+	SceneRouter.go_to(path)
 
 
 ## Banner CLEAR + flash de moedas bank + delay de cerimônia.
@@ -511,30 +656,48 @@ func _show_pause_menu() -> void:
 		layer.queue_free()
 	)
 	panel.add_child(resume)
-	var to_map := Button.new()
-	to_map.text = "Sair para o mapa"
-	to_map.custom_minimum_size = Vector2(0, 56)
-	to_map.process_mode = Node.PROCESS_MODE_ALWAYS
-	to_map.pressed.connect(func() -> void:
-		get_tree().paused = false
-		Engine.time_scale = 1.0
-		layer.queue_free()
-		_return_to_map(false)
-	)
-	panel.add_child(to_map)
-	var to_hub := Button.new()
-	to_hub.text = "Sair para o hub"
-	to_hub.custom_minimum_size = Vector2(0, 56)
-	to_hub.process_mode = Node.PROCESS_MODE_ALWAYS
-	to_hub.pressed.connect(func() -> void:
-		get_tree().paused = false
-		Engine.time_scale = 1.0
-		layer.queue_free()
-		if not _completed:
-			Game.lose_run_coins()
-		SceneRouter.to_hub()
-	)
-	panel.add_child(to_hub)
+	if not _coop or (is_instance_valid(LanSession) and LanSession.is_host()):
+		var to_map := Button.new()
+		to_map.text = "Sair para o mapa"
+		to_map.custom_minimum_size = Vector2(0, 56)
+		to_map.process_mode = Node.PROCESS_MODE_ALWAYS
+		to_map.pressed.connect(func() -> void:
+			get_tree().paused = false
+			Engine.time_scale = 1.0
+			layer.queue_free()
+			_return_to_map(false)
+		)
+		panel.add_child(to_map)
+	if _coop:
+		var leave := Button.new()
+		leave.text = "Sair da sala"
+		leave.custom_minimum_size = Vector2(0, 56)
+		leave.process_mode = Node.PROCESS_MODE_ALWAYS
+		leave.pressed.connect(func() -> void:
+			get_tree().paused = false
+			Engine.time_scale = 1.0
+			layer.queue_free()
+			if not _completed:
+				Game.lose_run_coins()
+			if is_instance_valid(LanSession):
+				LanSession.close_session()
+			SceneRouter.to_hub()
+		)
+		panel.add_child(leave)
+	else:
+		var to_hub := Button.new()
+		to_hub.text = "Sair para o hub"
+		to_hub.custom_minimum_size = Vector2(0, 56)
+		to_hub.process_mode = Node.PROCESS_MODE_ALWAYS
+		to_hub.pressed.connect(func() -> void:
+			get_tree().paused = false
+			Engine.time_scale = 1.0
+			layer.queue_free()
+			if not _completed:
+				Game.lose_run_coins()
+			SceneRouter.to_hub()
+		)
+		panel.add_child(to_hub)
 
 
 func _wire_enemies() -> void:
@@ -555,10 +718,11 @@ func _wire_player_hits() -> void:
 
 
 func _wire_player_death() -> void:
-	if _player == null:
-		return
-	if _player.has_signal("died") and not _player.is_connected("died", report_player_death):
-		_player.connect("died", report_player_death)
+	for p: Node in [_player, _player2]:
+		if p == null:
+			continue
+		if p.has_signal("died") and not p.is_connected("died", report_player_death):
+			p.connect("died", report_player_death)
 
 
 func _on_player_hitbox_hit(_hurtbox: Variant, _hit_data: Variant) -> void:

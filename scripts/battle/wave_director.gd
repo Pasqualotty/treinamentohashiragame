@@ -139,6 +139,9 @@ func _spawn_wave(pack: Array) -> void:
 				# Espalha um pouco para não empilhar.
 				x += float(idx) * 28.0
 			(oni as Node2D).global_position = Vector2(x, spawn_y)
+		if is_instance_valid(LanSession) and LanSession.is_host() and LanSession.in_stage_session():
+			var nid: int = LanSession.broadcast_spawn_oni(kind, (oni as Node2D).global_position.x, (oni as Node2D).global_position.y)
+			oni.set_meta("lan_net_id", nid)
 		if oni.has_signal("defeated"):
 			oni.connect("defeated", _on_oni_defeated.bind(oni), CONNECT_ONE_SHOT)
 		_alive.append(oni)

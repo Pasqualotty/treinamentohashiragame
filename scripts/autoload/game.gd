@@ -25,6 +25,10 @@ signal upgrades_changed
 signal player_name_changed(new_name: String)
 ## Personagem atual (elenco). Hub e select escutam para atualizar o showcase.
 signal character_changed(character_id: String)
+## Lista local de amigos (LAN). Sem IP.
+signal friends_changed
+
+const FRIENDS_CAP := 16
 
 var coins_banked: int = 0
 ## Vazio = jogador ainda nao passou pelo onboarding de nome.
@@ -47,6 +51,8 @@ var audio_volume_sfx: float = 0.45  # era 1.0  — alto demais no device
 var pending_stage_id: String = "w1_01"
 ## Mundo visível no mapa. Persistido; o mapa clampa se ainda estiver trancado.
 var current_world_id: String = "w1"
+## Amigos LAN: `{name, added_unix}`. Save legado sem a chave = [].
+var friends: Array[Dictionary] = []
 
 var _catalog: Array[UpgradeDef] = []
 var _catalog_loaded: bool = false
@@ -151,6 +157,44 @@ func set_player_name(raw: String) -> bool:
 		return true
 	player_name = clean
 	player_name_changed.emit(player_name)
+	save_game()
+	return true
+
+
+## Upsert pelo nome sanitizado. Recusa invisível. Cap 16. Sem IP.
+func add_friend(raw_name: String) -> bool:
+	var clean := sanitize_player_name(raw_name)
+	if clean.is_empty():
+		return false
+	for i in friends.size():
+		if str(friends[i].get("name", "")) == clean:
+			friends[i]["name"] = clean
+			friends_changed.emit()
+			save_game()
+			return true
+	if friends.size() >= FRIENDS_CAP:
+		return false
+	friends.append({"name": clean, "added_unix": int(Time.get_unix_time_from_system())})
+	friends_changed.emit()
+	save_game()
+	return true
+
+
+func remove_friend(raw_name: String) -> bool:
+	var clean := sanitize_player_name(raw_name)
+	if clean.is_empty():
+		return false
+	var kept: Array[Dictionary] = []
+	var removed := false
+	for d in friends:
+		if str(d.get("name", "")) == clean:
+			removed = true
+			continue
+		kept.append(d)
+	if not removed:
+		return false
+	friends = kept
+	friends_changed.emit()
 	save_game()
 	return true
 
@@ -378,7 +422,21 @@ func _save_payload() -> Dictionary:
 		"unlocked_characters": unlocked_characters,
 		"stages_cleared": stages_cleared,
 		"upgrades": upgrades,
+		"friends": _friends_payload(),
 	}
+
+
+func _friends_payload() -> Array:
+	var out: Array = []
+	for d in friends:
+		var name := sanitize_player_name(str(d.get("name", "")))
+		if name.is_empty():
+			continue
+		out.append({
+			"name": name,
+			"added_unix": int(d.get("added_unix", 0)),
+		})
+	return out
 
 
 func _apply_save_data(data: Dictionary) -> void:
@@ -407,7 +465,37 @@ func _apply_save_data(data: Dictionary) -> void:
 					unlocked_characters.append(sid)
 	if unlocked_characters.is_empty():
 		unlocked_characters.append("tanjiro")
+	_load_friends(data)
 	_sync_character_unlocks()
+
+
+func _load_friends(data: Dictionary) -> void:
+	friends.clear()
+	if not data.has("friends"):
+		return
+	var raw: Variant = data.get("friends", [])
+	if not raw is Array:
+		return
+	for item in raw:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var d: Dictionary = item
+		var name := sanitize_player_name(str(d.get("name", "")))
+		if name.is_empty():
+			continue
+		if friends.size() >= FRIENDS_CAP:
+			break
+		var exists := false
+		for e in friends:
+			if str(e.get("name", "")) == name:
+				exists = true
+				break
+		if exists:
+			continue
+		friends.append({
+			"name": name,
+			"added_unix": int(d.get("added_unix", 0)),
+		})
 
 
 func _ensure_catalog() -> void:

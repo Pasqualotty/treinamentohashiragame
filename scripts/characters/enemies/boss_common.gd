@@ -127,16 +127,50 @@ static func apply_facing(sprite: Sprite2D, hitbox: Node2D, facing: float, hitbox
 		hitbox.position.x = hitbox_base_x * facing
 
 
+static func is_player_alive(n: Node) -> bool:
+	if n == null or not is_instance_valid(n):
+		return false
+	if not n is Node2D:
+		return false
+	var hp_v: Variant = n.get("hp")
+	if hp_v != null and int(hp_v) <= 0:
+		return false
+	if n.has_method("get_state") and int(n.call("get_state")) == 9:
+		return false
+	return true
+
+
 static func find_player(tree: SceneTree) -> Node2D:
+	return nearest_alive_player(null, tree)
+
+
+## Caçador vivo mais perto de `from`. Sem `from`, o primeiro vivo do grupo.
+static func nearest_alive_player(from: Node2D, tree: SceneTree) -> Node2D:
 	if tree == null:
 		return null
 	var nodes: Array[Node] = tree.get_nodes_in_group("player")
-	if nodes.is_empty():
-		return null
-	var n: Node = nodes[0]
-	if n is Node2D:
-		return n as Node2D
-	return null
+	var best: Node2D = null
+	var best_d: float = INF
+	for n: Node in nodes:
+		if not is_player_alive(n):
+			continue
+		var p := n as Node2D
+		if from == null:
+			return p
+		var d: float = from.global_position.distance_to(p.global_position)
+		if d < best_d:
+			best_d = d
+			best = p
+	return best
+
+
+static func apply_lan_snap(node: Node, pos: Vector2, hp_now: int, state_id: int) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	if node is Node2D:
+		(node as Node2D).global_position = pos
+	node.set("hp", hp_now)
+	node.set("state", state_id)
 
 
 static func spawn_coin_drop(host: Node2D, coin_scene: PackedScene, reward: int, facing: float) -> Node:

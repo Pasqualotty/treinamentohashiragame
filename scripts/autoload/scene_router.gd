@@ -50,6 +50,8 @@ func is_navigating() -> bool:
 func go_to(path: String) -> bool:
 	if _navigating:
 		return false
+	if path == SPLASH and is_instance_valid(LanSession):
+		LanSession.close_session()
 	_navigating = true
 	if _transition == null or _transition.is_busy():
 		# Sem cortina disponível — troca direta, nunca trava a navegação.

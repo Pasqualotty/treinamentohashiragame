@@ -55,6 +55,25 @@ signal combo_changed(count: int)
 @export var stats: PlayerStats
 ## Id do CharacterDef aplicado neste spawn (smoke / HUD).
 var applied_character_id: String = ""
+## Slot coop: 0 = anfitrião, 1 = amigo. Solo fica 0.
+var coop_slot: int = 0
+## HUD liga neste pawn (touch do aparelho).
+var is_local_pawn: bool = true
+## Host P2 e puppets do guest não leem Input.
+var accept_local_input: bool = true
+## Guest: corpo segue o snap do host.
+var follow_host_snap: bool = false
+## P2 usa o id do amigo, não o save local.
+var forced_character_id: String = ""
+## P2 no host: kit do CharacterDef, sem loja do anfitrião.
+var skip_local_upgrades: bool = false
+## Respiração por corpo em sessão LAN.
+var pawn_breath: float = 0.0
+var pawn_breath_max: float = 100.0
+signal pawn_breath_changed(value: float, max_value: float)
+
+var _remote_axis: float = 0.0
+var _remote_just: int = 0
 
 @onready var sprite: AnimatedSprite2D = %AnimatedSprite2D
 @onready var hitbox: Hitbox = %Hitbox
@@ -157,10 +176,12 @@ func _ready() -> void:
 		push_error("Player: PlayerStats ausente em %s" % DEFAULT_STATS)
 		stats = PlayerStats.new()
 	# Loja: aplica upgrades do save sem mutar o .tres base.
-	if Game != null and Game.has_method("apply_upgrades_to_stats"):
+	if not skip_local_upgrades and Game != null and Game.has_method("apply_upgrades_to_stats"):
 		stats = Game.apply_upgrades_to_stats(stats)
 
 	hp = stats.max_hp
+	pawn_breath = 0.0
+	pawn_breath_max = Game.breath_max if Game != null else 100.0
 	_hitbox_base_x = stats.attack_hitbox_offset_x
 	_default_hitbox_size = stats.attack_hitbox_size
 
@@ -193,7 +214,9 @@ func _ready() -> void:
 ## Um player, 15 resources: stats vêm do CharacterDef; tint só se não houver pack.
 func _apply_character_kit() -> void:
 	var wanted_id: String = "tanjiro"
-	if Game != null:
+	if forced_character_id != "":
+		wanted_id = forced_character_id
+	elif Game != null:
 		wanted_id = str(Game.current_character_id)
 	var def: CharacterDef = CharacterCatalog.find(wanted_id)
 	if def == null:
@@ -210,8 +233,21 @@ func _apply_character_kit() -> void:
 		sprite.modulate = _base_modulate
 
 
+func reload_character_kit(id: String) -> void:
+	forced_character_id = id
+	_apply_character_kit()
+	if sprite:
+		_setup_sprite_frames()
+		sprite.modulate = _base_modulate
+	_apply_facing_visual()
+	_sync_sprite_to_state()
+
+
 func _physics_process(delta: float) -> void:
 	if stats == null:
+		return
+	if follow_host_snap:
+		_tick_flash(delta)
 		return
 
 	_tick_timers(delta)
@@ -246,6 +282,93 @@ func get_state() -> State:
 
 func get_facing() -> float:
 	return _facing
+
+
+func get_pawn_breath() -> float:
+	return pawn_breath
+
+
+func get_pawn_breath_max() -> float:
+	return pawn_breath_max
+
+
+func apply_input_frame(axis: float, _held: int, just: int) -> void:
+	_remote_axis = axis
+	_remote_just = just
+
+
+func apply_host_snap(pos: Vector2, vx: float, facing: float, state_id: int, hp_now: int, breath_v: float, breath_m: float) -> void:
+	global_position = pos
+	velocity.x = vx
+	if not is_zero_approx(facing):
+		_facing = facing
+	hp = hp_now
+	pawn_breath = breath_v
+	pawn_breath_max = maxf(breath_m, 1.0)
+	if _state != State.DEAD and state_id == int(State.DEAD):
+		_enter_dead()
+	elif state_id != int(_state) and state_id != int(State.DEAD):
+		_set_state(state_id as State)
+	_apply_facing_visual()
+	hp_changed.emit(hp, stats.max_hp if stats else hp)
+	pawn_breath_changed.emit(pawn_breath, pawn_breath_max)
+
+
+func _in_coop_session() -> bool:
+	return is_instance_valid(LanSession) and LanSession.in_stage_session()
+
+
+func _move_axis() -> float:
+	if not accept_local_input:
+		return _remote_axis
+	return Input.get_axis("move_left", "move_right")
+
+
+func _just_pressed(action: StringName) -> bool:
+	if not accept_local_input:
+		match String(action):
+			"jump":
+				return InputFrame.has_bit(_remote_just, InputFrame.BIT_JUMP)
+			"advance":
+				return InputFrame.has_bit(_remote_just, InputFrame.BIT_DASH)
+			"attack_basic":
+				return InputFrame.has_bit(_remote_just, InputFrame.BIT_ATK)
+			"skill_1":
+				return InputFrame.has_bit(_remote_just, InputFrame.BIT_S1)
+			"skill_2":
+				return InputFrame.has_bit(_remote_just, InputFrame.BIT_S2)
+			"ultimate":
+				return InputFrame.has_bit(_remote_just, InputFrame.BIT_ULT)
+			_:
+				return false
+	return Input.is_action_just_pressed(action)
+
+
+func _add_pawn_breath(amount: float) -> void:
+	if _in_coop_session():
+		var was_ready: bool = pawn_breath >= pawn_breath_max
+		pawn_breath = minf(pawn_breath + amount, pawn_breath_max)
+		pawn_breath_changed.emit(pawn_breath, pawn_breath_max)
+		if not was_ready and pawn_breath >= pawn_breath_max:
+			var audio := get_node_or_null("/root/Audio")
+			if audio != null and audio.has_method("play_sfx"):
+				audio.call("play_sfx", "breath_full")
+		return
+	Game.add_breath_from_hit(amount)
+
+
+func _ult_ready() -> bool:
+	if _in_coop_session():
+		return pawn_breath >= pawn_breath_max
+	return Game.is_ultimate_ready()
+
+
+func _consume_ult() -> void:
+	if _in_coop_session():
+		pawn_breath = 0.0
+		pawn_breath_changed.emit(pawn_breath, pawn_breath_max)
+		return
+	Game.consume_ultimate()
 
 
 func get_hp() -> int:
@@ -369,19 +492,21 @@ func _capture_input_buffers() -> void:
 	if _state == State.DEAD:
 		return
 	var buf: float = stats.input_buffer if stats else 0.12
-	if Input.is_action_just_pressed("jump"):
+	if _just_pressed("jump"):
 		_buf_jump = buf
-	if Input.is_action_just_pressed("attack_basic"):
+	if _just_pressed("attack_basic"):
 		_buf_attack = buf
-	if Input.is_action_just_pressed("advance"):
+	if _just_pressed("advance"):
 		_buf_dash = buf
 	# Skills/ult sem buffer longo (CD + ultimate gate); still just_pressed imediato.
-	if Input.is_action_just_pressed("ultimate"):
+	if _just_pressed("ultimate"):
 		_try_start_ultimate()
-	if Input.is_action_just_pressed("skill_1"):
+	if _just_pressed("skill_1"):
 		_try_start_skill_1()
-	if Input.is_action_just_pressed("skill_2"):
+	if _just_pressed("skill_2"):
 		_try_start_skill_2()
+	if not accept_local_input:
+		_remote_just = 0
 
 
 func _try_consume_buffers() -> void:
@@ -412,7 +537,7 @@ func _process_locomotion(delta: float) -> void:
 		if velocity.y > 0.0:
 			velocity.y = 0.0
 
-	var axis: float = Input.get_axis("move_left", "move_right")
+	var axis: float = _move_axis()
 	_apply_horizontal_feel(axis, delta)
 
 	# Buffers já capturados em _capture; fallback just_pressed se buffer zeroed.
@@ -447,7 +572,7 @@ func _process_dash(delta: float) -> void:
 		_afterimage_t = CombatVfx.DASH_TICK_SEC
 		CombatVfx.dash_tick(sprite, global_position, _facing)
 	if _dash_time_left <= 0.0:
-		var axis: float = Input.get_axis("move_left", "move_right")
+		var axis: float = _move_axis()
 		if not is_zero_approx(axis):
 			_facing = signf(axis)
 			var accel: float = stats.move_accel if stats.move_accel > 0.0 else stats.move_speed * 12.0
@@ -656,13 +781,13 @@ func _try_start_skill_2() -> bool:
 func _try_start_ultimate() -> bool:
 	if _is_attack_locked() or _state == State.DASH or _state == State.DEAD or _state == State.HURT:
 		return false
-	if not Game.is_ultimate_ready():
+	if not _ult_ready():
 		return false
 	if not is_on_floor():
 		return false
 
 	_reset_combo()
-	Game.consume_ultimate()
+	_consume_ult()
 	_invuln_timer = maxf(_invuln_timer, stats.ultimate_iframes)
 	if hurtbox:
 		hurtbox.invulnerable = true
@@ -763,10 +888,10 @@ func _disable_hitbox() -> void:
 func _on_hitbox_hit(_hurtbox: Hurtbox, hit_data: HitData) -> void:
 	# Respiracao por hit que acerta (GDD) + juice por tipo.
 	if stats:
-		Game.add_breath_from_hit(stats.breath_per_hit)
+		_add_pawn_breath(stats.breath_per_hit)
 		_apply_lifesteal(hit_data)
 	else:
-		Game.add_breath_from_hit()
+		_add_pawn_breath(10.0)
 	if is_instance_valid(Audio):
 		Audio.play_sfx("hit", randf_range(0.92, 1.1))
 	# Finalizador do combo (hit 3 do attack_basic): trata como golpe "skill"-tier
@@ -841,7 +966,7 @@ func _update_state_after_move() -> void:
 		_set_state(State.JUMP)
 		return
 
-	var axis: float = Input.get_axis("move_left", "move_right")
+	var axis: float = _move_axis()
 	if absf(axis) > 0.01:
 		_set_state(State.RUN)
 	else:

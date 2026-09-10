@@ -40,6 +40,7 @@ func _run() -> void:
 	_test_game_save_leaves_valid_json()
 	_test_truncated_dest_recovers_from_bak()
 	_test_no_tmp_after_commit()
+	_test_friends_additive_and_legacy()
 	_finish()
 
 
@@ -199,6 +200,43 @@ func _test_no_tmp_after_commit() -> void:
 		_fail("bak ficou pra trás depois do commit")
 		return
 	_pass("commit limpa tmp e bak")
+
+
+func _test_friends_additive_and_legacy() -> void:
+	_wipe(TEMP_SAVE)
+	AtomicJson.remove_sidecars(TEMP_SAVE)
+	var f := FileAccess.open(TEMP_SAVE, FileAccess.WRITE)
+	if f == null:
+		_fail("não abriu save sem friends")
+		return
+	f.store_string('{"version":1,"coins_banked":88,"player_name":"Giyu","current_character_id":"tanjiro","stages_cleared":[],"upgrades":{}}')
+	f.close()
+	_game.call("load_game")
+	var friends: Array = _game.get("friends")
+	if not friends.is_empty():
+		_fail("save sem chave friends não veio []")
+		return
+	if int(_game.get("coins_banked")) != 88:
+		_fail("legado sem friends perdeu coins")
+		return
+	if not bool(_game.call("add_friend", "Sobrinho")):
+		_fail("add_friend no smoke_save")
+		return
+	_game.call("save_game")
+	_game.set("friends", [])
+	_game.call("load_game")
+	friends = _game.get("friends")
+	if friends.size() != 1 or str(friends[0].get("name", "")) != "Sobrinho":
+		_fail("friends roundtrip falhou")
+		return
+	var raw: String = FileAccess.get_file_as_string(TEMP_SAVE)
+	if raw.contains("\"ip\"") or raw.contains("127.0.0.1"):
+		_fail("save gravou IP")
+		return
+	if int(JSON.parse_string(raw).get("version", 0)) != 1:
+		_fail("version deixou de ser 1")
+		return
+	_pass("friends aditivo; legado sem chave; version 1")
 
 
 func _finish() -> void:

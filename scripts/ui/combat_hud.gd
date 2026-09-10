@@ -128,10 +128,31 @@ func _try_connect_combo() -> void:
 	if players.is_empty():
 		return
 	var p: Node = players[0]
+	for n: Node in players:
+		if n.get("is_local_pawn") == true:
+			p = n
+			break
+	bind_local_pawn(p)
+
+
+func bind_local_pawn(p: Node) -> void:
 	_player_ref = p
+	if p.has_signal("hp_changed") and not p.is_connected("hp_changed", _on_player_hp_from_pawn):
+		p.connect("hp_changed", _on_player_hp_from_pawn)
+	if p.has_signal("pawn_breath_changed") and not p.is_connected("pawn_breath_changed", _on_breath_changed):
+		if is_instance_valid(LanSession) and LanSession.in_stage_session():
+			p.connect("pawn_breath_changed", _on_breath_changed)
+			if Game.breath_changed.is_connected(_on_breath_changed):
+				Game.breath_changed.disconnect(_on_breath_changed)
+			if p.has_method("get_pawn_breath"):
+				_refresh_breath(float(p.call("get_pawn_breath")), float(p.call("get_pawn_breath_max")))
 	if p.has_signal("combo_changed") and not p.is_connected("combo_changed", _on_combo_changed):
 		p.connect("combo_changed", _on_combo_changed)
 	set_process(false)
+
+
+func _on_player_hp_from_pawn(current: int, max_hp: int) -> void:
+	set_hp(float(current), float(max_hp))
 
 
 func _on_combo_changed(count: int) -> void:
