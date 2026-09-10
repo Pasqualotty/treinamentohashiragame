@@ -1,0 +1,2 @@
+# Godot must not import Python/JPEG staging under tools/.
+# JPEG saved as .png → ERR_FILE_CORRUPT on --import.

@@ -281,8 +281,7 @@ func _test_player_kit() -> void:
 
 
 func _test_own_art() -> void:
-	var quartet: PackedStringArray = ["tanjiro", "nezuko", "zenitsu", "inosuke"]
-	for character_id: String in quartet:
+	for character_id: String in CharacterCatalog.EXPECTED_IDS:
 		var def: CharacterDef = CharacterCatalog.find(character_id)
 		if def == null:
 			_fail("%s ausente no catálogo" % character_id)
@@ -304,14 +303,14 @@ func _test_own_art() -> void:
 			if not FileAccess.file_exists(frame_path):
 				_fail("%s sem %s" % [character_id, frame_path])
 				return
-	_pass("quarteto tem portrait/hub/combat no disco")
+	_pass("15 ids têm portrait/hub/combat no disco")
 
 	var prev_id: String = str(_game.get("current_character_id"))
 	var packed: PackedScene = load(PLAYER) as PackedScene
 	if packed == null:
 		_fail("player.tscn não carregou (arte)")
 		return
-	for character_id: String in quartet:
+	for character_id: String in CharacterCatalog.EXPECTED_IDS:
 		_game.set("current_character_id", character_id)
 		var player: Node = packed.instantiate()
 		root.add_child(player)
@@ -414,6 +413,28 @@ func _test_scenes(router: Node) -> void:
 		hub.queue_free()
 		return
 	hub.queue_free()
+
+	# Locked continua recusando select; o hub lê o id setado direto (QA).
+	_game.set("current_character_id", "kanao")
+	var hub_restante: Node = hub_packed.instantiate()
+	root.add_child(hub_restante)
+	await process_frame
+	await process_frame
+	var art_kanao: TextureRect = hub_restante.find_child("CharacterArt", true, false) as TextureRect
+	if art_kanao == null or art_kanao.texture == null:
+		_fail("hub CharacterArt sem textura (kanao)")
+		hub_restante.queue_free()
+		return
+	var kanao_path: String = art_kanao.texture.resource_path
+	if "kanao" not in kanao_path:
+		_fail("hub textura kanao = %s" % kanao_path)
+		hub_restante.queue_free()
+		return
+	if not art_kanao.modulate.is_equal_approx(Color.WHITE):
+		_fail("hub kanao modulate != WHITE")
+		hub_restante.queue_free()
+		return
+	hub_restante.queue_free()
 	_pass("tela PERSONAGENS instancia 15 cards + hub troca textura")
 
 

@@ -31,6 +31,7 @@ ERR_FILE_CORRUPT / Not a PNG file
 - Pack por id: `assets/characters/<id>/` (hub_idle, portrait, combat/{idle_side,run,attack,hurt})  
 - Tanjiro fiel (legado): `assets/characters/player/hub_idle/` + `player/combat/`  
 - Trio playtest: `assets/characters/{nezuko,zenitsu,inosuke}/` + review `assets/pack_playtest_trio/`  
+- Elenco restante (11): `assets/characters/{kanao,shinobu,uzui,rengoku,tomioka,obanai,tokito,sanemi,gyomei,yoriichi,muzan}/` + review `assets/pack_elenco_restante/`  
 - Oni: `assets/characters/enemies/oni_weak_side.png`  
 - Hub BG: `assets/ui/hub/bg_frame_*.png`  
 - Botões: `assets/ui/buttons/*.png`  
