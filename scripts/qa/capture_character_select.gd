@@ -1,6 +1,6 @@
 extends SceneTree
 ## Captura PERSONAGENS 1280×720. Janela real — NÃO usar --headless.
-## HASHIRA_CAPTURE_DIR = pasta de saída (personagens-1280.png).
+## HASHIRA_CAPTURE_DIR = pasta de saída (personagens-1280.png + fileira3).
 
 const SELECT := "res://scenes/ui/character_select.tscn"
 const _UiFont := preload("res://scripts/ui/ui_font.gd")
@@ -30,12 +30,48 @@ func _run() -> void:
 		return
 	var inst: Node = packed.instantiate()
 	root.add_child(inst)
-	await create_timer(0.8).timeout
+	await create_timer(0.9).timeout
 	if not await _save(out_dir.path_join("personagens-1280.png")):
+		quit(1)
+		return
+	if not await _scroll_to_row(inst, 2):
+		print("CAPTURE FAIL scroll fileira3")
+		quit(1)
+		return
+	await create_timer(0.4).timeout
+	if not await _save(out_dir.path_join("personagens-1280-fileira3.png")):
 		quit(1)
 		return
 	print("CAPTURE_PERSONAGENS DONE")
 	quit(0)
+
+
+func _scroll_to_row(inst: Node, row_index: int) -> bool:
+	var scroll: ScrollContainer = inst.find_child("Scroll", true, false) as ScrollContainer
+	var grid: GridContainer = inst.find_child("Grid", true, false) as GridContainer
+	if scroll == null or grid == null:
+		return false
+	var idx: int = row_index * grid.columns
+	if idx >= grid.get_child_count():
+		return false
+	var card: Control = grid.get_child(idx) as Control
+	if card == null:
+		return false
+	scroll.set_deferred("scroll_vertical", int(round(card.position.y)))
+	await process_frame
+	await process_frame
+	scroll.scroll_vertical = int(round(card.position.y))
+	print(
+		"CAPTURE scroll_v=",
+		scroll.scroll_vertical,
+		" row=",
+		row_index,
+		" card_y=",
+		card.position.y,
+		" card_h=",
+		card.size.y
+	)
+	return true
 
 
 func _save(path: String) -> bool:
