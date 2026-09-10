@@ -3,6 +3,9 @@ extends Control
 
 enum View { LIST, HOST, JOIN, GUEST_WAIT }
 
+const COL_MIN_WIDTH := 320.0
+const TOUCH_MIN := 48.0
+
 var _view: int = View.LIST
 var _list_box: VBoxContainer
 var _host_box: VBoxContainer
@@ -16,14 +19,17 @@ var _ip_input: LineEdit
 var _toast: Label
 var _toast_tween: Tween
 var _meio_input: LineEdit
+var _scroll: ScrollContainer
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	custom_minimum_size.x = COL_MIN_WIDTH
 	_build()
 	_bind_session()
 	_load_meio_field()
 	_refresh_list()
+	call_deferred("_sync_rows_width")
 	if is_instance_valid(LanSession) and LanSession.is_guest() and LanSession.has_peer():
 		show_host_picks_stage()
 	else:
@@ -33,20 +39,24 @@ func _ready() -> void:
 func _build() -> void:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Palette.with_alpha(Palette.PANEL, 0.82)
 	sb.border_color = Palette.with_alpha(Palette.GOLD, 0.55)
 	sb.set_border_width_all(2)
 	sb.set_corner_radius_all(12)
-	sb.content_margin_left = 14
-	sb.content_margin_right = 14
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
 	sb.content_margin_top = 12
 	sb.content_margin_bottom = 12
 	panel.add_theme_stylebox_override("panel", sb)
 	add_child(panel)
 
 	var root := VBoxContainer.new()
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_theme_constant_override("separation", 10)
 	panel.add_child(root)
 
@@ -58,47 +68,59 @@ func _build() -> void:
 	title.add_theme_constant_override("shadow_offset_x", 1)
 	title.add_theme_constant_override("shadow_offset_y", 1)
 	title.add_theme_font_size_override("font_size", 20)
+	_fit_label(title, false)
 	root.add_child(title)
 
 	_list_box = VBoxContainer.new()
+	_list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_list_box.add_theme_constant_override("separation", 8)
 	root.add_child(_list_box)
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(0, 160)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_list_box.add_child(scroll)
+	_scroll = ScrollContainer.new()
+	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_scroll.custom_minimum_size = Vector2(0, 72)
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_list_box.add_child(_scroll)
 	var rows := VBoxContainer.new()
 	rows.name = "FriendRows"
+	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rows.add_theme_constant_override("separation", 6)
-	scroll.add_child(rows)
+	_scroll.add_child(rows)
 	_list_box.set_meta("rows", rows)
-	_list_box.add_child(_plate_btn("CRIAR SALA", _on_create_pressed))
-	_list_box.add_child(_plate_btn("ENTRAR", _on_join_open_pressed))
+	_scroll.resized.connect(_sync_rows_width)
+	_list_box.add_child(_plate_btn("Criar sala", _on_create_pressed))
+	_list_box.add_child(_plate_btn("Entrar", _on_join_open_pressed))
 	var meio_l := Label.new()
 	meio_l.text = "Computador da sala"
-	meio_l.add_theme_font_size_override("font_size", 13)
+	meio_l.add_theme_font_size_override("font_size", 15)
 	meio_l.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(meio_l, false)
 	_list_box.add_child(meio_l)
 	_meio_input = LineEdit.new()
 	_meio_input.placeholder_text = "vazio = só o Wi-Fi"
 	_meio_input.max_length = 64
+	_meio_input.custom_minimum_size = Vector2(0, TOUCH_MIN)
+	_meio_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_meio_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_URL
 	_meio_input.text_changed.connect(_on_meio_typed)
 	_list_box.add_child(_meio_input)
 	var hint := Label.new()
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.text = "Mesmo Wi-Fi da casa, ou o PC da sala. Sem convidado isolado."
+	hint.text = "Wi-Fi da casa ou o PC da sala.\nSem VPN."
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
+	_fit_label(hint, true)
 	_list_box.add_child(hint)
 
 	_host_box = VBoxContainer.new()
+	_host_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_host_box.add_theme_constant_override("separation", 10)
 	root.add_child(_host_box)
 	var sala := Label.new()
 	sala.text = "Sala"
 	sala.add_theme_font_size_override("font_size", 14)
 	sala.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(sala, false)
 	_host_box.add_child(sala)
 	_code_label = Label.new()
 	_code_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -107,74 +129,124 @@ func _build() -> void:
 	_code_label.add_theme_color_override("font_shadow_color", Palette.SHADOW)
 	_code_label.mouse_filter = Control.MOUSE_FILTER_STOP
 	_code_label.gui_input.connect(_on_code_gui)
+	_fit_label(_code_label, false)
 	_host_box.add_child(_code_label)
 	_status_label = Label.new()
 	_status_label.text = "Esperando amigo…"
 	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status_label.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(_status_label, true)
 	_host_box.add_child(_status_label)
-	_host_box.add_child(_plate_btn("FECHAR SALA", _on_close_room))
+	_host_box.add_child(_plate_btn("Fechar sala", _on_close_room))
 
 	_join_box = VBoxContainer.new()
+	_join_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_join_box.add_theme_constant_override("separation", 8)
 	root.add_child(_join_box)
 	var code_l := Label.new()
 	code_l.text = "Código da sala"
 	code_l.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(code_l, false)
 	_join_box.add_child(code_l)
 	_code_input = LineEdit.new()
 	_code_input.max_length = 6
 	_code_input.placeholder_text = "K7H4MP"
+	_code_input.custom_minimum_size = Vector2(0, TOUCH_MIN)
+	_code_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_code_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_DEFAULT
 	_code_input.text_changed.connect(_on_code_typed)
 	_join_box.add_child(_code_input)
-	_join_box.add_child(_plate_btn("ENTRAR", _on_join_confirm))
+	_join_box.add_child(_plate_btn("Entrar", _on_join_confirm))
 	var ip_toggle := Button.new()
 	ip_toggle.text = "Não achou? IP do anfitrião"
 	ip_toggle.flat = true
+	ip_toggle.clip_text = false
+	ip_toggle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ip_toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ip_toggle.custom_minimum_size = Vector2(0, TOUCH_MIN)
 	ip_toggle.pressed.connect(func() -> void: _ip_box.visible = not _ip_box.visible)
 	_join_box.add_child(ip_toggle)
 	_ip_box = VBoxContainer.new()
+	_ip_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_ip_box.visible = false
 	_ip_input = LineEdit.new()
 	_ip_input.placeholder_text = "127.0.0.1"
+	_ip_input.custom_minimum_size = Vector2(0, TOUCH_MIN)
+	_ip_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_ip_box.add_child(_ip_input)
 	_join_box.add_child(_ip_box)
 	_join_box.add_child(_plate_btn("VOLTAR", _on_close_room))
 
 	_wait_box = VBoxContainer.new()
+	_wait_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_wait_box.add_theme_constant_override("separation", 10)
 	root.add_child(_wait_box)
 	var wait_l := Label.new()
 	wait_l.text = "O anfitrião escolhe a fase"
-	wait_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	wait_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	wait_l.add_theme_font_size_override("font_size", 18)
 	wait_l.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(wait_l, true)
 	_wait_box.add_child(wait_l)
-	_wait_box.add_child(_plate_btn("SAIR DA SALA", _on_close_room))
+	_wait_box.add_child(_plate_btn("Sair da sala", _on_close_room))
 
 	_toast = Label.new()
-	_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast.add_theme_color_override("font_color", Palette.GOLD_BRIGHT)
 	_toast.add_theme_font_size_override("font_size", 14)
 	_toast.modulate.a = 0.0
+	_fit_label(_toast, true)
 	root.add_child(_toast)
+
+
+func _fit_label(l: Label, wrap: bool) -> void:
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.clip_text = false
+	if wrap:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	else:
+		l.autowrap_mode = TextServer.AUTOWRAP_OFF
+
+
+func _sync_rows_width() -> void:
+	if _scroll == null or not is_instance_valid(_scroll) or _list_box == null:
+		return
+	if not _list_box.has_meta("rows"):
+		return
+	var rows: VBoxContainer = _list_box.get_meta("rows") as VBoxContainer
+	if rows == null:
+		return
+	var w: float = _scroll.size.x
+	if w > 1.0:
+		rows.custom_minimum_size.x = w
+
+
+func _gold_sb(bg: Color, border: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.border_color = border
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(10)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	return sb
 
 
 func _plate_btn(text: String, cb: Callable) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(0, 48)
+	btn.clip_text = false
+	btn.custom_minimum_size = Vector2(0, TOUCH_MIN)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.focus_mode = Control.FOCUS_NONE
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Palette.with_alpha(Palette.GOLD_DIM, 0.85)
-	sb.border_color = Palette.GOLD
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(10)
-	btn.add_theme_stylebox_override("normal", sb)
+	var normal := _gold_sb(Palette.with_alpha(Palette.GOLD_DIM, 0.85), Palette.GOLD)
+	var hover := _gold_sb(Palette.with_alpha(Palette.GOLD, 0.92), Palette.GOLD_BRIGHT)
+	var pressed := _gold_sb(Palette.with_alpha(Palette.GOLD_DIM, 0.95), Palette.GOLD)
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", pressed)
 	btn.add_theme_color_override("font_color", Palette.CREAM)
 	btn.pressed.connect(cb)
 	return btn
@@ -229,29 +301,34 @@ func _refresh_list() -> void:
 		c.queue_free()
 	if Game.friends.is_empty():
 		var empty := Label.new()
-		empty.text = "Ninguém ainda. Joguem uma sala juntos."
-		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.add_theme_font_size_override("font_size", 14)
+		empty.text = "Ninguém"
+		empty.add_theme_font_size_override("font_size", 16)
 		empty.add_theme_color_override("font_color", Palette.CREAM)
+		_fit_label(empty, false)
 		rows.add_child(empty)
+		_sync_rows_width()
 		return
 	for d in Game.friends:
 		var name := str(d.get("name", ""))
 		var row := HBoxContainer.new()
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var lbl := Label.new()
 		lbl.text = "• " + name
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		lbl.add_theme_color_override("font_color", Palette.CREAM)
 		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 		lbl.gui_input.connect(_make_call_handler(name))
+		_fit_label(lbl, false)
 		row.add_child(lbl)
 		var rm := Button.new()
 		rm.text = "x"
-		rm.custom_minimum_size = Vector2(36, 36)
+		rm.custom_minimum_size = Vector2(TOUCH_MIN, TOUCH_MIN)
 		rm.focus_mode = Control.FOCUS_NONE
 		rm.pressed.connect(_make_remove_handler(name))
 		row.add_child(rm)
 		rows.add_child(row)
+	_sync_rows_width()
 
 
 func _make_remove_handler(friend_name: String) -> Callable:

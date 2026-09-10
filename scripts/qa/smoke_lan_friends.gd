@@ -188,7 +188,7 @@ func _test_hub_panel() -> void:
 		_fail("hub instantiate null")
 		return
 	root.add_child(inst)
-	for i in range(6):
+	for i in range(10):
 		await process_frame
 	var fp: Node = inst.get_node_or_null("%FriendsPanel")
 	if fp == null:
@@ -203,6 +203,49 @@ func _test_hub_panel() -> void:
 		return
 	if _find_label(fp, "Computador da sala") == null:
 		_fail("FriendsPanel sem campo Computador da sala")
+		inst.queue_free()
+		await process_frame
+		return
+	var panel := fp as Control
+	if panel.size.x < 300.0:
+		_fail("FriendsPanel estreito demais: %.0f" % panel.size.x)
+		inst.queue_free()
+		await process_frame
+		return
+	var empty: Label = _find_label(fp, "Ninguém")
+	if empty == null:
+		_fail("empty state sem Ninguém")
+		inst.queue_free()
+		await process_frame
+		return
+	if empty.autowrap_mode != TextServer.AUTOWRAP_OFF:
+		_fail("Ninguém com autowrap (cai na vertical)")
+		inst.queue_free()
+		await process_frame
+		return
+	if empty.get_line_count() > 1 or empty.get_combined_minimum_size().x < 48.0:
+		_fail("Ninguém ilegível lines=%d min=%s size=%s" % [empty.get_line_count(), empty.get_combined_minimum_size(), empty.size])
+		inst.queue_free()
+		await process_frame
+		return
+	var criar: Button = _find_button(fp, "Criar sala")
+	if criar == null or not criar.text.contains(" "):
+		_fail("sem botão Criar sala com espaço")
+		inst.queue_free()
+		await process_frame
+		return
+	if criar.size.y < 44.0:
+		_fail("Criar sala toque baixo: %.0f" % criar.size.y)
+		inst.queue_free()
+		await process_frame
+		return
+	if _find_button(fp, "Entrar") == null:
+		_fail("sem botão Entrar")
+		inst.queue_free()
+		await process_frame
+		return
+	if _find_label(fp, "Wi-Fi da casa ou o PC da sala.\nSem VPN.") == null:
+		_fail("dica Sem VPN sumiu ou quebrou")
 		inst.queue_free()
 		await process_frame
 		return

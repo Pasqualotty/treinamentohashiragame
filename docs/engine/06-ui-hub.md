@@ -51,4 +51,5 @@ Como `image_to_video` pode falhar (ZDR), usamos:
 - Placas: tema / StyleBoxFlat (sem PNG Imagine novo nesta onda).  
 - Campo **Computador da sala** (`host:porta`). Vazio = só o Wi-Fi. Não grava IP no save.  
 - Toque no **nome** = chamar (se o PC vir o nick). O **x** continua apagando.  
-- Safe area: `offset_right ≈ -20`, largura ~300, acima da barra do CTA.  
+- Safe area: `offset_right ≈ -16`, largura mínima **320** (cabe “Computador da sala” + padding + borda). Acima da barra do CTA.
+- Textos: wrap **por palavra**. Empty state = `Ninguém` numa linha. Sem wrap por letra.  
