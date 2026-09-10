@@ -15,12 +15,14 @@ var _ip_box: VBoxContainer
 var _ip_input: LineEdit
 var _toast: Label
 var _toast_tween: Tween
+var _meio_input: LineEdit
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build()
 	_bind_session()
+	_load_meio_field()
 	_refresh_list()
 	if is_instance_valid(LanSession) and LanSession.is_guest() and LanSession.has_peer():
 		show_host_picks_stage()
@@ -72,9 +74,20 @@ func _build() -> void:
 	_list_box.set_meta("rows", rows)
 	_list_box.add_child(_plate_btn("CRIAR SALA", _on_create_pressed))
 	_list_box.add_child(_plate_btn("ENTRAR", _on_join_open_pressed))
+	var meio_l := Label.new()
+	meio_l.text = "Computador da sala"
+	meio_l.add_theme_font_size_override("font_size", 13)
+	meio_l.add_theme_color_override("font_color", Palette.CREAM)
+	_list_box.add_child(meio_l)
+	_meio_input = LineEdit.new()
+	_meio_input.placeholder_text = "vazio = só o Wi-Fi"
+	_meio_input.max_length = 64
+	_meio_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_URL
+	_meio_input.text_changed.connect(_on_meio_typed)
+	_list_box.add_child(_meio_input)
 	var hint := Label.new()
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.text = "Mesmo Wi-Fi da casa, sem rede de convidado isolado."
+	hint.text = "Mesmo Wi-Fi da casa, ou o PC da sala. Sem convidado isolado."
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
 	_list_box.add_child(hint)
@@ -229,19 +242,74 @@ func _refresh_list() -> void:
 		lbl.text = "• " + name
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		lbl.add_theme_color_override("font_color", Palette.CREAM)
+		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
+		lbl.gui_input.connect(_make_call_handler(name))
 		row.add_child(lbl)
 		var rm := Button.new()
 		rm.text = "x"
 		rm.custom_minimum_size = Vector2(36, 36)
 		rm.focus_mode = Control.FOCUS_NONE
-		rm.pressed.connect(func() -> void: Game.remove_friend(name))
+		rm.pressed.connect(_make_remove_handler(name))
 		row.add_child(rm)
 		rows.add_child(row)
+
+
+func _make_remove_handler(friend_name: String) -> Callable:
+	return func() -> void:
+		Game.remove_friend(friend_name)
+
+
+func _make_call_handler(friend_name: String) -> Callable:
+	return func(event: InputEvent) -> void:
+		if not event.is_pressed():
+			return
+		if event is InputEventMouseButton:
+			if (event as InputEventMouseButton).button_index != MOUSE_BUTTON_LEFT:
+				return
+		elif not (event is InputEventScreenTouch):
+			return
+		_on_call_friend(friend_name)
+
+
+func _load_meio_field() -> void:
+	if _meio_input == null or not is_instance_valid(LanSession):
+		return
+	_meio_input.text = LanSession.get_sala_meio()
+
+
+func _on_meio_typed(t: String) -> void:
+	if not is_instance_valid(LanSession):
+		return
+	var s := t.strip_edges()
+	if s.is_empty():
+		LanSession.set_sala_meio("")
+		return
+	if SalaMeioClient.parse_endpoint(s).is_empty():
+		return
+	LanSession.set_sala_meio(s)
+
+
+func _apply_meio_now() -> void:
+	if _meio_input == null or not is_instance_valid(LanSession):
+		return
+	var t := _meio_input.text.strip_edges()
+	if t.is_empty():
+		LanSession.set_sala_meio("")
+		return
+	if not LanSession.set_sala_meio(t):
+		show_toast("Endereço inválido")
+		LanSession.set_sala_meio("")
+
+
+func _on_call_friend(friend_name: String) -> void:
+	if is_instance_valid(LanSession):
+		LanSession.call_friend(friend_name)
 
 
 func _on_create_pressed() -> void:
 	if not is_instance_valid(LanSession):
 		return
+	_apply_meio_now()
 	var code := LanSession.host_room()
 	if code.is_empty():
 		return
@@ -267,6 +335,7 @@ func _on_code_typed(t: String) -> void:
 func _on_join_confirm() -> void:
 	if not is_instance_valid(LanSession):
 		return
+	_apply_meio_now()
 	var code := _code_input.text
 	if not RoomCode.is_valid(code):
 		show_toast("Código inválido")
