@@ -129,7 +129,7 @@ Ordem **obrigatória** (confirmada com prints):
 │  Escolha o mundo e a fase…    │            [  JOGAR  ]             │
 └───────────────────────────────┴────────────────────────────────────┘
 
-Toque AMIGOS → gaveta desliza da direita (hub continua atrás):
+Toque AMIGOS → gaveta desliza da direita (painel sólido, topo→embaixo; JOGAR não vaza):
                          │ AMIGOS              [Fechar] │
                          │ Ninguém                      │
                          │ [ Criar sala ]               │

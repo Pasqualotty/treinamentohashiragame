@@ -47,7 +47,7 @@ Como `image_to_video` pode falhar (ZDR), usamos:
 ## Amigos (botão + gaveta)
 
 - Hub **não** planta a coluna. Placa **AMIGOS** na esquerda, mesmo peso de LOJA/PERSONAGENS (320×76, toque ≥ 44).  
-- Cena filha: `scenes/ui/friends_panel.tscn` (`%FriendsPanel`) — overlay. Clique abre gaveta da **direita**. Tanjiro / Loja / Jogar ficam atrás.  
+- Cena filha: `scenes/ui/friends_panel.tscn` (`%FriendsPanel`) — overlay. Clique abre gaveta da **direita** (painel **opaco** do topo até embaixo; JOGAR some enquanto a gaveta está aberta, sem vazar por baixo). Tanjiro / Loja ficam atrás.  
 - Fecha: mesmo botão AMIGOS, toque no fundo, **Fechar** na gaveta, ou `ui_cancel` / pause.  
 - **Não** lotar `hub.gd` — o painel cuida da lista e da sala. Sem `go_to` / troca de tela.  
 - JOGAR continua no mapa; se o toque for de **guest** em sala, abre a gaveta + toast “O anfitrião escolhe a fase”.  

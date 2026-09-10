@@ -55,12 +55,18 @@ func is_drawer_open() -> bool:
 	return _drawer_open
 
 
-func open_drawer() -> void:
-	_set_drawer_open(true, false)
+func open_drawer(instant: bool = false) -> void:
+	_set_drawer_open(true, instant)
 
 
-func close_drawer() -> void:
-	_set_drawer_open(false, false)
+func close_drawer(instant: bool = false) -> void:
+	_set_drawer_open(false, instant)
+
+
+func get_drawer_global_rect() -> Rect2:
+	if _drawer == null or not is_instance_valid(_drawer):
+		return Rect2()
+	return _drawer.get_global_rect()
 
 
 func toggle_drawer() -> void:
@@ -77,6 +83,7 @@ func _set_drawer_open(want: bool, instant: bool) -> void:
 		_drawer.mouse_filter = Control.MOUSE_FILTER_STOP
 		_drawer.visible = true
 		_backdrop.visible = true
+		_set_play_visible(false)
 	_layout_drawer(want, instant)
 	if want:
 		call_deferred("_sync_rows_width")
@@ -93,6 +100,20 @@ func _apply_closed_filters() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _backdrop != null:
 		_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_set_play_visible(true)
+
+
+func _hub_play_button() -> Button:
+	var hub := get_parent()
+	if hub == null:
+		return null
+	return hub.get_node_or_null("%PlayButton") as Button
+
+
+func _set_play_visible(p_visible: bool) -> void:
+	var btn := _hub_play_button()
+	if btn != null:
+		btn.visible = p_visible
 
 
 func _layout_drawer(p_open: bool, instant: bool) -> void:
@@ -143,41 +164,38 @@ func _build() -> void:
 	_backdrop.gui_input.connect(_on_backdrop_gui)
 	add_child(_backdrop)
 
-	_drawer = Control.new()
+	_drawer = PanelContainer.new()
+	_drawer.custom_minimum_size.x = COL_MIN_WIDTH
+	_drawer.mouse_filter = Control.MOUSE_FILTER_STOP
+	_drawer.clip_contents = true
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Palette.PANEL
+	sb.border_color = Palette.with_alpha(Palette.GOLD, 0.55)
+	sb.set_border_width_all(2)
+	sb.corner_radius_top_left = 12
+	sb.corner_radius_bottom_left = 12
+	sb.corner_radius_top_right = 0
+	sb.corner_radius_bottom_right = 0
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 16
+	sb.content_margin_bottom = 16
+	_drawer.add_theme_stylebox_override("panel", sb)
+	add_child(_drawer)
 	_drawer.anchor_left = 1.0
 	_drawer.anchor_top = 0.0
 	_drawer.anchor_right = 1.0
 	_drawer.anchor_bottom = 1.0
-	_drawer.offset_top = 12.0
-	_drawer.offset_bottom = -12.0
+	_drawer.offset_top = 0.0
+	_drawer.offset_bottom = 0.0
 	_drawer.offset_left = 16.0
 	_drawer.offset_right = DRAWER_W + 16.0
-	_drawer.custom_minimum_size.x = COL_MIN_WIDTH
-	_drawer.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_drawer)
-
-	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Palette.with_alpha(Palette.PANEL, 0.92)
-	sb.border_color = Palette.with_alpha(Palette.GOLD, 0.55)
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(12)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 12
-	sb.content_margin_bottom = 12
-	panel.add_theme_stylebox_override("panel", sb)
-	_drawer.add_child(panel)
 
 	var root := VBoxContainer.new()
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_theme_constant_override("separation", 10)
-	panel.add_child(root)
+	_drawer.add_child(root)
 
 	var head := HBoxContainer.new()
 	head.size_flags_horizontal = Control.SIZE_EXPAND_FILL

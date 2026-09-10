@@ -180,7 +180,7 @@ func _test_legacy_without_friends() -> void:
 
 func _open_drawer(fp: Node) -> void:
 	if fp != null and fp.has_method("open_drawer"):
-		fp.call("open_drawer")
+		fp.call("open_drawer", true)
 
 
 func _space_px(c: Control) -> float:
@@ -298,6 +298,52 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
+	if not fp.has_method("get_drawer_global_rect"):
+		_fail("FriendsPanel sem get_drawer_global_rect")
+		inst.queue_free()
+		await process_frame
+		return
+	var drect: Rect2 = fp.call("get_drawer_global_rect")
+	var vp: Vector2 = inst.get_viewport_rect().size
+	if drect.size.y < vp.y - 8.0:
+		_fail("gaveta não vai do topo até embaixo: %s vp=%s" % [drect, vp])
+		inst.queue_free()
+		await process_frame
+		return
+	var play: Button = inst.get_node_or_null("%PlayButton") as Button
+	if play == null:
+		_fail("hub sem PlayButton")
+		inst.queue_free()
+		await process_frame
+		return
+	if play.visible:
+		var overlap: Rect2 = drect.intersection(play.get_global_rect())
+		if overlap.size.x > 4.0 and overlap.size.y > 4.0:
+			_fail("JOGAR fura a gaveta overlap=%s" % overlap)
+			inst.queue_free()
+			await process_frame
+			return
+	var hint_lan: Label = _find_label(fp, "Wi-Fi da casa ou o PC da sala.\nSem VPN.")
+	if hint_lan != null and play.visible:
+		var h_over: Rect2 = hint_lan.get_global_rect().intersection(play.get_global_rect())
+		if h_over.size.x > 4.0 and h_over.size.y > 4.0:
+			_fail("dica senta no JOGAR overlap=%s" % h_over)
+			inst.queue_free()
+			await process_frame
+			return
+	if fp.has_method("close_drawer"):
+		fp.call("close_drawer", true)
+		for i in range(4):
+			await process_frame
+		if play.visible == false:
+			_fail("JOGAR não voltou ao fechar a gaveta")
+			inst.queue_free()
+			await process_frame
+			return
+		# reabre — o close abaixo é o teste de close_drawer animado/API
+		_open_drawer(fp)
+		for i in range(4):
+			await process_frame
 	if fp.has_method("close_drawer"):
 		fp.call("close_drawer")
 		for i in range(6):
