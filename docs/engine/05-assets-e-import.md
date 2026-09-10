@@ -28,13 +28,16 @@ ERR_FILE_CORRUPT / Not a PNG file
 
 ## Pastas de arte atuais
 
-- Player hub idle: `assets/characters/player/hub_idle/00..05.png`  
-- Side combat: `assets/characters/player/tanjiro_idle_side.png`  
+- Pack por id: `assets/characters/<id>/` (hub_idle, portrait, combat/{idle_side,run,attack,hurt})  
+- Tanjiro fiel (legado): `assets/characters/player/hub_idle/` + `player/combat/`  
+- Trio playtest: `assets/characters/{nezuko,zenitsu,inosuke}/` + review `assets/pack_playtest_trio/`  
 - Oni: `assets/characters/enemies/oni_weak_side.png`  
 - Hub BG: `assets/ui/hub/bg_frame_*.png`  
 - Botões: `assets/ui/buttons/*.png`  
 - Loading keyart: `assets/ui/loading/keyart_w1.png`  
-- Review: `assets/pack_v01/`  
+- Review antigo: `assets/pack_v01/`  
+
+JPEG com extensão `.png` = `ERR_FILE_CORRUPT`. Sempre Pillow → header `89 50 4E 47`.
 
 ## Style bible
 

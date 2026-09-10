@@ -13,9 +13,10 @@
 
 ## Personagem
 
-- Texturas em `hub_idle/`  
-- Loop com `Array[float]` de durations (blink mais rápido)  
-- **Sem** fundo magenta (PNG com alpha)
+- Showcase lê o `CharacterDef` atual (`hub_frames_dir` / 00 + 03).  
+- `character_changed` **recarrega** a textura (não só o nome).  
+- Pack próprio → `modulate = WHITE`. Sem pack → fallback Tanjiro + `accent`.  
+- **Sem** fundo magenta (PNG com alpha).
 
 ## Botões temáticos
 
@@ -35,7 +36,7 @@ Como `image_to_video` pode falhar (ZDR), usamos:
 
 ## Critério visual de pronto
 
-- Tanjiro ocupa área central generosa  
+- O caçador atual ocupa área central generosa  
 - Fundo noturno visível  
 - Botões não são “cinza default” puro  
 - F5 sem erro de parse GDScript  
