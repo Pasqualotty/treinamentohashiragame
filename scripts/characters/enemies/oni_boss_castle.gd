@@ -4,7 +4,7 @@ extends "res://scripts/characters/enemies/boss_body.gd"
 enum AttackKind { TELEPORT, SLAM }
 
 @export var slam_active_time: float = 0.22
-@export var slam_damage: int = 16
+@export var slam_damage: int = 20
 @export var slam_knockback: Vector2 = Vector2(200.0, -220.0)
 @export var slam_wave_range: float = 210.0
 @export var room_span: float = 200.0

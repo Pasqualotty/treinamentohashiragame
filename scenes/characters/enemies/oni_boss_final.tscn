@@ -23,9 +23,11 @@ collision_mask = 1
 floor_stop_on_slope = true
 script = ExtResource("1_boss")
 boss_display_name = "Soberano do Eclipse"
-max_hp = 450
+max_hp = 520
 coin_reward = 120
 chase_speed = 125.0
+charge_damage = 20
+slam_damage = 22
 summon_max_minions = 3
 attack_cooldown_base = 1.45
 
@@ -62,7 +64,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 16
+damage = 20
 knockback = Vector2(260, -80)
 team = &"enemy"
 
@@ -77,7 +79,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 18
+damage = 22
 knockback = Vector2(-220, -240)
 team = &"enemy"
 
@@ -92,7 +94,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 18
+damage = 22
 knockback = Vector2(220, -240)
 team = &"enemy"
 
@@ -107,5 +109,5 @@ offset_right = 90.0
 offset_bottom = -114.0
 theme_override_colors/font_color = Color(0.85, 0.55, 1, 1)
 theme_override_font_sizes/font_size = 15
-text = "HP 450/450"
+text = "HP 520/520"
 horizontal_alignment = 1

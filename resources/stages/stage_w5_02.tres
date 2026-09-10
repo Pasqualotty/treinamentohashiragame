@@ -11,4 +11,4 @@ requires_cleared = Array[String](["w5_01"])
 map_label = "Fase 2"
 map_position = Vector2(460, 320)
 is_boss = false
-waves = [["charger", "weak"], ["ranged", "charger", "weak"], ["elite", "charger"]]
+waves = [["charger", "weak", "elite"], ["ranged", "charger", "weak"], ["elite", "charger", "ranged"]]

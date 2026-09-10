@@ -19,7 +19,7 @@ collision_layer = 4
 collision_mask = 1
 floor_stop_on_slope = true
 script = ExtResource("1_oni")
-max_hp = 30
+max_hp = 48
 coin_reward = 10
 
 [node name="Sprite" type="Sprite2D" parent="."]
@@ -54,7 +54,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 4
+damage = 7
 knockback = Vector2(140, -40)
 team = &"enemy"
 
@@ -69,5 +69,5 @@ offset_right = 52.0
 offset_bottom = -56.0
 theme_override_colors/font_color = Color(1, 0.75, 0.55, 1)
 theme_override_font_sizes/font_size = 13
-text = "HP 30/30"
+text = "HP 48/48"
 horizontal_alignment = 1

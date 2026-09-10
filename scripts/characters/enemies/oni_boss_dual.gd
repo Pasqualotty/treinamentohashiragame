@@ -4,11 +4,11 @@ extends "res://scripts/characters/enemies/boss_body.gd"
 enum AttackKind { DUAL_SWING, CLONE }
 
 @export var swing_time: float = 0.24
-@export var swing_damage: int = 13
+@export var swing_damage: int = 17
 @export var swing_knockback: Vector2 = Vector2(200.0, -200.0)
 @export var swing_wave_range: float = 200.0
 @export var clone_time: float = 0.85
-@export var clone_damage: int = 11
+@export var clone_damage: int = 15
 @export var clone_knockback: Vector2 = Vector2(210.0, -80.0)
 @export var clone_offset: float = 90.0
 

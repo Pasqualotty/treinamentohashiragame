@@ -16,19 +16,19 @@ const COIN_SCENE: PackedScene = preload("res://scenes/combat/coin_pickup.tscn")
 ## estado atual, não é um State novo).
 const HURT_RECOIL_DUR: float = 0.22
 
-@export var max_hp: int = 30
+@export var max_hp: int = 48
 ## Valor da moeda spawnada no chão (creditada só no pickup).
 @export var coin_reward: int = 10
-@export var patrol_speed: float = 55.0
-@export var chase_speed: float = 105.0
-@export var detect_range: float = 240.0
+@export var patrol_speed: float = 62.0
+@export var chase_speed: float = 128.0
+@export var detect_range: float = 280.0
 @export var attack_range: float = 52.0
 @export var telegraph_time: float = 0.4
 @export var attack_active_time: float = 0.14
-@export var attack_recovery: float = 0.32
-@export var attack_cooldown: float = 0.85
+@export var attack_recovery: float = 0.26
+@export var attack_cooldown: float = 0.58
 @export var patrol_half_width: float = 90.0
-@export var attack_damage: int = 4
+@export var attack_damage: int = 7
 @export var attack_knockback: Vector2 = Vector2(140.0, -40.0)
 
 @onready var sprite: Sprite2D = %Sprite
@@ -36,7 +36,7 @@ const HURT_RECOIL_DUR: float = 0.22
 @onready var hitbox: Hitbox = %Hitbox
 @onready var hp_label: Label = %HpLabel
 
-var hp: int = 30
+var hp: int = 48
 var state: State = State.PATROL
 var facing: float = -1.0
 var _home_x: float = 0.0
@@ -286,13 +286,14 @@ func _on_hurt(hit_data: HitData) -> void:
 		Fx.spark(spark_pos, Fx.COLOR_CRIMSON, 8)
 	# Hit SFX fica no player (fonte do hit); oni so reage visualmente.
 	print("[Oni] hurt dmg=%d hp=%d/%d" % [hit_data.damage, hp, max_hp])
-	# Interrompe telegraph/ataque ao tomar hit.
-	if state == State.TELEGRAPH or state == State.ATTACK:
+	# Wind-up ainda cancela; swing commitado (ATTACK) completa.
+	if state == State.TELEGRAPH:
 		if hitbox:
 			hitbox.disable()
 		if sprite:
 			sprite.modulate = _base_modulate
 		state = State.CHASE
+		_cooldown_left = 0.12
 	if hp <= 0:
 		_on_defeated()
 

@@ -39,11 +39,11 @@ const COIN_SCENE: PackedScene = preload("res://scenes/combat/coin_pickup.tscn")
 ## nos onis comuns).
 const HURT_RECOIL_DUR: float = 0.2
 
-@export var max_hp: int = 300
+@export var max_hp: int = 420
 ## Valor da moeda spawnada no chão (creditada só no pickup).
 @export var coin_reward: int = 80
 @export var patrol_speed: float = 50.0
-@export var chase_speed: float = 115.0
+@export var chase_speed: float = 138.0
 @export var detect_range: float = 520.0
 @export var attack_range: float = 340.0
 @export var patrol_half_width: float = 160.0
@@ -52,22 +52,22 @@ const HURT_RECOIL_DUR: float = 0.2
 @export var charge_speed: float = 460.0
 @export var charge_telegraph_time: float = 0.55
 @export var charge_max_time: float = 0.65
-@export var charge_damage: int = 14
+@export var charge_damage: int = 18
 @export var charge_knockback: Vector2 = Vector2(240.0, -70.0)
 
 # Golpe em área / onda (SLAM)
 @export var slam_telegraph_time: float = 0.6
 @export var slam_active_time: float = 0.22
-@export var slam_damage: int = 16
+@export var slam_damage: int = 20
 @export var slam_knockback: Vector2 = Vector2(200.0, -220.0)
 @export var slam_wave_range: float = 210.0
 
 # Invocação (SUMMON)
 @export var summon_telegraph_time: float = 0.7
 @export var summon_max_minions: int = 2
-@export var summon_cooldown: float = 14.0
+@export var summon_cooldown: float = 11.0
 
-@export var attack_cooldown_base: float = 1.8
+@export var attack_cooldown_base: float = 1.45
 @export var recovery_time: float = 0.5
 
 @onready var sprite: Sprite2D = %Sprite
@@ -77,7 +77,7 @@ const HURT_RECOIL_DUR: float = 0.2
 @onready var slam_hitbox_r: Hitbox = %SlamHitboxR
 @onready var hp_label: Label = %HpLabel
 
-var hp: int = 300
+var hp: int = 420
 var state: State = State.INTRO
 var phase: int = Phase.P1
 var facing: float = -1.0

@@ -79,7 +79,7 @@ func _initialize() -> void:
 		ok = false
 		messages.append("coins_run deveria iniciar 0, got %d" % coins_before_kill)
 
-	# Aplica dano via hurtbox até morrer (HP 30, hits de 10).
+	# Aplica dano via hurtbox até morrer (loop por HP; hits de 10, guard 12).
 	var hurtbox: Node = oni.get_node_or_null("%Hurtbox")
 	if hurtbox == null:
 		hurtbox = oni.get_node_or_null("Hurtbox")
@@ -88,14 +88,19 @@ func _initialize() -> void:
 		messages.append("hurtbox do oni não encontrada")
 	else:
 		var hit_script: GDScript = load("res://scripts/combat/hit_data.gd") as GDScript
-		for i: int in range(4):
+		var hits: int = 0
+		while is_instance_valid(oni) and int(oni.get("hp")) > 0 and hits < 12:
 			var data: RefCounted = hit_script.new() as RefCounted
 			data.set("damage", 10)
 			data.set("knockback", Vector2(20, -10))
 			hurtbox.call("receive_hit", data)
+			hits += 1
 			await process_frame
 			if not is_instance_valid(oni):
 				break
+		if is_instance_valid(oni) and int(oni.get("hp")) > 0:
+			ok = false
+			messages.append("oni ainda vivo após %d hits (hp=%s)" % [hits, str(oni.get("hp"))])
 
 	# Espera morte + spawn coin + queue_free do oni.
 	for _i: int in range(30):

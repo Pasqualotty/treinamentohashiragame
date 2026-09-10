@@ -23,7 +23,7 @@ collision_mask = 1
 floor_stop_on_slope = true
 script = ExtResource("1_boss")
 boss_display_name = "Sentinela das Salas"
-max_hp = 320
+max_hp = 440
 coin_reward = 85
 hp_fill = Color(0.78, 0.62, 0.28, 1)
 
@@ -60,7 +60,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 14
+damage = 18
 knockback = Vector2(220, -70)
 team = &"enemy"
 
@@ -75,7 +75,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 16
+damage = 20
 knockback = Vector2(-200, -220)
 team = &"enemy"
 
@@ -90,7 +90,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 16
+damage = 20
 knockback = Vector2(200, -220)
 team = &"enemy"
 
@@ -105,5 +105,5 @@ offset_right = 90.0
 offset_bottom = -104.0
 theme_override_colors/font_color = Color(0.95, 0.82, 0.5, 1)
 theme_override_font_sizes/font_size = 15
-text = "HP 320/320"
+text = "HP 440/440"
 horizontal_alignment = 1

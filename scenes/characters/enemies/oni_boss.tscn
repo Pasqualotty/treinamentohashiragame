@@ -22,7 +22,7 @@ collision_layer = 4
 collision_mask = 1
 floor_stop_on_slope = true
 script = ExtResource("1_boss")
-max_hp = 300
+max_hp = 420
 coin_reward = 80
 
 [node name="Sprite" type="Sprite2D" parent="."]
@@ -58,7 +58,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 14
+damage = 18
 knockback = Vector2(240, -70)
 team = &"enemy"
 
@@ -73,7 +73,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 16
+damage = 20
 knockback = Vector2(-200, -220)
 team = &"enemy"
 
@@ -88,7 +88,7 @@ collision_mask = 16
 monitoring = false
 monitorable = false
 script = ExtResource("4_hitbox")
-damage = 16
+damage = 20
 knockback = Vector2(200, -220)
 team = &"enemy"
 
@@ -103,5 +103,5 @@ offset_right = 90.0
 offset_bottom = -104.0
 theme_override_colors/font_color = Color(1, 0.6, 0.95, 1)
 theme_override_font_sizes/font_size = 15
-text = "HP 300/300"
+text = "HP 420/420"
 horizontal_alignment = 1
