@@ -390,6 +390,9 @@ func _test_scenes(router: Node) -> void:
 	if not router.has_method("to_characters"):
 		_fail("SceneRouter.to_characters ausente")
 		return
+	root.size = Vector2i(1280, 720)
+	await process_frame
+	await process_frame
 	for p in [SELECT_SCENE, HUB]:
 		var packed: PackedScene = load(p) as PackedScene
 		if packed == null:
@@ -397,6 +400,9 @@ func _test_scenes(router: Node) -> void:
 			return
 		var inst: Node = packed.instantiate()
 		root.add_child(inst)
+		await process_frame
+		await process_frame
+		await process_frame
 		await process_frame
 		if p == SELECT_SCENE:
 			if not _assert_select_layout(inst):
@@ -487,6 +493,18 @@ func _assert_select_layout(inst: Node) -> bool:
 	if back.autowrap_mode != TextServer.AUTOWRAP_OFF:
 		_fail("BackButton autowrap=%d" % int(back.autowrap_mode))
 		return false
+	var scroll: ScrollContainer = inst.find_child("Scroll", true, false) as ScrollContainer
+	if scroll == null:
+		_fail("character_select sem Scroll")
+		return false
+	if not scroll.clip_contents:
+		_fail("Scroll.clip_contents false")
+		return false
+	if scroll.is_ancestor_of(back):
+		_fail("Hub está dentro do Scroll")
+		return false
+	if not _assert_complete_cards(scroll, grid, back):
+		return false
 	var current: Label = inst.find_child("CurrentLabel", true, false) as Label
 	if current == null or current.autowrap_mode != TextServer.AUTOWRAP_OFF:
 		_fail("CurrentLabel deve ficar numa linha")
@@ -508,6 +526,43 @@ func _assert_select_layout(inst: Node) -> bool:
 				_fail("cadeado autowrap=%d (%s)" % [int(btn.autowrap_mode), btn.text])
 				return false
 	_pass("layout 3 colunas + toque>=44 + Escolher numa linha")
+	return true
+
+
+func _assert_complete_cards(scroll: ScrollContainer, grid: GridContainer, back: Button) -> bool:
+	var view: Rect2 = scroll.get_global_rect()
+	var hub: Rect2 = back.get_global_rect()
+	if view.size.y < 80.0:
+		_fail("Scroll sem altura (%.1f)" % view.size.y)
+		return false
+	if view.intersects(hub.grow(-2.0)):
+		_fail("Hub intersecta o scroll")
+		return false
+	var visible_complete: int = 0
+	for card_n in grid.get_children():
+		var card := card_n as Control
+		if card == null:
+			continue
+		var card_rect: Rect2 = card.get_global_rect()
+		var inter: Rect2 = card_rect.intersection(view)
+		if inter.size.y <= 2.0:
+			continue
+		if inter.intersects(hub.grow(-1.0)):
+			_fail("Hub em cima do card")
+			return false
+		var clipped_top: bool = card_rect.position.y < view.position.y - 2.0
+		var clipped_bot: bool = card_rect.end.y > view.end.y + 2.0
+		if clipped_top or clipped_bot:
+			_fail(
+				"card parcial vis=%.0f card=%.0f (cara cortada)"
+				% [inter.size.y, card_rect.size.y]
+			)
+			return false
+		visible_complete += 1
+	if visible_complete < 3:
+		_fail("viewport sem fileira completa (visíveis=%d)" % visible_complete)
+		return false
+	_pass("cards visíveis inteiros + Hub fora do grid")
 	return true
 
 
