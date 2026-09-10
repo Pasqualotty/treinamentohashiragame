@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CharacterDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_def.gd" id="1_def"]
+
+[resource]
+script = ExtResource("1_def")
+id = "nezuko"
+display_name = "Nezuko"
+unlock_requires = Array[String]([])
+unlock_hint = "Disponível desde o início"
+skill_1_name = "Chute"
+skill_2_name = "Salto"
+ultimate_name = "Explosão"
+accent = Color(1.08, 0.72, 0.82, 1)
+stats_path = "res://resources/player/player_stats.tres"
+combat_frames_dir = "res://assets/characters/nezuko/combat"
+hub_frames_dir = "res://assets/characters/nezuko/hub_idle"
+portrait_path = "res://assets/characters/nezuko/portrait.png"
+lifesteal_ratio = 0.0

@@ -191,7 +191,7 @@ func _ready() -> void:
 	hp_changed.emit(hp, stats.max_hp)
 
 
-## Um player, 14 resources: stats + tint vêm do CharacterDef do save.
+## Um player, 15 resources: stats vêm do CharacterDef; tint só se não houver pack.
 func _apply_character_kit() -> void:
 	var wanted_id: String = "tanjiro"
 	if Game != null:
@@ -206,7 +206,7 @@ func _apply_character_kit() -> void:
 		return
 	applied_character_id = def.id
 	stats = def.build_stats()
-	_base_modulate = def.accent
+	_base_modulate = Color.WHITE if def.has_combat_art() else def.accent
 	if sprite:
 		sprite.modulate = _base_modulate
 
@@ -965,11 +965,21 @@ func _set_state(new_state: State) -> void:
 func _setup_sprite_frames() -> void:
 	if sprite == null:
 		return
+	var def: CharacterDef = CharacterCatalog.find(applied_character_id)
 	var frames: SpriteFrames = SpriteFrames.new()
-	_add_anim_from_paths(frames, ANIM_IDLE, IDLE_FRAME_PATHS, 11.0, true)
-	_add_anim_from_paths(frames, ANIM_RUN, RUN_FRAME_PATHS, 14.0, true)
-	_add_anim_from_paths(frames, ANIM_ATTACK, ATTACK_FRAME_PATHS, 12.0, false)
-	_add_anim_from_paths(frames, ANIM_HURT, HURT_FRAME_PATHS, 1.0, false)
+	var idle_paths: Array[String] = IDLE_FRAME_PATHS
+	var run_paths: Array[String] = RUN_FRAME_PATHS
+	var attack_paths: Array[String] = ATTACK_FRAME_PATHS
+	var hurt_paths: Array[String] = HURT_FRAME_PATHS
+	if def != null:
+		idle_paths = def.combat_anim_paths("idle_side", IDLE_FRAME_PATHS)
+		run_paths = def.combat_anim_paths("run", RUN_FRAME_PATHS)
+		attack_paths = def.combat_anim_paths("attack", ATTACK_FRAME_PATHS)
+		hurt_paths = def.combat_anim_paths("hurt", HURT_FRAME_PATHS)
+	_add_anim_from_paths(frames, ANIM_IDLE, idle_paths, 11.0, true)
+	_add_anim_from_paths(frames, ANIM_RUN, run_paths, 14.0, true)
+	_add_anim_from_paths(frames, ANIM_ATTACK, attack_paths, 12.0, false)
+	_add_anim_from_paths(frames, ANIM_HURT, hurt_paths, 1.0, false)
 	sprite.sprite_frames = frames
 	sprite.centered = true
 	# Escala por altura da primeira textura disponível (pés no chão via position.y).

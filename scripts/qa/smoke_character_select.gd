@@ -1,5 +1,5 @@
 extends SceneTree
-## Smoke do elenco: 14 ids, unlock, select recusa locked, persistência, player lê o kit.
+## Smoke do elenco: 15 ids, unlock, select recusa locked, persistência, player lê o kit + arte.
 ## Nunca escreve em user://save.json — usa save temporário.
 ## Uso: godot --headless --path . -s res://scripts/qa/smoke_character_select.gd
 
@@ -47,6 +47,7 @@ func _run() -> void:
 	_test_select_and_persist()
 	_test_legacy_save()
 	_test_player_kit()
+	await _test_own_art()
 	await _test_scenes(router)
 	_finish()
 
@@ -118,10 +119,13 @@ func _test_catalog() -> void:
 	if CharacterCatalog.find("tanjiro") == null or CharacterCatalog.find("muzan") == null:
 		_fail("find tanjiro/muzan falhou")
 		return
+	if CharacterCatalog.find("nezuko") == null:
+		_fail("find nezuko falhou")
+		return
 	if CharacterCatalog.find("nao_existe") != null:
 		_fail("find inventou personagem")
 		return
-	_pass("catálogo 14 ids + kits")
+	_pass("catálogo 15 ids + kits")
 
 
 func _test_unlock_table() -> void:
@@ -131,6 +135,13 @@ func _test_unlock_table() -> void:
 	var empty: Array[String] = []
 	if tanjiro == null or not tanjiro.is_unlocked(empty):
 		_fail("Tanjiro deveria ser starter")
+		return
+	var nezuko: CharacterDef = CharacterCatalog.find("nezuko")
+	if nezuko == null or not nezuko.is_unlocked(empty):
+		_fail("Nezuko deveria ser escolhível no save novo")
+		return
+	if not bool(_game.call("is_character_unlocked", "nezuko")):
+		_fail("Game.is_character_unlocked(nezuko) false no save novo")
 		return
 	if zenitsu == null or zenitsu.is_unlocked(empty):
 		_fail("Zenitsu unlocked sem w1_boss")
@@ -164,6 +175,12 @@ func _test_select_and_persist() -> void:
 		return
 	if not bool(_game.call("select_character", "tanjiro")):
 		_fail("select tanjiro recusou starter")
+		return
+	if not bool(_game.call("select_character", "nezuko")):
+		_fail("select nezuko recusou no save novo")
+		return
+	if str(_game.get("current_character_id")) != "nezuko":
+		_fail("current_character_id != nezuko após select livre")
 		return
 
 	_game.call("mark_stage_cleared", "w1_boss")
@@ -263,6 +280,75 @@ func _test_player_kit() -> void:
 	_pass("player aplica kit do id salvo")
 
 
+func _test_own_art() -> void:
+	var quartet: PackedStringArray = ["tanjiro", "nezuko", "zenitsu", "inosuke"]
+	for character_id: String in quartet:
+		var def: CharacterDef = CharacterCatalog.find(character_id)
+		if def == null:
+			_fail("%s ausente no catálogo" % character_id)
+			return
+		if not def.has_portrait_art():
+			_fail("%s sem portrait" % character_id)
+			return
+		if not def.has_hub_art():
+			_fail("%s sem hub 00" % character_id)
+			return
+		if not FileAccess.file_exists("%s/03.png" % def.hub_frames_dir.rstrip("/")):
+			_fail("%s sem hub 03" % character_id)
+			return
+		if not def.has_combat_art():
+			_fail("%s sem combat sheets" % character_id)
+			return
+		for sub: String in ["idle_side", "run", "attack", "hurt"]:
+			var frame_path: String = "%s/%s/00.png" % [def.combat_frames_dir.rstrip("/"), sub]
+			if not FileAccess.file_exists(frame_path):
+				_fail("%s sem %s" % [character_id, frame_path])
+				return
+	_pass("quarteto tem portrait/hub/combat no disco")
+
+	var prev_id: String = str(_game.get("current_character_id"))
+	var packed: PackedScene = load(PLAYER) as PackedScene
+	if packed == null:
+		_fail("player.tscn não carregou (arte)")
+		return
+	for character_id: String in quartet:
+		_game.set("current_character_id", character_id)
+		var player: Node = packed.instantiate()
+		root.add_child(player)
+		await process_frame
+		if str(player.get("applied_character_id")) != character_id:
+			_fail("player.applied_character_id=%s wanted %s" % [player.get("applied_character_id"), character_id])
+			player.queue_free()
+			return
+		var spr: AnimatedSprite2D = player.find_child("AnimatedSprite2D", true, false) as AnimatedSprite2D
+		if spr == null or spr.sprite_frames == null:
+			_fail("player sem AnimatedSprite2D (%s)" % character_id)
+			player.queue_free()
+			return
+		var tex: Texture2D = spr.sprite_frames.get_frame_texture(&"idle", 0)
+		if tex == null:
+			_fail("player idle vazio (%s)" % character_id)
+			player.queue_free()
+			return
+		var path: String = tex.resource_path
+		if character_id == "tanjiro":
+			if "tanjiro" not in path and "player/combat" not in path:
+				_fail("tanjiro path=%s" % path)
+				player.queue_free()
+				return
+		elif character_id not in path:
+			_fail("%s path sem id: %s" % [character_id, path])
+			player.queue_free()
+			return
+		if not spr.modulate.is_equal_approx(Color.WHITE):
+			_fail("%s modulate != WHITE (%s)" % [character_id, str(spr.modulate)])
+			player.queue_free()
+			return
+		player.queue_free()
+	_game.set("current_character_id", prev_id)
+	_pass("player carrega path do id + WHITE")
+
+
 func _test_scenes(router: Node) -> void:
 	var path: String = str(router.get("CHARACTER_SELECT"))
 	if path != SELECT_SCENE:
@@ -286,11 +372,49 @@ func _test_scenes(router: Node) -> void:
 				inst.queue_free()
 				return
 			if grid.get_child_count() != CharacterCatalog.EXPECTED_IDS.size():
-				_fail("grid cards=%d esperado 14" % grid.get_child_count())
+				_fail("grid cards=%d esperado %d" % [grid.get_child_count(), CharacterCatalog.EXPECTED_IDS.size()])
 				inst.queue_free()
 				return
 		inst.queue_free()
-	_pass("tela PERSONAGENS instancia 14 cards + hub")
+	if not bool(_game.call("select_character", "tanjiro")):
+		_fail("não voltou pro tanjiro antes do hub")
+		return
+	var hub_packed: PackedScene = load(HUB) as PackedScene
+	var hub: Node = hub_packed.instantiate()
+	root.add_child(hub)
+	await process_frame
+	await process_frame
+	var art: TextureRect = hub.find_child("CharacterArt", true, false) as TextureRect
+	if art == null or art.texture == null:
+		_fail("hub CharacterArt sem textura")
+		hub.queue_free()
+		return
+	var before: String = art.texture.resource_path
+	if not bool(_game.call("select_character", "nezuko")):
+		_fail("select nezuko no hub falhou")
+		hub.queue_free()
+		return
+	await process_frame
+	await process_frame
+	if art.texture == null:
+		_fail("hub CharacterArt perdeu textura após nezuko")
+		hub.queue_free()
+		return
+	var after: String = art.texture.resource_path
+	if after == before:
+		_fail("hub CharacterArt.texture não mudou após select")
+		hub.queue_free()
+		return
+	if "nezuko" not in after:
+		_fail("hub textura após nezuko = %s" % after)
+		hub.queue_free()
+		return
+	if not art.modulate.is_equal_approx(Color.WHITE):
+		_fail("hub nezuko modulate != WHITE")
+		hub.queue_free()
+		return
+	hub.queue_free()
+	_pass("tela PERSONAGENS instancia 15 cards + hub troca textura")
 
 
 func _finish() -> void:

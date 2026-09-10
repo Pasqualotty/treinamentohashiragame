@@ -1,7 +1,7 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-01 (W1–W5 + elenco 14)  
-**Marca:** **MVP W1 + 5 mundos + elenco 14**  
+**Atualizado:** 2026-09-10 (W1–W5 + elenco 15 + arte própria do quarteto)  
+**Marca:** **MVP W1 + 5 mundos + elenco 15**  
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
 **Playtest humano 10 min:** `docs/PLAYTEST-SOBRINHO.md`  
@@ -67,7 +67,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
 | Item | Status |
 |------|--------|
 | 5 mundos (W1–W5) no mapa, cadeia de unlock por boss | ✅ |
-| Elenco 14 (Tanjiro starter; unlock por `stage_id`) | ✅ |
+| Elenco 15 (Tanjiro starter; Nezuko livre; resto por `stage_id`) | ✅ |
 | Loja 4 upgrades + save | ✅ |
 | 2 tipos de oni (fraco + elite) | ✅ |
 | Boot splash → loading → hub | ✅ |
@@ -104,15 +104,15 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | Sheets AAA multi-frame (run/atk/ult mais fluidos) | MVP usa sheets legíveis; upgrade de arte depois |
 | BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
 | UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
-| PERSONAGENS no hub | ✅ tela select real (14; locked recusa; save do id) |
+| PERSONAGENS no hub | ✅ tela select real (15; portrait no quarteto; locked recusa; save do id) |
 | Missões / XP / social no hub | GDD: fase 2+ / fora offline |
 
 ### 3) Conteúdo em escala (Fase F)
 
-- ✅ Elenco 14 (trio + Hashiras + Yoriichi + Muzan) — um player, 14 `CharacterDef`
+- ✅ Elenco 15 (Tanjiro + Nezuko + trio + Hashiras + Yoriichi + Muzan) — um player, 15 `CharacterDef`
 - ✅ Mundos W2–W5 no mapa
 - Arte final / BGM por mundo (hoje placeholder recolorido)
-- Arte própria por caçador (hoje: modulate em cima dos frames do Tanjiro)
+- Arte própria por caçador: **onda 4** (Tanjiro fiel + Nezuko / Zenitsu / Inosuke). Os outros 10 ainda modulate em cima dos frames do Tanjiro.
 
 ### 4) Release “sério” (Fase G)
 
@@ -137,7 +137,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | Tema | Default MVP |
 |------|-------------|
 | Skills Tanjiro | Corte em Arco / Investida / Respiração |
-| Elenco | `CharacterCatalog` 14 ids; save `unlocked_characters` + `current_character_id` |
+| Elenco | `CharacterCatalog` 15 ids; save `unlocked_characters` + `current_character_id` |
 | Upgrades loja | HP, Dano, Velocidade, Dash CD |
 | Morte na fase | perde moedas da run (`lose_run_coins`) |
 | Upgrades | **globais** |

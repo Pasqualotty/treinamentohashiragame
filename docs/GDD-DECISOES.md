@@ -2,7 +2,7 @@
 
 **Projeto:** Treinamento Hashira (2D · Android · fan / uso pessoal)  
 **Estúdio:** Pasqualotti Studio  
-**Atualizado:** 2026-09-01 (W1–W5 + elenco 14 — progresso vivo em `STATUS-PROGRESSO.md`)
+**Atualizado:** 2026-09-10 (W1–W5 + elenco 15 — progresso vivo em `STATUS-PROGRESSO.md`)
 
 ---
 
@@ -103,12 +103,12 @@ Ordem **obrigatória** (confirmada com prints):
 
 | Zona na ref | Em Brawl Stars | No Treinamento Hashira | MVP? |
 |-------------|----------------|------------------------|------|
-| Centro | Brawler em pose | **Tanjiro** (idle showcase) | ✅ |
+| Centro | Brawler em pose | **Personagem atual** (idle showcase; não é sempre Tanjiro) | ✅ |
 | CTA grande amarelo | JOGAR | **JOGAR** → **mapa do mundo** (escolhe a fase) | ✅ |
 | Topo moedas / recursos | Gems, coins, bling | **Moedas** (e depois outros se precisar) | ✅ moedas |
 | Topo perfil | Nick + ícone | Nick local / “Caçador” + avatar | ✅ simples |
 | Esquerda LOJA | Shop | **Loja de upgrades** | ✅ |
-| Esquerda lista chars | Brawlers | **Personagens** (14 no catálogo; Tanjiro starter) | ✅ tela select |
+| Esquerda lista chars | Brawlers | **Personagens** (15 no catálogo; Tanjiro starter; Nezuko livre) | ✅ tela select |
 | Esquerda missões / XP | Battle pass vibe | Missões / XP | ⏳ fase 2 |
 | Direita Notícias / Amigos / Clube | Social online | **Fora do MVP** (offline) | ❌ omitir |
 | Baixo seletor de modo | Combate solitário + mapa | **Mapa / próxima fase** + info do mundo | ✅ |
@@ -121,7 +121,7 @@ Ordem **obrigatória** (confirmada com prints):
 │  [👤 Matheus]                    🪙 1234              [⚙]   │
 ├────────┬───────────────────────────────────┬─────────────────┤
 │        │                                   │                 │
-│  LOJA  │         TANJIRO (centro)          │  (vazio MVP     │
+│  LOJA  │     PERSONAGEM ATUAL (centro)     │  (vazio MVP     │
 │ PERSONA│         idle loop                 │   ou Dicas)     │
 │  GENS  │                                   │                 │
 │        │                                   │                 │
@@ -252,7 +252,7 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 | Splash marca + hub | Sim | ✅ no fluxo |
 | Mundos | **5** (W1 starter; W2–W5 abrem ao limpar o boss anterior) | ✅ catálogo + mapa |
 | Fases | W1: 5 + boss · W2: 3 + boss · W3: 4 + boss · W4: 4 + boss · W5: 3 + boss | ✅ ids estáveis |
-| Playable | **Elenco 14** (Tanjiro starter; resto por mundo) | ✅ |
+| Playable | **Elenco 15** (Tanjiro starter; Nezuko livre; resto por mundo) | ✅ |
 | Loja | **4 upgrades** | ✅ |
 | Onis | **2 tipos** | ✅ |
 | Distribuição | APK sideload + OTA próprio (GitHub Releases) | ✅ |
@@ -305,3 +305,4 @@ Valor oni fraco: **10** (checklist) — confirmar no balance.
 | 2026-08-03 | Rodada 3b: JOGAR no hub → **mapa do mundo** (não pula fase direto) |
 | 2026-08-03 | Playtest PC: splash → loading → hub → mapa stub OK; combate ainda não; ver STATUS-PROGRESSO |
 | 2026-09-01 | Mapa com 5 mundos (W1 Montanha → W5 Céu Vermelho). W2 tranca até `w1_boss`. Ondas dos mundos novos no StageDef. Placeholder de BG por tema. |
+| 2026-09-10 | Hub centro = personagem atual (não sempre Tanjiro). Elenco 15 com Nezuko playtest (unlock livre, kit = stats do Tanjiro). |

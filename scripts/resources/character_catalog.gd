@@ -5,7 +5,8 @@ extends RefCounted
 ## COMO ADICIONAR UM PERSONAGEM
 ##   1. Criar `resources/characters/<id>.tres` (CharacterDef) + kit de stats.
 ##   2. Acrescentar o caminho em `PATHS` (ordem da tela PERSONAGENS).
-##   3. O smoke `smoke_character_select` exige os 14 ids do checklist.
+##   3. Ligar `hub_frames_dir` / `portrait_path` / `combat_frames_dir` se houver pack.
+##   4. O smoke `smoke_character_select` exige os 15 ids (Nezuko após Tanjiro).
 ##
 ## Autoload `Game` NÃO é lido aqui na compilação — smokes `godot -s` quebram se
 ## um `class_name` tocar o identificador global `Game` no parse.
@@ -14,6 +15,7 @@ const STARTER_ID: String = "tanjiro"
 
 const PATHS: PackedStringArray = [
 	"res://resources/characters/tanjiro.tres",
+	"res://resources/characters/nezuko.tres",
 	"res://resources/characters/zenitsu.tres",
 	"res://resources/characters/inosuke.tres",
 	"res://resources/characters/kanao.tres",
@@ -31,6 +33,7 @@ const PATHS: PackedStringArray = [
 
 const EXPECTED_IDS: PackedStringArray = [
 	"tanjiro",
+	"nezuko",
 	"zenitsu",
 	"inosuke",
 	"kanao",
