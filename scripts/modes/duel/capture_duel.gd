@@ -4,6 +4,7 @@ extends SceneTree
 ## HASHIRA_CAPTURE_DIR = pasta de saída.
 
 const DUEL := "res://scenes/modes/duel/duel.tscn"
+const _UiFont := preload("res://scripts/ui/ui_font.gd")
 
 
 func _initialize() -> void:
@@ -11,6 +12,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	_UiFont.ensure_theme_space()
 	DisplayServer.window_set_size(Vector2i(1280, 720))
 	root.size = Vector2i(1280, 720)
 	var out_dir: String = OS.get_environment("HASHIRA_CAPTURE_DIR")
@@ -26,7 +28,7 @@ func _run() -> void:
 		return
 	var inst: Node = packed.instantiate()
 	root.add_child(inst)
-	await create_timer(0.7).timeout
+	await create_timer(0.85).timeout
 	await RenderingServer.frame_post_draw
 	var img: Image = root.get_texture().get_image()
 	if img == null:

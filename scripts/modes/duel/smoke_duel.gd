@@ -8,6 +8,7 @@ const DUEL := "res://scenes/modes/duel/duel.tscn"
 const TEXT_ROUND := "ROUND 1"
 const TEXT_WIN := "Você ganhou"
 const TEXT_LOSE := "Você perdeu"
+const _UiFont := preload("res://scripts/ui/ui_font.gd")
 
 var _failed: int = 0
 
@@ -28,6 +29,7 @@ func _pass(msg: String) -> void:
 
 func _run() -> void:
 	print("=== smoke_duel ===")
+	_UiFont.ensure_theme_space()
 	var err := change_scene_to_file(DUEL)
 	if err != OK:
 		_fail("change_scene_to_file duel.tscn err=%s" % err)
@@ -90,6 +92,8 @@ func _run() -> void:
 			_fail("direita flip_h true com facing<0 — não inverter o canônico")
 		else:
 			_pass("flip_h canônico (arte esquerda; flip só se facing > 0)")
+		_assert_inosuke_blades(ls)
+		_assert_nezuko_unarmed(rs)
 
 	var left_id: String = str(left.get("applied_character_id"))
 	var right_id: String = str(right.get("applied_character_id"))
@@ -105,8 +109,12 @@ func _run() -> void:
 	var banner: String = str(scene.call("get_banner_text"))
 	if banner != TEXT_ROUND:
 		_fail("banner='%s' esperado '%s'" % [banner, TEXT_ROUND])
+	elif not banner.contains(" "):
+		_fail("banner sem espaço (ROUND1 colado)")
 	else:
 		_pass("texto de round em PT/HUD")
+	_assert_round_space(scene)
+	_assert_duel_hud(scene)
 
 	var hit_l: Node = left.get_node_or_null("Hitbox")
 	var hurt_r: Node = right.get_node_or_null("Hurtbox")
@@ -152,6 +160,104 @@ func _run() -> void:
 	inst2.queue_free()
 
 	_finish()
+
+
+func _assert_round_space(scene: Node) -> void:
+	var lbl: Label = scene.get_node_or_null("%RoundLabel") as Label
+	if lbl == null:
+		_fail("RoundLabel ausente")
+		return
+	var font: Font = lbl.get_theme_font("font")
+	var size: int = lbl.get_theme_font_size("font_size")
+	if font == null:
+		_fail("RoundLabel sem fonte")
+		return
+	var gap: float = _UiFont.space_width(font, size)
+	if gap < _UiFont.SPACE_MIN_PX:
+		_fail("espaço do ROUND colado (advance=%.2f)" % gap)
+		return
+	if font is FontVariation:
+		var fv := font as FontVariation
+		if fv.spacing_space < 1:
+			_fail("FontVariation.spacing_space=%d (quer >= 1)" % fv.spacing_space)
+			return
+		_pass("ROUND FontVariation spacing_space=%d advance=%.1f" % [fv.spacing_space, gap])
+	else:
+		_pass("ROUND espaço visível advance=%.1f" % gap)
+
+
+func _assert_duel_hud(scene: Node) -> void:
+	var left_bar: ProgressBar = scene.get_node_or_null("%HpLeftBar") as ProgressBar
+	var right_bar: ProgressBar = scene.get_node_or_null("%HpRightBar") as ProgressBar
+	if left_bar == null or right_bar == null:
+		_fail("HUD de duelo precisa das duas barras de vitalidade")
+	else:
+		_pass("vitalidade dos dois")
+	var chrome: Dictionary = _count_stage_chrome(scene)
+	var onda_vis: int = int(chrome.get("onda", 0))
+	var coins_vis: int = int(chrome.get("coins", 0))
+	if onda_vis > 0:
+		_fail("ONDA ainda visível no duelo (%d)" % onda_vis)
+	else:
+		_pass("ONDA sumiu")
+	if coins_vis > 0:
+		_fail("moeda de fase ainda visível no duelo")
+	else:
+		_pass("sem moeda de fase")
+
+
+func _count_stage_chrome(root: Node) -> Dictionary:
+	var onda: int = 0
+	var coins: int = 0
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is Label:
+			var t: String = (n as Label).text
+			if t.contains("ONDA") and (n as CanvasItem).is_visible_in_tree():
+				onda += 1
+		if str(n.name) == "CoinsBlock" and n is CanvasItem and (n as CanvasItem).is_visible_in_tree():
+			coins += 1
+		if str(n.name) == "WaveChip" and n is CanvasItem and (n as CanvasItem).is_visible_in_tree():
+			onda += 1
+	return {"onda": onda, "coins": coins}
+
+
+func _assert_inosuke_blades(spr: AnimatedSprite2D) -> void:
+	if spr.sprite_frames == null:
+		_fail("Inosuke sem SpriteFrames")
+		return
+	var anim: StringName = spr.animation
+	if anim != &"attack" and anim != &"idle":
+		_fail("Inosuke anim=%s (quer attack/idle com 2 lâminas)" % String(anim))
+		return
+	var tex: Texture2D = spr.sprite_frames.get_frame_texture(anim, spr.frame)
+	if tex == null:
+		_fail("Inosuke frame sem textura")
+		return
+	var path := str(tex.resource_path)
+	if "inosuke" not in path:
+		_fail("Inosuke textura=%s (pack errado)" % path)
+		return
+	_pass("Inosuke 2 lâminas (%s frame=%d)" % [String(anim), spr.frame])
+
+
+func _assert_nezuko_unarmed(spr: AnimatedSprite2D) -> void:
+	if spr.flip_h:
+		_fail("Nezuko flip_h — não flipar PNG/sprite da direita")
+		return
+	if spr.sprite_frames == null:
+		return
+	var tex: Texture2D = spr.sprite_frames.get_frame_texture(spr.animation, spr.frame)
+	if tex == null:
+		return
+	var path := str(tex.resource_path)
+	if "nezuko" not in path:
+		_fail("Nezuko textura=%s" % path)
+		return
+	_pass("Nezuko sem katana (PNG intocado)")
 
 
 func _finish() -> void:

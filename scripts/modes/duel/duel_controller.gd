@@ -5,9 +5,12 @@ extends Node2D
 ##
 ## Facing canônico (GDD): arte de combate olha ESQUERDA.
 ## `flip_h` só quando `_facing > 0`. Não inverter. Não flipar PNG.
+##
+## HUD próprio: vitalidade dos dois + ROUND. Sem ONDA / moeda de fase.
 
-const COMBAT_HUD_SCENE := preload("res://scenes/ui/combat_hud.tscn")
 const TOUCH_SCENE := preload("res://scenes/ui/combat_touch_controls.tscn")
+const _UiFont := preload("res://scripts/ui/ui_font.gd")
+const CINZEL := preload("res://assets/fonts/Cinzel-Bold.ttf")
 
 const TEAM_LEFT := &"duel_left"
 const TEAM_RIGHT := &"duel_right"
@@ -20,6 +23,10 @@ const FACE_LEFT := -1.0
 const INTRO_SEC := 1.55
 const DUMMY_REACH := 108.0
 const DUMMY_ATK_CD := 0.9
+
+## Player.State.IDLE / ATTACK_BASIC — não importar player.gd.
+const STATE_IDLE := 0
+const STATE_ATTACK := 4
 
 const TEXT_ROUND := "ROUND 1"
 const TEXT_WIN := "Você ganhou"
@@ -34,6 +41,12 @@ enum Phase { INTRO, FIGHT, RESULT }
 @onready var _result_label: Label = %ResultLabel
 @onready var _voltar: Button = %VoltarButton
 @onready var _camera: Camera2D = %Camera2D
+@onready var _hp_left_bar: ProgressBar = %HpLeftBar
+@onready var _hp_left_label: Label = %HpLeftLabel
+@onready var _hp_right_bar: ProgressBar = %HpRightBar
+@onready var _hp_right_label: Label = %HpRightLabel
+@onready var _hp_left_block: PanelContainer = %HpLeft
+@onready var _hp_right_block: PanelContainer = %HpRight
 
 var _phase: Phase = Phase.INTRO
 var _dummy_frozen: bool = true
@@ -43,16 +56,22 @@ var _intro_left: float = INTRO_SEC
 
 
 func _ready() -> void:
+	_UiFont.ensure_theme_space()
+	_apply_round_font()
 	if _camera:
 		_camera.make_current()
 	_result_root.visible = false
 	_round_label.text = TEXT_ROUND
 	_round_label.visible = true
 	_voltar.pressed.connect(_on_voltar)
+	_style_duel_hud()
 	_prepare_fighter(_left, CHAR_LEFT, true, TEAM_LEFT, FACE_RIGHT)
 	_prepare_fighter(_right, CHAR_RIGHT, false, TEAM_RIGHT, FACE_LEFT)
+	_bind_hp(_left, _hp_left_bar, _hp_left_label, _on_left_hp)
+	_bind_hp(_right, _hp_right_bar, _hp_right_label, _on_right_hp)
 	_set_locked(true)
-	_spawn_hud_and_touch()
+	_pose_intro()
+	_spawn_touch()
 	if is_instance_valid(Audio) and Audio.has_method("play_bgm"):
 		Audio.play_bgm("stage")
 
@@ -89,6 +108,91 @@ func get_right_fighter() -> Node:
 	return _right
 
 
+func _apply_round_font() -> void:
+	var fv := FontVariation.new()
+	fv.base_font = CINZEL
+	fv.spacing_space = _UiFont.SPACE_PAD_PX
+	if _round_label:
+		_round_label.add_theme_font_override("font", fv)
+	if _result_label:
+		_result_label.add_theme_font_override("font", fv)
+
+
+func _style_duel_hud() -> void:
+	_style_hp_panel(_hp_left_block)
+	_style_hp_panel(_hp_right_block)
+	_style_hp_bar(_hp_left_bar)
+	_style_hp_bar(_hp_right_bar)
+
+
+func _style_hp_panel(block: PanelContainer) -> void:
+	if block == null:
+		return
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = Palette.with_alpha(Palette.PANEL, 0.78)
+	panel.border_color = Palette.with_alpha(Palette.GOLD, 0.6)
+	panel.set_border_width_all(2)
+	panel.set_corner_radius_all(10)
+	panel.content_margin_left = 10
+	panel.content_margin_right = 10
+	panel.content_margin_top = 6
+	panel.content_margin_bottom = 8
+	panel.shadow_color = Color(0, 0, 0, 0.35)
+	panel.shadow_size = 4
+	block.add_theme_stylebox_override("panel", panel)
+
+
+func _style_hp_bar(bar: ProgressBar) -> void:
+	if bar == null:
+		return
+	var bg_box := StyleBoxFlat.new()
+	bg_box.bg_color = Palette.with_alpha(Palette.CRIMSON_DIM, 0.95)
+	bg_box.border_color = Palette.with_alpha(Palette.GOLD, 0.5)
+	bg_box.set_border_width_all(1)
+	bg_box.set_corner_radius_all(8)
+	bg_box.content_margin_left = 3
+	bg_box.content_margin_top = 3
+	bg_box.content_margin_right = 3
+	bg_box.content_margin_bottom = 3
+	var fill_box := StyleBoxFlat.new()
+	fill_box.bg_color = Palette.CRIMSON
+	fill_box.set_corner_radius_all(6)
+	fill_box.border_color = Palette.CRIMSON_BRIGHT
+	fill_box.border_width_top = 2
+	bar.add_theme_stylebox_override("background", bg_box)
+	bar.add_theme_stylebox_override("fill", fill_box)
+	bar.show_percentage = false
+
+
+func _bind_hp(fighter: Node, bar: ProgressBar, label: Label, cb: Callable) -> void:
+	_refresh_hp_widgets(fighter, bar, label)
+	if fighter and fighter.has_signal("hp_changed") and not fighter.is_connected("hp_changed", cb):
+		fighter.connect("hp_changed", cb)
+
+
+func _on_left_hp(current: int, max_hp: int) -> void:
+	_set_hp_widgets(_hp_left_bar, _hp_left_label, current, max_hp)
+
+
+func _on_right_hp(current: int, max_hp: int) -> void:
+	_set_hp_widgets(_hp_right_bar, _hp_right_label, current, max_hp)
+
+
+func _refresh_hp_widgets(fighter: Node, bar: ProgressBar, label: Label) -> void:
+	if fighter == null or not fighter.has_method("get_hp"):
+		return
+	_set_hp_widgets(bar, label, int(fighter.call("get_hp")), int(fighter.call("get_max_hp")))
+
+
+func _set_hp_widgets(bar: ProgressBar, label: Label, current: int, max_hp: int) -> void:
+	var mx: float = maxf(float(max_hp), 1.0)
+	if bar:
+		bar.max_value = mx
+		bar.value = clampf(float(current), 0.0, mx)
+	if label:
+		label.text = "%d / %d" % [current, max_hp]
+
+
 func _prepare_fighter(fighter: Node, char_id: String, local_pawn: bool, team: StringName, facing: float) -> void:
 	if fighter == null:
 		return
@@ -116,6 +220,10 @@ func _assign_team(fighter: Node, team: StringName) -> void:
 
 
 func _lock_facing(fighter: Node, dir: float) -> void:
+	_snap_fighter(fighter, dir, STATE_IDLE)
+
+
+func _snap_fighter(fighter: Node, dir: float, state_id: int) -> void:
 	if fighter == null or not fighter.has_method("apply_host_snap"):
 		return
 	var body := fighter as Node2D
@@ -126,7 +234,38 @@ func _lock_facing(fighter: Node, dir: float) -> void:
 	var breath_m: float = float(fighter.get("pawn_breath_max"))
 	if breath_m <= 0.0:
 		breath_m = 100.0
-	fighter.call("apply_host_snap", body.global_position, 0.0, dir, 0, hp_now, breath, breath_m)
+	fighter.call("apply_host_snap", body.global_position, 0.0, dir, state_id, hp_now, breath, breath_m)
+
+
+func _pose_intro() -> void:
+	## Inosuke: pose de ataque (2 lâminas estendidas). Nezuko idle, PNG intocado.
+	if _left:
+		_left.set("follow_host_snap", true)
+		_snap_fighter(_left, FACE_RIGHT, STATE_ATTACK)
+		_freeze_attack_frame(_left, 0)
+		_disable_hitbox(_left)
+	if _right:
+		_right.set("follow_host_snap", true)
+		_snap_fighter(_right, FACE_LEFT, STATE_IDLE)
+
+
+func _freeze_attack_frame(fighter: Node, frame_i: int) -> void:
+	var spr: AnimatedSprite2D = fighter.find_child("AnimatedSprite2D", true, false) as AnimatedSprite2D
+	if spr == null or spr.sprite_frames == null:
+		return
+	if not spr.sprite_frames.has_animation(&"attack"):
+		return
+	spr.play(&"attack")
+	spr.pause()
+	var count: int = spr.sprite_frames.get_frame_count(&"attack")
+	if count > 0:
+		spr.frame = clampi(frame_i, 0, count - 1)
+
+
+func _disable_hitbox(fighter: Node) -> void:
+	var hit: Node = fighter.get_node_or_null("Hitbox")
+	if hit and hit.has_method("disable"):
+		hit.call("disable")
 
 
 func _set_locked(locked: bool) -> void:
@@ -147,9 +286,13 @@ func _begin_fight() -> void:
 	if _phase != Phase.INTRO:
 		return
 	_phase = Phase.FIGHT
+	if _left:
+		_left.set("follow_host_snap", false)
+	if _right:
+		_right.set("follow_host_snap", false)
 	_set_locked(false)
-	_lock_facing(_left, FACE_RIGHT)
-	_lock_facing(_right, FACE_LEFT)
+	_snap_fighter(_left, FACE_RIGHT, STATE_IDLE)
+	_snap_fighter(_right, FACE_LEFT, STATE_IDLE)
 
 
 func _tick_dummy() -> void:
@@ -182,13 +325,7 @@ func _on_fighter_died(local_pawn: bool) -> void:
 	_result_root.visible = true
 
 
-func _spawn_hud_and_touch() -> void:
-	var hud: CanvasLayer = COMBAT_HUD_SCENE.instantiate() as CanvasLayer
-	add_child(hud)
-	if hud.has_method("bind_local_pawn") and _left != null:
-		hud.call("bind_local_pawn", _left)
-	if hud.has_method("set_hp") and _left != null and _left.has_method("get_hp"):
-		hud.call("set_hp", float(_left.call("get_hp")), float(_left.call("get_max_hp")))
+func _spawn_touch() -> void:
 	var touch: CanvasLayer = TOUCH_SCENE.instantiate() as CanvasLayer
 	add_child(touch)
 
