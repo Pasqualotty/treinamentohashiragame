@@ -50,6 +50,7 @@ func _run() -> void:
 	_test_boot_never_conectando()
 	_test_max_clients(lan)
 	_test_meio_parse()
+	_test_meio_self_test()
 	_test_meio_pc_off(lan)
 	_test_meio_not_in_friends_save(lan)
 	await _test_hub_computador_field()
@@ -423,6 +424,25 @@ func _test_max_clients(lan: Node) -> void:
 	_pass("max_clients=1")
 
 
+func _test_meio_self_test() -> void:
+	var script: String = ProjectSettings.globalize_path("res://tools/sala_meio.py")
+	if not FileAccess.file_exists("res://tools/sala_meio.py"):
+		_fail("tools/sala_meio.py ausente (self-test)")
+		return
+	var output: Array = []
+	var code: int = OS.execute("python", PackedStringArray([script, "--self-test"]), output, true)
+	if code != 0:
+		output.clear()
+		code = OS.execute("py", PackedStringArray(["-3", script, "--self-test"]), output, true)
+	var txt := ""
+	for line in output:
+		txt += str(line) + "\n"
+	if code != 0 or not txt.contains("sala_meio self-test PASS"):
+		_fail("sala_meio --self-test falhou (exit=%d txt=%s)" % [code, txt.strip_edges()])
+		return
+	_pass("sala_meio --self-test (proto lixo / relay 1:1 / poll sem code)")
+
+
 func _test_meio_parse() -> void:
 	if not SalaMeioClient.parse_endpoint("").is_empty():
 		_fail("parse vazio deveria falhar")
@@ -621,6 +641,17 @@ func _test_meio_two_process(lan: Node) -> void:
 		lan.call("set_sala_meio", "")
 		_fail("ping 127.0.0.1:%d falhou (PC no meio)" % port)
 		return
+	var junk := PacketPeerUDP.new()
+	if junk.bind(0, "127.0.0.1") == OK:
+		junk.set_dest_address("127.0.0.1", port)
+		junk.put_packet('{"magic":"HASHIRA_MEIO","proto":["x"],"op":"ping"}'.to_utf8_buffer())
+		OS.delay_msec(80)
+		junk.close()
+	if not client.ping():
+		OS.kill(pid)
+		lan.call("set_sala_meio", "")
+		_fail("proto lixo derrubou sala_meio.py")
+		return
 	var announced: Dictionary = client.announce("K7H4MP", 17777, "HostSmoke", 1)
 	if str(announced.get("op", "")) != "announced":
 		OS.kill(pid)
@@ -650,6 +681,24 @@ func _test_meio_two_process(lan: Node) -> void:
 		OS.kill(pid)
 		lan.call("set_sala_meio", "")
 		_fail("call offline = %s" % ghost)
+		return
+	var inbox: Dictionary = client.poll_calls("SobrinhoQA")
+	if str(inbox.get("op", "")) != "inbox":
+		OS.kill(pid)
+		lan.call("set_sala_meio", "")
+		_fail("poll inbox = %s" % inbox)
+		return
+	var leaked := false
+	var calls: Variant = inbox.get("calls", [])
+	if calls is Array:
+		for item in calls:
+			if typeof(item) == TYPE_DICTIONARY and (item as Dictionary).has("code"):
+				leaked = true
+				break
+	if leaked:
+		OS.kill(pid)
+		lan.call("set_sala_meio", "")
+		_fail("poll devolveu code da sala: %s" % inbox)
 		return
 	lan.call("join_room", "K7H4MP")
 	if not bool(lan.call("is_guest")):

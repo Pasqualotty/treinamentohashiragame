@@ -114,7 +114,11 @@ class SalaMeio:
             return b""
         if not isinstance(parsed, dict):
             return b""
-        if parsed.get("magic") != MAGIC or int(parsed.get("proto") or 0) != PROTO:
+        try:
+            proto = int(parsed.get("proto") or 0)
+        except (TypeError, ValueError):
+            return b""
+        if parsed.get("magic") != MAGIC or proto != PROTO:
             return b""
         op = str(parsed.get("op") or "")
         src_ip = addr[0]
@@ -157,8 +161,10 @@ class SalaMeio:
             "ts": _now(),
         }
         self.presence[nick] = {"ts": _now(), "code": code, "ip": src_ip}
-        self.relay_host = (src_ip, enet_port)
-        self.relay_guest = None
+        host_tuple = (src_ip, enet_port)
+        if self.relay_host != host_tuple:
+            self.relay_guest = None
+        self.relay_host = host_tuple
         return _reply(
             "announced",
             code=code,
@@ -219,7 +225,7 @@ class SalaMeio:
         if not nick:
             return _reply("error", reason="name")
         items = self.calls.pop(nick, [])
-        out = [{"from": str(i.get("from") or ""), "code": str(i.get("code") or "")} for i in items]
+        out = [{"from": str(i.get("from") or "")} for i in items]
         return _reply("inbox", name=nick, calls=out)
 
     def handle_relay(self, data: bytes, addr: tuple[str, int]) -> None:
@@ -230,7 +236,10 @@ class SalaMeio:
             if self.relay_guest is not None:
                 self.relay.sendto(data, self.relay_guest)
             return
-        self.relay_guest = addr
+        if self.relay_guest is None:
+            self.relay_guest = addr
+        if addr != self.relay_guest:
+            return
         self.relay.sendto(data, (host_ip, host_port))
 
     def serve(self) -> None:
@@ -248,7 +257,10 @@ class SalaMeio:
                     except OSError:
                         continue
                     if sock is self.ctrl:
-                        reply = self.handle_ctrl(data, addr)
+                        try:
+                            reply = self.handle_ctrl(data, addr)
+                        except Exception:
+                            reply = b""
                         if reply:
                             try:
                                 self.ctrl.sendto(reply, addr)
@@ -260,12 +272,70 @@ class SalaMeio:
             print("\nComputador da sala desligado.", flush=True)
 
 
+def _self_test() -> int:
+    """Bloqueadores security: proto lixo, relay 1:1, poll sem code."""
+    svc = SalaMeio("127.0.0.1", 0, 0)
+    addr = ("127.0.0.1", 9)
+    try:
+        for proto in ("nope", ["x"], {"a": 1}):
+            raw = json.dumps({"magic": MAGIC, "proto": proto, "op": "ping"}).encode("utf-8")
+            if svc.handle_ctrl(raw, addr) != b"":
+                print("FAIL proto lixo respondeu: %r" % (proto,), file=sys.stderr)
+                return 1
+        ping = json.dumps({"magic": MAGIC, "proto": PROTO, "op": "ping"}).encode("utf-8")
+        if b'"op":"pong"' not in svc.handle_ctrl(ping, addr):
+            print("FAIL ping depois do proto lixo", file=sys.stderr)
+            return 1
+
+        sink = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sink.bind(("127.0.0.1", 0))
+        host_port = int(sink.getsockname()[1])
+        svc._announce({"code": "K7H4MP", "name": "HostSmoke", "port": host_port}, "127.0.0.1")
+        g1 = ("192.0.2.10", 50000)
+        g2 = ("192.0.2.11", 50001)
+        svc.handle_relay(b"g1", g1)
+        if svc.relay_guest != g1:
+            print("FAIL 1º guest não lockou", file=sys.stderr)
+            return 1
+        svc.handle_relay(b"g2", g2)
+        if svc.relay_guest != g1:
+            print("FAIL 2º peer roubou o relay", file=sys.stderr)
+            return 1
+        svc._announce({"code": "K7H4MP", "name": "HostSmoke", "port": host_port}, "127.0.0.1")
+        if svc.relay_guest != g1:
+            print("FAIL announce zerou o guest no meio da partida", file=sys.stderr)
+            return 1
+        sink.close()
+
+        svc._presence({"name": "SobrinhoQA"}, "127.0.0.1")
+        svc._call({"from": "HostSmoke", "to": "SobrinhoQA"})
+        inbox_raw = svc._poll({"name": "SobrinhoQA"})
+        inbox = json.loads(inbox_raw.decode("utf-8"))
+        if inbox.get("op") != "inbox":
+            print("FAIL poll op=%s" % inbox.get("op"), file=sys.stderr)
+            return 1
+        calls = inbox.get("calls") or []
+        if not calls or str(calls[0].get("from") or "") != "HostSmoke":
+            print("FAIL inbox=%s" % calls, file=sys.stderr)
+            return 1
+        if any("code" in c for c in calls) or b'"code"' in inbox_raw:
+            print("FAIL poll devolveu code da sala", file=sys.stderr)
+            return 1
+        print("sala_meio self-test PASS", flush=True)
+        return 0
+    finally:
+        svc.close()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Computador da sala — achar código 6 e carregar o ENet se precisar.")
     parser.add_argument("--bind", default="0.0.0.0", help="Endereço de escuta (default 0.0.0.0)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Porta do pedido (default 17779)")
     parser.add_argument("--relay-port", type=int, default=0, help="Porta do ENet no PC (default porta+1)")
+    parser.add_argument("--self-test", action="store_true", help="Checa proto lixo, relay 1:1 e poll sem code")
     args = parser.parse_args(argv)
+    if args.self_test:
+        return _self_test()
     if args.port < 1 or args.port > 65535:
         print("porta inválida", file=sys.stderr)
         return 2

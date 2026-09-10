@@ -822,10 +822,6 @@ func _poll_meio_calls() -> void:
 				continue
 			var d: Dictionary = item
 			var from_nick := Game.sanitize_player_name(str(d.get("from", "")))
-			var code := RoomCode.normalize(str(d.get("code", "")))
 			if from_nick.is_empty():
 				continue
-			if RoomCode.is_valid(code):
-				toast_requested.emit("%s te chamou. Código: %s" % [from_nick, code])
-			else:
-				toast_requested.emit("%s te chamou" % from_nick)
+			toast_requested.emit("%s te chamou" % from_nick)
