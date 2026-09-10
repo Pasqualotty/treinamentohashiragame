@@ -23,7 +23,7 @@ Sheets 7/4/3 do Tanjiro **não** foram copiados pro trio — piso jogável prime
 2. Poses = edit da base daquele id.  
 3. Imagine entregou **JPEG** com extensão `.png` e fundo rosa-magenta (não `#FF00FF` puro).  
 4. `tools/chroma_character_pack.py`: converte PNG real, chroma expandido (`hot_pink` + skill), canvas hub 640×900 / combate 512×512.  
-5. Combate espelhado no pós: `player.gd` faz `flip_h` quando `facing > 0`, então a arte canônica olha **esquerda** (como o Tanjiro).
+5. Combate canônico olha **esquerda** (Pillow `FLIP_LEFT_RIGHT` nos frames que nasciam à direita: Zenitsu idle/run/hurt, Nezuko run). `player.gd` `flip_h` só se `facing > 0`.
 
 ## Defeitos honestos
 
