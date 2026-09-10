@@ -49,4 +49,6 @@ Como `image_to_video` pode falhar (ZDR), usamos:
 - **Não** lotar `hub.gd` — o painel cuida da lista e da sala.  
 - JOGAR continua no mapa; se o toque for de **guest** em sala, toast “O anfitrião escolhe a fase”.  
 - Placas: tema / StyleBoxFlat (sem PNG Imagine novo nesta onda).  
+- Campo **Computador da sala** (`host:porta`). Vazio = só o Wi-Fi. Não grava IP no save.  
+- Toque no **nome** = chamar (se o PC vir o nick). O **x** continua apagando.  
 - Safe area: `offset_right ≈ -20`, largura ~300, acima da barra do CTA.  

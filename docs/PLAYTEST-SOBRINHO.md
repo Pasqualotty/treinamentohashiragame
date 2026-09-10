@@ -86,7 +86,7 @@ Data: ________  Dispositivo: ________  Quem jogou: ________
 
 Não entra no CI. Dois APKs (ou 2 instâncias Play no PC com `127.0.0.1`).
 
-1. Os dois no **mesmo Wi-Fi da casa** (sem rede de convidado isolado).
+1. Os dois no **mesmo Wi-Fi da casa** (sem rede de convidado isolado). Campo **Computador da sala** pode ficar vazio.
 2. Host: hub → Amigos → **Criar sala** → código de 6 na cara (tap copia).
 3. Guest: **Entrar** → cola o código. Se não achar em ~2 s, abre “IP do anfitrião”.
 4. Host toca **JOGAR** → mapa → `w1_01`. Guest **não** escolhe fase (“O anfitrião escolhe a fase”).
@@ -95,6 +95,22 @@ Não entra no CI. Dois APKs (ou 2 instâncias Play no PC com `127.0.0.1`).
 7. Fecha o app e abre de novo: a lista de amigos ainda tem o nick (sem IP na tela).
 
 **APK diferente (`version_code`):** guest vê recusa em PT (“Atualize o APK”), não combate quebrado.
+
+---
+
+## 2 casas (PC do Matheus ligado)
+
+Não entra no CI. O PC do meio tem que estar **alcançável** (mesmo Wi-Fi ainda entra pelo beacon).
+
+1. No PC: `tools/ligar_computador_da_sala.ps1` (janela aberta). Anote o IP dessa máquina.
+2. Os dois celulares: hub → Amigos → campo **Computador da sala** = `IP_DO_PC:17779`.
+3. Host: **Criar sala** → código de 6 (Zap ainda vale).
+4. Guest em **outra rede** (ou 4G): **Entrar** + código. Beacon falha; o PC responde o caminho.
+5. Host **JOGAR** → mapa → fase. Guest não escolhe fase.
+6. Toque no **nome** (não o x): se o amigo estiver no hub com o PC, ele vê o chamado. Se não estiver: texto PT, sala não quebra.
+7. Desligue o script do PC: o jogo **ainda abre**. Criar/Entrar avisa “O computador da sala está desligado”. Loading **não** fala “Conectando-se…”.
+
+**Se o PC não estiver ligado:** casa↔casa não entra; o Wi-Fi da sala continua.
 
 ---
 
