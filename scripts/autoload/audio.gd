@@ -34,6 +34,7 @@ const DUCK_ON_SFX := {
 const SFX_FILES := {
 	"ui_click": "ui_click",
 	"slash": "slash",
+	"dash": "dash",
 	"hit": "hit",
 	"hurt": "hurt",
 	"coin": "coin",

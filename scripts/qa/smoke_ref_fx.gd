@@ -3,10 +3,14 @@ extends SceneTree
 
 const PATHS: PackedStringArray = [
 	"res://assets/fx/slash/00.png",
+	"res://assets/fx/slash/01.png",
 	"res://assets/fx/slash/03.png",
 	"res://assets/fx/water/00.png",
 	"res://assets/fx/impact/00.png",
+	"res://assets/fx/impact/03.png",
 	"res://assets/fx/impact/05.png",
+	"res://assets/fx/dash/00.png",
+	"res://assets/fx/dash/streak_00.png",
 	"res://scenes/fx/sheet_burst.tscn",
 ]
 

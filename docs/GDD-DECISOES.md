@@ -158,7 +158,7 @@ Combate = `stage_*` com HUD de luta (stick, dash, skills).
 **Dash (v0 técnico):**
 
 - Input: `advance` / botão Avançar (esquerda do touch)
-- Efeito: impulso rápido no eixo X (curto), depois volta ao controle normal
+- Efeito: impulso rápido no eixo X (curto) com ease-out no fim, depois volta ao controle normal
 - Cooldown: valor em Resource de stats (ex. 0.8–1.2s — balance depois)
 - I-frames no dash: **não** no MVP (pode virar upgrade)
 - No ar: pode dash 1× até pousar? → default **sim, 1 dash aéreo**, reavalia no playtest

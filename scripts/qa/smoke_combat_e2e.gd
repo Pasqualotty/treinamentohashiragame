@@ -114,7 +114,10 @@ func _run() -> void:
 		await physics_frame
 		max_dx = maxf(max_dx, absf(player.global_position.x - x0))
 	print("dash max_dx=", max_dx)
-	if dashed and max_dx >= 5.0:
+	if dashed and max_dx >= 40.0:
+		checks["dash"] = true
+		print("OK dash (ease-out dx>=40)")
+	elif dashed and max_dx >= 5.0:
 		checks["dash"] = true
 		print("OK dash")
 	elif max_dx >= 5.0:

@@ -13,10 +13,14 @@ func _ready() -> void:
 		particles.color_ramp = Fx.get_fade_gradient()
 
 
-func play() -> void:
+func play(facing: float = 0.0) -> void:
 	if particles == null:
 		queue_free()
 		return
+	if not is_zero_approx(facing):
+		var f: float = signf(facing)
+		particles.direction = Vector2(-f, -0.28)
+		particles.spread = 32.0
 	particles.emitting = true
 	var tree: SceneTree = get_tree()
 	if tree:
