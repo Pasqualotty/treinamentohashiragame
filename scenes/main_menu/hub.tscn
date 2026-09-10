@@ -150,14 +150,15 @@ tooltip_text = "Ajustes"
 text = "⚙"
 
 [node name="LeftColumn" type="VBoxContainer" parent="."]
+z_index = 8
 layout_mode = 1
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = 20.0
-offset_top = -86.0
+offset_top = -134.0
 offset_right = 340.0
-offset_bottom = 86.0
+offset_bottom = 134.0
 grow_vertical = 2
 theme_override_constants/separation = 20
 
@@ -178,6 +179,15 @@ layout_mode = 2
 size_flags_horizontal = 0
 theme_override_font_sizes/font_size = 20
 text = "PERSONAGENS"
+
+[node name="FriendsButton" type="Button" parent="LeftColumn"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(320, 76)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 20
+text = "AMIGOS"
 
 [node name="CenterShowcase" type="Control" parent="."]
 unique_name_in_owner = true
@@ -267,16 +277,12 @@ text = "JOGAR"
 
 [node name="FriendsPanel" parent="." instance=ExtResource("6_friends")]
 unique_name_in_owner = true
+z_index = 6
 layout_mode = 1
-anchors_preset = 11
-anchor_left = 1.0
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -320.0
-offset_top = 84.0
-offset_right = -20.0
-offset_bottom = -128.0
-grow_horizontal = 0
+grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
@@ -284,4 +290,5 @@ mouse_filter = 2
 [connection signal="pressed" from="TopBar/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="LeftColumn/ShopButton" to="." method="_on_shop_pressed"]
 [connection signal="pressed" from="LeftColumn/CharactersButton" to="." method="_on_characters_pressed"]
+[connection signal="pressed" from="LeftColumn/FriendsButton" to="." method="_on_friends_pressed"]
 [connection signal="pressed" from="BottomBar/PlayButton" to="." method="_on_play_pressed"]

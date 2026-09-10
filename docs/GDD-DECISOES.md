@@ -110,27 +110,31 @@ Ordem **obrigatória** (confirmada com prints):
 | Esquerda LOJA | Shop | **Loja de upgrades** | ✅ |
 | Esquerda lista chars | Brawlers | **Personagens** (15 no catálogo; Tanjiro starter; Nezuko livre) | ✅ tela select |
 | Esquerda missões / XP | Battle pass vibe | Missões / XP | ⏳ fase 2 |
-| Direita **Amigos** | Social | **Lista local + sala 2P** (Wi-Fi **ou** casa↔casa via PC da sala) | ✅ |
+| Direita **Amigos** | Social | Botão **AMIGOS** (esquerda, peso de Loja) + **gaveta** da direita. Sem coluna plantada. | ✅ |
 | Direita Clube / Notícias / Eventos | Social online | Fora | ❌ omitir |
 | Baixo seletor de modo | Combate solitário + mapa | **Mapa / próxima fase** + info do mundo | ✅ |
 | Setas + / skin | Skins | Trocar personagem / skin | ⏳ char select simples OK |
 
-#### Wireframe hub (Amigos à direita)
+#### Wireframe hub (Amigos = botão; lista = gaveta)
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ [👤 nick]                         🪙 1234                   [⚙]  │
-├────────┬───────────────────────────────────┬───────────────────────┤
-│ LOJA   │                                   │ AMIGOS                │
-│ PERSONA│     PERSONAGEM ATUAL (centro)    │ • Matheus    [x]      │
-│  GENS  │         idle / showcase           │ • Sobrinho   [x]      │
-│        │                                   │ [ CRIAR SALA ]        │
-│        │                                   │ [ ENTRAR    ]         │
-│        │                                   │ Computador da sala    │
-│        │                                   │ [ host:porta     ]    │
-├────────┴───────────────┬─────────────────┴───────────────────────┤
-│  W1 · próxima fase        │            [  JOGAR  ]                  │
-└─────────────────────────┴─────────────────────────────────────────┘
+├────────┬───────────────────────────────────────────────────────────┤
+│ LOJA   │                                                           │
+│ PERSONA│     PERSONAGEM ATUAL (centro)                             │
+│  GENS  │         idle / showcase                                   │
+│ AMIGOS │                                                           │
+├────────┴──────────────────────┬────────────────────────────────────┤
+│  Escolha o mundo e a fase…    │            [  JOGAR  ]             │
+└───────────────────────────────┴────────────────────────────────────┘
+
+Toque AMIGOS → gaveta desliza da direita (painel sólido, topo→embaixo; JOGAR não vaza):
+                         │ AMIGOS              [Fechar] │
+                         │ Ninguém                      │
+                         │ [ Criar sala ]               │
+                         │ [ Entrar     ]               │
+                         │ Computador da sala           │
 ```
 
 **Sala (host):** código de 6 caracteres (tap = copiar) + “Esperando amigo…” / “Amigo entrou” + Fechar sala.  

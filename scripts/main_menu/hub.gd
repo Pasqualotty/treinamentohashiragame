@@ -18,6 +18,7 @@ extends Control
 @onready var profile_btn: Button = %ProfileButton
 @onready var shop_btn: Button = %ShopButton
 @onready var chars_btn: Button = %CharactersButton
+@onready var friends_btn: Button = %FriendsButton
 @onready var play_btn: Button = %PlayButton
 @onready var settings_btn: Button = %SettingsButton
 
@@ -57,6 +58,7 @@ const GLOW_HEIGHT := 64.0
 
 const PULSE_PERIOD := 0.9
 const PULSE_COLOR := Color(1.12, 1.08, 0.85, 1.0)
+const _UiFont := preload("res://scripts/ui/ui_font.gd")
 
 var _idle_tex: Texture2D
 var _blink_tex: Texture2D
@@ -82,6 +84,7 @@ var _navigating: bool = false
 
 
 func _ready() -> void:
+	_UiFont.ensure_theme_space()
 	_load_idle_frames()
 	_load_bg_frames()
 	_style_buttons()
@@ -315,6 +318,7 @@ func _commit_bg_crossfade() -> void:
 func _style_buttons() -> void:
 	_apply_plate(shop_btn, "shop", Palette.CREAM)
 	_apply_plate(chars_btn, "chars", Palette.CREAM)
+	_apply_plate(friends_btn, "chars", Palette.CREAM)
 	# CTA: placa dourada, então o rótulo vai em tinta escura para contrastar.
 	_apply_plate(play_btn, "play", Palette.NIGHT_BG)
 	# Placa redonda com engrenagem gravada — o "⚙" do .tscn é só o fallback.
@@ -502,6 +506,12 @@ func _on_shop_pressed() -> void:
 
 func _on_characters_pressed() -> void:
 	_navigate(SceneRouter.to_characters)
+
+
+func _on_friends_pressed() -> void:
+	var fp := get_node_or_null("%FriendsPanel")
+	if fp != null and fp.has_method("toggle_drawer"):
+		fp.call("toggle_drawer")
 
 
 func _on_settings_pressed() -> void:
