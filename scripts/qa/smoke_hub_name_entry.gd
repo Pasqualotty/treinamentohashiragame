@@ -325,6 +325,8 @@ func _test_scenes() -> void:
 			return
 	if not await _instantiate(HUB, "hub"):
 		return
+	if not await _test_friends_panel_present():
+		return
 	_pass("hub + name_entry instanciam e rodam")
 
 
@@ -469,6 +471,27 @@ func _instantiate(path: String, label: String) -> bool:
 		await process_frame
 	inst.queue_free()
 	await process_frame
+	return true
+
+
+func _test_friends_panel_present() -> bool:
+	var packed: PackedScene = load(HUB) as PackedScene
+	if packed == null:
+		_fail("load falhou para FriendsPanel: %s" % HUB)
+		return false
+	var inst: Node = packed.instantiate()
+	root.add_child(inst)
+	for i in range(6):
+		await process_frame
+	var fp: Node = inst.get_node_or_null("%FriendsPanel")
+	if fp == null:
+		_fail("hub sem %FriendsPanel")
+		inst.queue_free()
+		await process_frame
+		return false
+	inst.queue_free()
+	await process_frame
+	_pass("hub tem %FriendsPanel")
 	return true
 
 

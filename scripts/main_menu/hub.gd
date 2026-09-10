@@ -488,6 +488,11 @@ func _navigate(target: Callable) -> void:
 
 
 func _on_play_pressed() -> void:
+	if is_instance_valid(LanSession) and LanSession.is_guest() and LanSession.has_peer():
+		var fp := get_node_or_null("%FriendsPanel")
+		if fp != null and fp.has_method("show_host_picks_stage"):
+			fp.call("show_host_picks_stage")
+		return
 	_navigate(SceneRouter.to_world_map)
 
 

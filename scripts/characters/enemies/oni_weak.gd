@@ -55,6 +55,7 @@ var _sprite_base_scale: Vector2 = Vector2.ONE
 var _walk_t: float = 0.0
 var _hurt_recoil_t: float = 0.0
 var _hp_pip: EnemyHpPip
+var net_puppet: bool = false
 
 
 func _ready() -> void:
@@ -86,6 +87,9 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if net_puppet:
+		_tick_flash(delta)
+		return
 	if not is_on_floor():
 		velocity.y += _gravity * delta
 
@@ -372,16 +376,7 @@ func _spawn_coin_drop() -> void:
 
 
 func _find_player() -> Node2D:
-	var tree: SceneTree = get_tree()
-	if tree == null:
-		return null
-	var nodes: Array[Node] = tree.get_nodes_in_group("player")
-	if nodes.is_empty():
-		return null
-	var n: Node = nodes[0]
-	if n is Node2D:
-		return n as Node2D
-	return null
+	return BossCommon.nearest_alive_player(self, get_tree())
 
 
 func _dist_to(target: Node2D) -> float:

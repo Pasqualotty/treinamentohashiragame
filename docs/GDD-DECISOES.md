@@ -110,25 +110,34 @@ Ordem **obrigatória** (confirmada com prints):
 | Esquerda LOJA | Shop | **Loja de upgrades** | ✅ |
 | Esquerda lista chars | Brawlers | **Personagens** (15 no catálogo; Tanjiro starter; Nezuko livre) | ✅ tela select |
 | Esquerda missões / XP | Battle pass vibe | Missões / XP | ⏳ fase 2 |
-| Direita Notícias / Amigos / Clube | Social online | **Fora do MVP** (offline) | ❌ omitir |
+| Direita **Amigos** | Social | **Lista local + sala LAN 2P** (mesmo Wi-Fi) | ✅ |
+| Direita Clube / Notícias / Eventos | Social online | Fora | ❌ omitir |
 | Baixo seletor de modo | Combate solitário + mapa | **Mapa / próxima fase** + info do mundo | ✅ |
 | Setas + / skin | Skins | Trocar personagem / skin | ⏳ char select simples OK |
 
-#### Wireframe hub MVP (sem social)
+#### Wireframe hub (Amigos à direita)
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  [👤 Matheus]                    🪙 1234              [⚙]   │
-├────────┬───────────────────────────────────┬─────────────────┤
-│        │                                   │                 │
-│  LOJA  │     PERSONAGEM ATUAL (centro)     │  (vazio MVP     │
-│ PERSONA│         idle loop                 │   ou Dicas)     │
-│  GENS  │                                   │                 │
-│        │                                   │                 │
-├────────┴───────────────┬───────────────────┴─────────────────┤
-│  W1 · próxima fase     │            [  JOGAR  ]              │
-└────────────────────────┴─────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│ [👤 nick]                         🪙 1234                   [⚙]  │
+├────────┬───────────────────────────────────┬───────────────────────┤
+│ LOJA   │                                   │ AMIGOS                │
+│ PERSONA│     PERSONAGEM ATUAL (centro)    │ • Matheus    [x]      │
+│  GENS  │         idle / showcase           │ • Sobrinho   [x]      │
+│        │                                   │ [ CRIAR SALA ]        │
+│        │                                   │ [ ENTRAR    ]         │
+├────────┴───────────────┬─────────────────┴───────────────────────┤
+│  W1 · próxima fase        │            [  JOGAR  ]                  │
+└─────────────────────────┴─────────────────────────────────────────┘
 ```
+
+**Sala (host):** código de 6 caracteres (tap = copiar) + “Esperando amigo…” / “Amigo entrou” + Fechar sala.  
+**Entrar (guest):** código 6, auto-uppercase; se o beacon não achar em ~2,5s, IP do anfitrião (recolhido; 127.0.0.1 no PC).  
+**JOGAR:** sempre abre o **mapa**. Só o **host** escolhe a fase. Guest no hub: “O anfitrião escolhe a fase”.
+
+**LAN (fechado):** 2 jogadores, mesmo Wi-Fi. ENet 17777 + beacon UDP 17778. Código filtra o beacon (não é o IP). Host simula a fase; o amigo manda input. Sem nuvem, Firebase, Play Games. Save `friends` = nomes, **sem IP**. Cap 16. Handshake `proto=1` + `version_code` — APK diferente recusa em PT.
+
+**Não entra:** 3+ jogadores, split-screen, clube, notícias, eventos, ranking, sync de loja.
 
 **JOGAR (fechado):** opção **A** — abre o **mapa do mundo**; o jogador escolhe a fase (ou boss se desbloqueado).  
 Não entra direto na fase a partir do hub.
@@ -268,6 +277,7 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | Loja | **4 upgrades** | ✅ |
 | Onis | **2 tipos** | ✅ |
 | Distribuição | APK sideload + OTA próprio (GitHub Releases) | ✅ |
+| Amigos / LAN 2P | Lista no hub + sala código 6, mesmo Wi-Fi | ✅ |
 
 ### Desafio oni (2026-09-10)
 
@@ -315,6 +325,14 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 - PC/editor: check não bate na rede.
 - Fluxo de publicação: `docs/AUTO-UPDATE.md`
 
+### Amigos / LAN 2P (2026-09-10)
+
+- Direita do hub = **Amigos** (lista + sala). Clube / notícias / eventos continuam fora.
+- Mesmo Wi-Fi, 2 jogadores. Host escolhe a fase no mapa. JOGAR não pula o mapa.
+- Moedas da run = pote do grupo; no clear os dois bankam no save local. Morte de qualquer um = wipe.
+- Loading/boot **não** falam “Conectando-se…”. Textos de sala: “Criar sala”, “Entrar”, “Procurando na rede…”, “Amigo entrou”.
+- Sem persistir IP. Sem conta na nuvem.
+
 ### Ainda pos-MVP
 
 - Arte final por mundo / por caçador, release keystore, playtest no celular
@@ -333,3 +351,4 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-01 | Mapa com 5 mundos (W1 Montanha → W5 Céu Vermelho). W2 tranca até `w1_boss`. Ondas dos mundos novos no StageDef. Placeholder de BG por tema. |
 | 2026-09-10 | Hub centro = personagem atual (não sempre Tanjiro). Elenco 15 com Nezuko playtest (unlock livre, kit = stats do Tanjiro). |
 | 2026-09-10 | Loja `[50, 200, 420]`; HP +15; Dano +3 com ripple de skill/ult; kits com números explícitos. Upgrades globais. |
+| 2026-09-10 | Amigos no hub + sala LAN 2P (ENet + código 6 + beacon UDP). Sem nuvem. |

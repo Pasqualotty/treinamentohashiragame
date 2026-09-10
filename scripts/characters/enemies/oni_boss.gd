@@ -94,6 +94,7 @@ var _hitbox_base_x: float = 46.0
 var _slam_base_offset: float = 30.0
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity") as float
 var _died: bool = false
+var net_puppet: bool = false
 var _minions: Array[Node] = []
 
 # --- Animação procedural (transform absoluto por frame, sem frames novos) ---
@@ -147,6 +148,9 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if net_puppet:
+		_tick_flash(delta)
+		return
 	if not is_on_floor():
 		velocity.y += _gravity * delta
 
@@ -686,7 +690,7 @@ func _show_banner_async(text: String, color: Color, hold: float = 1.2) -> void:
 
 
 func _find_player() -> Node2D:
-	return BossCommon.find_player(get_tree())
+	return BossCommon.nearest_alive_player(self, get_tree())
 
 
 func _dist_to(target: Node2D) -> float:

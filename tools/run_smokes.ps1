@@ -219,6 +219,12 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_combat_feel.gd"
         PassMarker = "=== COMBAT_FEEL PASS ==="
         FailMarker = "=== COMBAT_FEEL FAIL ==="
+    },
+    [pscustomobject]@{
+        Name = "smoke_lan_friends"
+        Script = "res://scripts/qa/smoke_lan_friends.gd"
+        PassMarker = "LAN_FRIENDS PASS"
+        FailMarker = "LAN_FRIENDS FAIL"
     }
 )
 

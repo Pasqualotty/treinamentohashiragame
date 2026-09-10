@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/main_menu/hub.gd" id="1_hub"]
 [ext_resource type="FontFile" path="res://assets/fonts/Cinzel-Bold.ttf" id="2_display"]
 [ext_resource type="Script" path="res://scripts/ui/showcase_glow.gd" id="3_glow"]
 [ext_resource type="Texture2D" path="res://assets/ui/buttons/hub/icon_profile.png" id="4_profile"]
 [ext_resource type="Texture2D" path="res://assets/ui/buttons/hub/icon_coin.png" id="5_coin"]
+[ext_resource type="PackedScene" path="res://scenes/ui/friends_panel.tscn" id="6_friends"]
 
 [node name="Hub" type="Control"]
 layout_mode = 3
@@ -263,6 +264,21 @@ size_flags_vertical = 4
 theme_override_fonts/font = ExtResource("2_display")
 theme_override_font_sizes/font_size = 30
 text = "JOGAR"
+
+[node name="FriendsPanel" parent="." instance=ExtResource("6_friends")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -320.0
+offset_top = 84.0
+offset_right = -20.0
+offset_bottom = -128.0
+grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
 
 [connection signal="pressed" from="TopBar/ProfileButton" to="." method="_on_profile_pressed"]
 [connection signal="pressed" from="TopBar/SettingsButton" to="." method="_on_settings_pressed"]

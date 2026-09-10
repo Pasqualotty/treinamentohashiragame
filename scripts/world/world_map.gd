@@ -56,6 +56,10 @@ func _ready() -> void:
 	_refresh_world_tabs()
 	_apply_world_chrome()
 	status_label.text = _intro_text()
+	if is_instance_valid(LanSession) and LanSession.is_guest():
+		status_label.text = "O anfitrião escolhe a fase"
+		for btn: Button in _stage_buttons:
+			btn.disabled = true
 	if is_instance_valid(Audio):
 		Audio.play_bgm("hub")
 
@@ -462,6 +466,9 @@ func _select_stage(index: int) -> void:
 		return
 	if _traveling:
 		return
+	if is_instance_valid(LanSession) and LanSession.is_guest():
+		status_label.text = "O anfitrião escolhe a fase"
+		return
 	var def: StageDef = _stages[index]
 	if not _is_enterable(index):
 		status_label.text = _locked_reason(index)
@@ -476,6 +483,8 @@ func _select_stage(index: int) -> void:
 	# O mapa pode ter saído da árvore durante a animação (ex.: outra navegação).
 	if not is_inside_tree():
 		return
+	if is_instance_valid(LanSession) and LanSession.is_host() and LanSession.has_peer():
+		LanSession.announce_stage(def.scene_path)
 	SceneRouter.go_to(def.scene_path)
 
 

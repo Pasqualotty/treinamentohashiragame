@@ -9,7 +9,9 @@
 
 1. `BgArt` (TextureRect) — frames + drift  
 2. `BgDim` — ColorRect semi-transparente  
-3. TopBar / LeftColumn / CenterShowcase / BottomBar  
+3. TopBar / LeftColumn / CenterShowcase / **FriendsPanel** (direita) / BottomBar  
+
+## Personagem  
 
 ## Personagem
 
@@ -40,3 +42,11 @@ Como `image_to_video` pode falhar (ZDR), usamos:
 - Fundo noturno visível  
 - Botões não são “cinza default” puro  
 - F5 sem erro de parse GDScript  
+
+## Coluna direita (Amigos)
+
+- Cena filha: `scenes/ui/friends_panel.tscn` (`%FriendsPanel`).  
+- **Não** lotar `hub.gd` — o painel cuida da lista e da sala.  
+- JOGAR continua no mapa; se o toque for de **guest** em sala, toast “O anfitrião escolhe a fase”.  
+- Placas: tema / StyleBoxFlat (sem PNG Imagine novo nesta onda).  
+- Safe area: `offset_right ≈ -20`, largura ~300, acima da barra do CTA.  

@@ -46,6 +46,7 @@ var _cooldown_left: float = 0.0
 var _hitbox_base_x: float = 46.0
 var _gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity") as float
 var _died: bool = false
+var net_puppet: bool = false
 var _attack_duration: float = 0.4
 var _hurt_recoil_t: float = 0.0
 var _sprite_base_pos: Vector2 = Vector2.ZERO
@@ -140,6 +141,9 @@ func _phase_banner_for(new_phase: int) -> Dictionary:
 
 
 func _physics_process(delta: float) -> void:
+	if net_puppet:
+		_tick_flash(delta)
+		return
 	if not is_on_floor():
 		velocity.y += _gravity * delta
 	if _cooldown_left > 0.0:
@@ -170,7 +174,7 @@ func _run_state(delta: float) -> void:
 
 
 func _ai_patrol(delta: float) -> void:
-	var player: Node2D = BossCommon.find_player(get_tree())
+	var player: Node2D = BossCommon.nearest_alive_player(self, get_tree())
 	if player and global_position.distance_to(player.global_position) <= detect_range:
 		state = State.CHASE
 		return
@@ -189,7 +193,7 @@ func _ai_patrol(delta: float) -> void:
 
 
 func _ai_chase(delta: float) -> void:
-	var player: Node2D = BossCommon.find_player(get_tree())
+	var player: Node2D = BossCommon.nearest_alive_player(self, get_tree())
 	if player == null:
 		velocity.x = move_toward(velocity.x, 0.0, KNOCK_FRICTION * delta)
 		return
