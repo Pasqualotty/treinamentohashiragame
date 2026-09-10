@@ -1,5 +1,5 @@
 extends Control
-## Tela PERSONAGENS — 14 do checklist. Locked recusa; unlocked grava o id atual.
+## Tela PERSONAGENS — 15 do catálogo. Locked recusa; unlocked grava o id atual.
 
 @onready var grid: GridContainer = %Grid
 @onready var status_label: Label = %StatusLabel
@@ -32,7 +32,7 @@ func _make_card(def: CharacterDef) -> Control:
 	var selected: bool = def.id == Game.current_character_id
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 148)
+	panel.custom_minimum_size = Vector2(0, 176)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style := StyleBoxFlat.new()
 	style.bg_color = Palette.with_alpha(Palette.PANEL, 0.94)
@@ -49,11 +49,20 @@ func _make_card(def: CharacterDef) -> Control:
 	col.add_theme_constant_override("separation", 4)
 	panel.add_child(col)
 
-	var swatch := ColorRect.new()
-	swatch.custom_minimum_size = Vector2(0, 36)
-	swatch.color = def.accent
-	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(swatch)
+	if def.has_portrait_art():
+		var face_tex: Texture2D = load(def.portrait_path) as Texture2D
+		if face_tex != null:
+			var face := TextureRect.new()
+			face.texture = face_tex
+			face.custom_minimum_size = Vector2(0, 72)
+			face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			col.add_child(face)
+		else:
+			col.add_child(_make_swatch(def))
+	else:
+		col.add_child(_make_swatch(def))
 
 	var name_lbl := Label.new()
 	name_lbl.text = def.display_name
@@ -81,6 +90,14 @@ func _make_card(def: CharacterDef) -> Control:
 		btn.disabled = true
 	col.add_child(btn)
 	return panel
+
+
+func _make_swatch(def: CharacterDef) -> ColorRect:
+	var swatch := ColorRect.new()
+	swatch.custom_minimum_size = Vector2(0, 36)
+	swatch.color = def.accent
+	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return swatch
 
 
 func _on_choose(character_id: String) -> void:

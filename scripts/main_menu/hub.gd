@@ -1,6 +1,6 @@
 extends Control
 ## Hub: fundo com respiração (Ken Burns + cross-fade), placas de botão com ícone
-## e Tanjiro em idle real (sem golpe no meio da animação).
+## e o caçador atual em idle real (sem golpe no meio da animação).
 ##
 ## Movimento do fundo e piscada do personagem são conduzidos por Tween — nada de
 ## `Time.get_ticks_msec()` cru no `_process` nem de escrita direta em `position`
@@ -145,12 +145,26 @@ func _layout_showcase() -> void:
 ## --- Personagem -----------------------------------------------------------
 
 func _load_idle_frames() -> void:
-	_idle_tex = _load_tex("%s/%02d.png" % [HUB_IDLE_DIR, IDLE_FRAME])
-	_blink_tex = _load_tex("%s/%02d.png" % [HUB_IDLE_DIR, BLINK_FRAME])
+	var def: CharacterDef = CharacterCatalog.find(Game.current_character_id)
+	if def == null:
+		def = CharacterCatalog.starter()
+	_load_idle_frames_for(def)
+
+
+func _load_idle_frames_for(def: CharacterDef) -> void:
+	_idle_tex = null
+	_blink_tex = null
+	if def != null and def.hub_frames_dir != "":
+		var d: String = def.hub_frames_dir.rstrip("/")
+		_idle_tex = _load_tex("%s/%02d.png" % [d, IDLE_FRAME])
+		_blink_tex = _load_tex("%s/%02d.png" % [d, BLINK_FRAME])
+	if _idle_tex == null:
+		_idle_tex = _load_tex("%s/%02d.png" % [HUB_IDLE_DIR, IDLE_FRAME])
+		_blink_tex = _load_tex("%s/%02d.png" % [HUB_IDLE_DIR, BLINK_FRAME])
 	if _idle_tex == null:
 		_idle_tex = _load_tex("res://assets/characters/player/tanjiro_hub_idle_00.png")
 	if _idle_tex == null:
-		push_warning("Hub: nenhum frame de idle encontrado em %s" % HUB_IDLE_DIR)
+		push_warning("Hub: nenhum frame de idle encontrado")
 
 
 func _start_breathing() -> void:
@@ -368,9 +382,20 @@ func _start_play_pulse() -> void:
 ## --- Estado ---------------------------------------------------------------
 
 func _load_tex(path: String) -> Texture2D:
-	if not ResourceLoader.exists(path):
+	if not ResourceLoader.exists(path) and not FileAccess.file_exists(path):
 		return null
 	return load(path) as Texture2D
+
+
+func _apply_art_modulate(def: CharacterDef) -> void:
+	if character_art == null:
+		return
+	if def != null and def.has_hub_art():
+		character_art.modulate = Color.WHITE
+	elif def != null:
+		character_art.modulate = def.accent
+	else:
+		character_art.modulate = Color.WHITE
 
 
 func _refresh() -> void:
@@ -379,8 +404,7 @@ func _refresh() -> void:
 	if def == null:
 		def = CharacterCatalog.starter()
 	character_name.text = def.display_name if def != null else "Tanjiro"
-	if character_art != null and def != null:
-		character_art.modulate = def.accent
+	_apply_art_modulate(def)
 	profile_btn.text = Game.player_name if Game.has_player_name() else "Caçador"
 
 
@@ -393,6 +417,15 @@ func _on_player_name_changed(_new_name: String) -> void:
 
 
 func _on_character_changed(_character_id: String) -> void:
+	var def: CharacterDef = CharacterCatalog.find(_character_id)
+	if def == null:
+		def = CharacterCatalog.starter()
+	_load_idle_frames_for(def)
+	if character_art != null and _idle_tex != null:
+		character_art.texture = _idle_tex
+		character_art.visible = true
+	_start_breathing()
+	_start_blink_loop()
 	_refresh()
 
 

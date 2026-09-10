@@ -31,9 +31,13 @@ skill_2_name = "{skill_2}"
 ultimate_name = "{ult}"
 accent = Color({accent})
 stats_path = "{stats_path}"
-combat_frames_dir = ""
+combat_frames_dir = "{combat_frames_dir}"
+hub_frames_dir = "{hub_frames_dir}"
+portrait_path = "{portrait_path}"
 lifesteal_ratio = {lifesteal}
 """
+
+# NÃO rerodar este script no lote: zera paths de arte se CHARS_DATA não tiver dirs.
 
 # Kit numbers: only fields that differ from tanjiro player_stats.tres
 KITS_DATA: dict[str, dict] = {
@@ -354,6 +358,9 @@ def main() -> None:
             ult=row["ult"],
             accent=row["accent"],
             stats_path=stats_path,
+            combat_frames_dir=row.get("combat_frames_dir", ""),
+            hub_frames_dir=row.get("hub_frames_dir", ""),
+            portrait_path=row.get("portrait_path", ""),
             lifesteal=row["lifesteal"],
         )
         (CHARS / f"{cid}.tres").write_text(text, encoding="utf-8")
