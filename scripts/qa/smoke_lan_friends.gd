@@ -601,6 +601,18 @@ func _test_max_clients(lan: Node) -> void:
 		_fail("is_four_vs_oni falso após modo 4")
 		lan.call("close_session")
 		return
+	if not bool(lan.call("set_game_mode", GameMode.Id.BRAWL)):
+		_fail("set_game_mode mapa de batalha falhou")
+		lan.call("close_session")
+		return
+	if int(lan.get("MAX_CLIENTS")) != 3:
+		_fail("mapa de batalha MAX_CLIENTS=%s (deve ser 3)" % lan.get("MAX_CLIENTS"))
+		lan.call("close_session")
+		return
+	if bool(lan.call("is_four_vs_oni")):
+		_fail("mapa de batalha não é 4 vs oni")
+		lan.call("close_session")
+		return
 	lan.call("close_session")
 	if int(lan.get("MAX_CLIENTS")) != 1:
 		_fail("close_session não voltou MAX_CLIENTS=1")
@@ -614,6 +626,9 @@ func _test_game_mode_contract() -> void:
 		return
 	if GameMode.max_clients_for(GameMode.Id.VS_ONI_4) != 3:
 		_fail("GameMode 4 vs oni max_clients != 3")
+		return
+	if GameMode.max_clients_for(GameMode.Id.BRAWL) != 3:
+		_fail("GameMode mapa de batalha max_clients != 3")
 		return
 	if GameMode.scene_path(GameMode.Id.BRAWL) != "res://scenes/modes/brawl/brawl_arena.tscn":
 		_fail("porta Brawl errada")
@@ -686,6 +701,23 @@ func _test_mode_options() -> void:
 			inst.queue_free()
 			await process_frame
 			return
+	var brawl_btn: Button = _find_button(fp, "Mapa de batalha")
+	if brawl_btn:
+		brawl_btn.pressed.emit()
+		for i in range(4):
+			await process_frame
+	var start_btn: Button = _find_button(fp, "Começar")
+	if start_btn == null:
+		_fail("mapa de batalha sem botão Começar")
+		inst.queue_free()
+		await process_frame
+		return
+	var hosted: bool = lan != null and bool(lan.call("is_host"))
+	if hosted and not start_btn.visible:
+		_fail("Começar escondido com a sala aberta no mapa")
+		inst.queue_free()
+		await process_frame
+		return
 	var play: Button = inst.get_node_or_null("%PlayButton") as Button
 	if play != null and play.text.contains("2 vs oni"):
 		_fail("JOGAR ouro virou seletor de modo")

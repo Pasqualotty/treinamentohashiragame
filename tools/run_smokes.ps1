@@ -221,6 +221,12 @@ $smokeList = @(
         FailMarker = "=== COMBAT_FEEL FAIL ==="
     },
     [pscustomobject]@{
+        Name = "smoke_brawl_arena"
+        Script = "res://scripts/qa/smoke_brawl_arena.gd"
+        PassMarker = "=== BRAWL PASS ==="
+        FailMarker = "=== BRAWL FAIL ==="
+    },
+    [pscustomobject]@{
         Name = "smoke_lan_friends"
         Script = "res://scripts/qa/smoke_lan_friends.gd"
         PassMarker = "LAN_FRIENDS PASS"

@@ -28,6 +28,7 @@ var _drawer: Control
 var _slide: Tween
 var _mode_btns: Dictionary = {}
 var _mode_label: Label
+var _start_btn: Button
 
 
 func _ready() -> void:
@@ -278,6 +279,9 @@ func _build() -> void:
 		mb.set_meta("mode_id", mid)
 		_mode_btns[mid] = mb
 		_host_box.add_child(mb)
+	_start_btn = _plate_btn("Começar", _on_start_pressed)
+	_start_btn.visible = false
+	_host_box.add_child(_start_btn)
 	_host_box.add_child(_plate_btn("Fechar sala", _on_close_room))
 
 	_join_box = VBoxContainer.new()
@@ -305,7 +309,7 @@ func _build() -> void:
 	_wait_box.add_theme_constant_override("separation", 10)
 	root.add_child(_wait_box)
 	var wait_l := Label.new()
-	wait_l.text = "O anfitrião escolhe a fase"
+	wait_l.text = "O anfitrião escolhe o modo"
 	wait_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	wait_l.add_theme_font_size_override("font_size", 18)
 	wait_l.add_theme_color_override("font_color", Palette.CREAM)
@@ -498,14 +502,35 @@ func _on_mode_pressed(mode_id: int) -> void:
 		return
 	if not LanSession.set_game_mode(mode_id):
 		_sync_mode_buttons()
+		_sync_start_btn()
 		return
 	_sync_mode_buttons()
+	_sync_start_btn()
 	_refresh_host_status()
 
 
 func _on_mode_changed(_mode_id: int) -> void:
 	_sync_mode_buttons()
+	_sync_start_btn()
 	_refresh_host_status()
+
+
+func _on_start_pressed() -> void:
+	if not is_instance_valid(LanSession) or not LanSession.is_host():
+		return
+	if not LanSession.has_method("start_selected_mode"):
+		return
+	LanSession.start_selected_mode()
+
+
+func _sync_start_btn() -> void:
+	if _start_btn == null:
+		return
+	var mid: int = GameMode.Id.VS_ONI_2
+	if is_instance_valid(LanSession):
+		mid = int(LanSession.game_mode)
+	var path := GameMode.scene_path(mid)
+	_start_btn.visible = not path.is_empty() and ResourceLoader.exists(path)
 
 
 func _sync_mode_buttons() -> void:
@@ -521,6 +546,7 @@ func _sync_mode_buttons() -> void:
 		var border: Color = Palette.GOLD_BRIGHT if selected else Palette.GOLD
 		btn.add_theme_stylebox_override("normal", _gold_sb(bg, border))
 		btn.add_theme_font_size_override("font_size", 17 if selected else 16)
+	_sync_start_btn()
 
 
 func _refresh_host_status() -> void:
@@ -529,10 +555,15 @@ func _refresh_host_status() -> void:
 	if not LanSession.is_host():
 		return
 	var mode_id: int = int(LanSession.game_mode)
-	if GameMode.is_vs_oni(mode_id) and GameMode.max_clients_for(mode_id) > 1:
+	if GameMode.max_clients_for(mode_id) > 1:
 		var n: int = LanSession.hunter_count() if LanSession.has_peer() else 1
 		var cap: int = GameMode.hunter_cap(mode_id)
-		_status_label.text = "Caçadores %d/%d" % [n, cap]
+		if GameMode.scene_path(mode_id).is_empty():
+			_status_label.text = "Caçadores %d/%d" % [n, cap]
+		else:
+			_status_label.text = "Caçadores %d/%d · Começar quando quiser" % [n, cap]
+	elif not GameMode.scene_path(mode_id).is_empty():
+		_status_label.text = "Começar quando quiser"
 	elif LanSession.has_peer():
 		_status_label.text = "Amigo entrou"
 	else:

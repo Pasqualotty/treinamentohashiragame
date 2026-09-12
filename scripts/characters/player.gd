@@ -67,10 +67,15 @@ var follow_host_snap: bool = false
 var forced_character_id: String = ""
 ## P2 no host: kit do CharacterDef, sem loja do anfitrião.
 var skip_local_upgrades: bool = false
-## Respiração por corpo em sessão LAN.
+## Mapa de batalha: anda no plano. Skills/ult não exigem chão de side-scroller.
+var plane_locomotion: bool = false
+## Respiração por corpo (LAN e mapa de batalha).
 var pawn_breath: float = 0.0
 var pawn_breath_max: float = 100.0
 signal pawn_breath_changed(value: float, max_value: float)
+## Multiplicador temporário (pickup de haste no mapa).
+var move_speed_mul: float = 1.0
+var _boost_left: float = 0.0
 
 var _remote_axis: float = 0.0
 var _remote_just: int = 0
@@ -298,6 +303,24 @@ func get_pawn_breath_max() -> float:
 	return pawn_breath_max
 
 
+func _grounded() -> bool:
+	return plane_locomotion or is_on_floor()
+
+
+func get_move_speed() -> float:
+	var base: float = stats.move_speed if stats else 220.0
+	return base * maxf(move_speed_mul, 0.2)
+
+
+func apply_speed_boost(mul: float, seconds: float) -> void:
+	move_speed_mul = maxf(mul, 0.2)
+	_boost_left = maxf(seconds, 0.0)
+
+
+func add_breath_pickup(amount: float) -> void:
+	_add_pawn_breath(amount)
+
+
 func apply_input_frame(axis: float, _held: int, just: int) -> void:
 	_remote_axis = axis
 	_remote_just = just
@@ -351,26 +374,27 @@ func _just_pressed(action: StringName) -> bool:
 
 
 func _add_pawn_breath(amount: float) -> void:
-	if _in_coop_session():
-		var was_ready: bool = pawn_breath >= pawn_breath_max
-		pawn_breath = minf(pawn_breath + amount, pawn_breath_max)
-		pawn_breath_changed.emit(pawn_breath, pawn_breath_max)
-		if not was_ready and pawn_breath >= pawn_breath_max:
-			var audio := get_node_or_null("/root/Audio")
-			if audio != null and audio.has_method("play_sfx"):
-				audio.call("play_sfx", "breath_full")
+	if amount <= 0.0:
 		return
-	Game.add_breath_from_hit(amount)
+	var was_ready: bool = pawn_breath >= pawn_breath_max
+	pawn_breath = minf(pawn_breath + amount, pawn_breath_max)
+	pawn_breath_changed.emit(pawn_breath, pawn_breath_max)
+	if not was_ready and pawn_breath >= pawn_breath_max:
+		var audio := get_node_or_null("/root/Audio")
+		if audio != null and audio.has_method("play_sfx"):
+			audio.call("play_sfx", "breath_full")
+	if not _in_coop_session() and not plane_locomotion:
+		Game.add_breath_from_hit(amount)
 
 
 func _ult_ready() -> bool:
-	if _in_coop_session():
+	if plane_locomotion or _in_coop_session():
 		return pawn_breath >= pawn_breath_max
 	return Game.is_ultimate_ready()
 
 
 func _consume_ult() -> void:
-	if _in_coop_session():
+	if plane_locomotion or _in_coop_session():
 		pawn_breath = 0.0
 		pawn_breath_changed.emit(pawn_breath, pawn_breath_max)
 		return
@@ -551,7 +575,7 @@ func _process_locomotion(delta: float) -> void:
 
 
 func _apply_horizontal_feel(axis: float, delta: float) -> void:
-	var target: float = axis * stats.move_speed
+	var target: float = axis * get_move_speed()
 	if not is_zero_approx(axis):
 		_facing = signf(axis)
 		var accel: float = stats.move_accel if stats.move_accel > 0.0 else stats.move_speed * 12.0
@@ -582,11 +606,11 @@ func _process_dash(delta: float) -> void:
 		if not is_zero_approx(axis):
 			_facing = signf(axis)
 			var accel: float = stats.move_accel if stats.move_accel > 0.0 else stats.move_speed * 12.0
-			velocity.x = move_toward(velocity.x, axis * stats.move_speed, accel * delta)
+			velocity.x = move_toward(velocity.x, axis * get_move_speed(), accel * delta)
 		else:
 			var friction: float = stats.move_friction if stats.move_friction > 0.0 else stats.move_speed * 14.0
 			velocity.x = move_toward(velocity.x, 0.0, friction * delta)
-		_set_state(State.IDLE if is_on_floor() else State.JUMP)
+		_set_state(State.IDLE if _grounded() else State.JUMP)
 
 
 func _process_hurt(delta: float) -> void:
@@ -598,7 +622,7 @@ func _process_hurt(delta: float) -> void:
 
 	_hurt_timer -= delta
 	if _hurt_timer <= 0.0:
-		_set_state(State.IDLE if is_on_floor() else State.JUMP)
+		_set_state(State.IDLE if _grounded() else State.JUMP)
 		# Após recovery, tenta buffers de mobilidade (jump/dash) se ainda vivos.
 		_try_consume_buffers()
 
@@ -640,7 +664,7 @@ func _process_action(delta: float) -> void:
 			else:
 				# Não foi encadeado no mid-recovery: abre a janela de graça.
 				_combo_reset_timer = stats.attack_combo_grace if stats else 0.28
-		_set_state(State.IDLE if is_on_floor() else State.JUMP)
+		_set_state(State.IDLE if _grounded() else State.JUMP)
 		_try_consume_buffers()
 
 
@@ -746,7 +770,7 @@ func _try_start_skill_1() -> bool:
 		return false
 	if _skill_1_cd > 0.0:
 		return false
-	if not is_on_floor():
+	if not _grounded():
 		return false
 	_reset_combo()
 	_skill_1_cd = stats.skill_1_cooldown
@@ -768,7 +792,7 @@ func _try_start_skill_2() -> bool:
 		return false
 	if _skill_2_cd > 0.0:
 		return false
-	if not is_on_floor():
+	if not _grounded():
 		return false
 	_reset_combo()
 	_skill_2_cd = stats.skill_2_cooldown
@@ -790,7 +814,7 @@ func _try_start_ultimate() -> bool:
 		return false
 	if not _ult_ready():
 		return false
-	if not is_on_floor():
+	if not _grounded():
 		return false
 
 	_reset_combo()
@@ -971,7 +995,7 @@ func _update_state_after_move() -> void:
 	]:
 		return
 
-	if not is_on_floor():
+	if not _grounded():
 		_set_state(State.JUMP)
 		return
 
@@ -983,7 +1007,7 @@ func _update_state_after_move() -> void:
 
 
 func _update_coyote(delta: float) -> void:
-	var on_floor: bool = is_on_floor()
+	var on_floor: bool = _grounded()
 	if on_floor:
 		if not _was_on_floor and _air_time > 0.08:
 			if is_instance_valid(Fx):
@@ -1003,6 +1027,10 @@ func _update_coyote(delta: float) -> void:
 
 
 func _tick_timers(delta: float) -> void:
+	if _boost_left > 0.0:
+		_boost_left = maxf(_boost_left - delta, 0.0)
+		if _boost_left <= 0.0:
+			move_speed_mul = 1.0
 	if _dash_cooldown_left > 0.0:
 		_dash_cooldown_left = maxf(_dash_cooldown_left - delta, 0.0)
 	if _skill_1_cd > 0.0:

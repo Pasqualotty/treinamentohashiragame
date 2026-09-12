@@ -1,5 +1,12 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.8 — mapa de batalha (2026-09-12)
+
+- Depois que alguém vence: **De novo** ou **Sair**
+- Pátio grande, até 4 caçadores, pads de vida / respiração / haste
+- Barras de luta verde → amarelo → vermelho
+- Skills e respiração funcionam no mapa (F6 contra a máquina)
+
 ## 0.0.7 — sala no celular + kits (2026-09-12)
 
 - Sobrinho joga com o amigo **só no celular** — sem ligar PC

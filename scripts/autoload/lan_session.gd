@@ -133,19 +133,26 @@ func get_roster() -> Array:
 func set_game_mode(mode_id: int) -> bool:
 	if not is_host():
 		return false
-	if GameMode.is_vs_oni(mode_id):
-		var want: int = GameMode.max_clients_for(mode_id)
-		if not _resize_server(want):
-			return false
-		game_mode = mode_id
-		mode_changed.emit(mode_id)
-		return true
+	if not GameMode.is_vs_oni(mode_id):
+		var path := GameMode.scene_path(mode_id)
+		if path.is_empty() or not ResourceLoader.exists(path):
+			toast_requested.emit(GameMode.missing_toast(mode_id))
+			return true
+	var want: int = GameMode.max_clients_for(mode_id)
+	if not _resize_server(want):
+		return false
 	game_mode = mode_id
 	mode_changed.emit(mode_id)
-	var path := GameMode.scene_path(mode_id)
+	return true
+
+
+func start_selected_mode() -> bool:
+	if not is_host():
+		return false
+	var path := GameMode.scene_path(game_mode)
 	if path.is_empty() or not ResourceLoader.exists(path):
-		toast_requested.emit(GameMode.missing_toast(mode_id))
-		return true
+		toast_requested.emit(GameMode.missing_toast(game_mode))
+		return false
 	if _handshake_ok:
 		announce_stage(path)
 	SceneRouter.go_to(path)

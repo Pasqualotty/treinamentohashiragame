@@ -1,8 +1,8 @@
 {
-	"version_code": 7,
-	"version_name": "0.0.7",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.7/TreinamentoHashira.apk",
-	"changelog": "Sala no celular sem ligar o PC. Quatro modos com o amigo. Cada cacador tem ataque, skills e botoes proprios.",
-	"size_bytes": 144830159,
-	"sha256": "3ccb798cfd05c54b5673463a9c9257be2222f6c1378c39ff14753b5589ade0aa"
+	"version_code": 8,
+	"version_name": "0.0.8",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.8/TreinamentoHashira.apk",
+	"changelog": "Mapa de batalha: patio grande, skills, barras de luta, De novo e Sair. Sem ligar o PC.",
+	"size_bytes": 147908285,
+	"sha256": "0502110daa33e4e9a4927d5d333ca48266f72af14ed7797d5d60d5423abba10a"
 }

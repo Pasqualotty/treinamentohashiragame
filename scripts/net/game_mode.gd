@@ -18,7 +18,7 @@ const TOAST_DUEL_MISSING := "1v1 ainda não chegou"
 
 
 static func max_clients_for(mode_id: int) -> int:
-	if mode_id == Id.VS_ONI_4:
+	if mode_id == Id.VS_ONI_4 or mode_id == Id.BRAWL:
 		return 3
 	return 1
 

@@ -11,7 +11,7 @@
 
 ## Onde estamos (1 frase)
 
-**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub (Amigos à direita) → mapa (seletor de mundo) → fase → portal → loja/save. **Sala:** 2 vs oni ou 4 vs oni (cada celular um caçador); mapa/1v1 = 2P com o amigo no celular (dummy só no F6). Mundo seguinte abre ao limpar o boss.
+**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub (Amigos à direita) → mapa (seletor de mundo) → fase → portal → loja/save. **Sala:** 2 vs oni ou 4 vs oni; mapa de batalha até 4 (pátio + pads + De novo/Sair); 1v1 = 2P. F6 no mapa enche com máquina. Mundo seguinte abre ao limpar o boss.
 
 ### Hotfix playability 2026-08-07 (crítico)
 
@@ -189,3 +189,4 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | 2026-09-10 | **Sala de outra casa:** PC do meio (3a) + chamar pelo nome. LAN Wi-Fi da onda 2 permanece. Sem Firebase/Play/Hostinger. |
 | 2026-09-12 | **Sala no celular:** gaveta sem IP; `hashira/sala_host` baked; HTTP/TCP + UDP; PC = reserva de dev. |
 | 2026-09-12 | **APK 0.0.7:** sala da estrela no celular (sem ligar PC); 4 modos com o amigo; ataque/skill/ícone por caçador. |
+| 2026-09-12 | **Mapa de batalha:** pátio grande, até 4, pads, barras de luta, skills/respiração no plano, De novo/Sair. |

@@ -1,84 +1,98 @@
 extends Node2D
-## Arena placeholder do modo batalha (feel Brawl): plano 2D, PvP.
-## Com LanSession + peer: roster 2P, cada celular o seu. Sem dummy.
-## F6 / smoke sem sessão: dummy local no 2º corpo.
+## Mapa de batalha: pátio grande, até 4 caçadores, pads, saída após o fim.
+## Sala + amigos: cada celular o seu. Sem sessão (F6): você + máquinas.
 
 const PLAYER_SCENE: PackedScene = preload("res://scenes/characters/player/player.tscn")
 const TOUCH_SCENE: PackedScene = preload("res://scenes/ui/combat_touch_controls.tscn")
 const HUD_SCRIPT: Script = preload("res://scripts/modes/brawl/brawl_hud.gd")
 const BOT_SCRIPT: Script = preload("res://scripts/modes/brawl/brawl_bot.gd")
+const MAP := preload("res://scripts/modes/brawl/brawl_map.gd")
 
 const MATCH_TIME: float = 90.0
-const DEFAULT_IDS: PackedStringArray = ["inosuke", "nezuko"]
-const SPAWN_P1 := Vector2(380.0, 430.0)
-const SPAWN_P2 := Vector2(900.0, 430.0)
+const DEFAULT_IDS: PackedStringArray = ["inosuke", "nezuko", "zenitsu", "tanjiro"]
+const FILL_IDS: PackedStringArray = ["zenitsu", "tanjiro", "rengoku", "shinobu"]
 
-var _p1: CharacterBody2D
-var _p2: CharacterBody2D
-var _bot: Node
+var _hunters: Array[CharacterBody2D] = []
+var _bots: Array[Node] = []
 var _hud: CanvasLayer
+var _cam: Camera2D
 var _time_left: float = MATCH_TIME
 var _over: bool = false
 var _roster: PackedStringArray = DEFAULT_IDS
-var _debug_vertical_on: Array[bool] = [false, false]
-var _debug_vertical: PackedFloat32Array = PackedFloat32Array([0.0, 0.0])
+var _debug_vertical_on: Array[bool] = [false, false, false, false]
+var _debug_vertical: PackedFloat32Array = PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+var _pause_layer: CanvasLayer
 
 
 func _ready() -> void:
 	process_priority = -10
-	var cam: Camera2D = get_node_or_null("Camera2D") as Camera2D
-	if cam:
-		cam.make_current()
+	_cam = get_node_or_null("Camera2D") as Camera2D
 	_roster = _resolve_roster()
 	_time_left = _resolve_match_time()
+	_build_map()
 	if _lan_peers():
 		LanSession.mark_entered_stage()
 	_spawn_hunters()
-	_patch_pvp(_p1, 0)
-	_patch_pvp(_p2, 1)
-	_wire_death(_p1)
-	_wire_death(_p2)
-	_attach_bot()
+	var i: int = 0
+	while i < _hunters.size():
+		_patch_pvp(_hunters[i], i)
+		_wire_death(_hunters[i])
+		i += 1
+	_attach_bots()
 	_spawn_hud()
 	_spawn_touch()
-	_face_each_other()
+	_face_inward()
+	_setup_camera()
 	if is_instance_valid(Audio) and Audio.has_method("play_bgm"):
 		Audio.play_bgm("stage")
 	if uses_lan_roster():
-		print("[BrawlArena] sessão roster=%s vs %s dummy=nao" % [_roster[0], _roster[1]])
+		print("[BrawlArena] sessão n=%d dummy=%s" % [_hunters.size(), has_dummy()])
 	else:
-		print("[BrawlArena] F6 standalone roster=%s vs %s" % [_roster[0], _roster[1]])
+		print("[BrawlArena] F6 standalone n=%d" % _hunters.size())
 
 
 func _physics_process(delta: float) -> void:
 	if _over:
-		_zero_vertical(_p1)
-		_zero_vertical(_p2)
+		_zero_all_vertical()
 		return
 	_time_left = maxf(0.0, _time_left - delta)
 	if _hud != null and _hud.has_method("set_time_left"):
 		_hud.call("set_time_left", _time_left)
-	_apply_plane_vertical(_p1, _axis_for(0, _local_vertical_axis()))
-	var bot_v: float = 0.0
-	if _bot != null:
-		bot_v = float(_bot.get("desired_vertical"))
-	_apply_plane_vertical(_p2, _axis_for(1, bot_v))
+	var slot: int = 0
+	while slot < _hunters.size():
+		var axis: float = 0.0
+		if slot == _local_slot():
+			axis = _local_vertical_axis()
+		else:
+			axis = _bot_vertical(slot)
+		_apply_plane_vertical(_hunters[slot], _axis_for(slot, axis))
+		slot += 1
+	_follow_camera()
 	_check_end()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("pause"):
+		_toggle_pause()
+		get_viewport().set_input_as_handled()
+
+
 func get_hunter(slot: int) -> CharacterBody2D:
-	if slot == 0:
-		return _p1
-	return _p2
+	if slot < 0 or slot >= _hunters.size():
+		return null
+	return _hunters[slot]
 
 
 func get_hunters() -> Array[CharacterBody2D]:
-	var out: Array[CharacterBody2D] = []
-	if _p1 != null:
-		out.append(_p1)
-	if _p2 != null:
-		out.append(_p2)
-	return out
+	return _hunters.duplicate()
+
+
+func hunter_count() -> int:
+	return _hunters.size()
+
+
+func get_map_size() -> Vector2:
+	return MAP.MAP_SIZE
 
 
 func is_match_over() -> bool:
@@ -94,7 +108,12 @@ func uses_lan_roster() -> bool:
 
 
 func has_dummy() -> bool:
-	return _bot != null and is_instance_valid(_bot)
+	return not _bots.is_empty()
+
+
+func pickup_count() -> int:
+	var host: Node = get_node_or_null("Pickups")
+	return host.get_child_count() if host else 0
 
 
 func hunter_team(slot: int) -> StringName:
@@ -107,32 +126,73 @@ func hunter_team(slot: int) -> StringName:
 	return hit.team
 
 
+func restart_match() -> void:
+	_close_pause()
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	get_tree().reload_current_scene()
+
+
+func leave_match() -> void:
+	_close_pause()
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	if is_instance_valid(LanSession) and LanSession.in_session():
+		LanSession.close_session()
+	SceneRouter.to_hub()
+
+
 func debug_pause_bot() -> void:
-	if _bot != null:
-		_bot.set_physics_process(false)
-		_bot.set("desired_vertical", 0.0)
-	_debug_vertical_on[0] = true
-	_debug_vertical[0] = 0.0
-	_debug_vertical_on[1] = true
-	_debug_vertical[1] = 0.0
-	if _p1:
-		_p1.velocity = Vector2.ZERO
-	if _p2:
-		_p2.velocity = Vector2.ZERO
+	for bot: Node in _bots:
+		if is_instance_valid(bot):
+			bot.set_physics_process(false)
+			bot.set("desired_vertical", 0.0)
+	var i: int = 0
+	while i < _debug_vertical_on.size():
+		_debug_vertical_on[i] = true
+		_debug_vertical[i] = 0.0
+		i += 1
+	for p: CharacterBody2D in _hunters:
+		if p:
+			p.velocity = Vector2.ZERO
 
 
 func debug_set_vertical(slot: int, axis: float) -> void:
-	if slot < 0 or slot > 1:
+	if slot < 0 or slot >= _debug_vertical_on.size():
 		return
 	_debug_vertical_on[slot] = true
 	_debug_vertical[slot] = axis
 	_apply_plane_vertical(get_hunter(slot), axis)
 
 
+func _build_map() -> void:
+	var world: Node2D = get_node_or_null("World") as Node2D
+	if world == null:
+		world = Node2D.new()
+		world.name = "World"
+		add_child(world)
+	var pads: Node2D = get_node_or_null("Pickups") as Node2D
+	if pads == null:
+		pads = Node2D.new()
+		pads.name = "Pickups"
+		add_child(pads)
+	MAP.build(world, pads)
+
+
 func _axis_for(slot: int, fallback: float) -> float:
 	if slot >= 0 and slot < _debug_vertical_on.size() and _debug_vertical_on[slot]:
 		return _debug_vertical[slot]
 	return fallback
+
+
+func _bot_vertical(slot: int) -> float:
+	for bot: Node in _bots:
+		if not is_instance_valid(bot):
+			continue
+		var pawn: Variant = bot.get("pawn")
+		if pawn == get_hunter(slot):
+			return float(bot.get("desired_vertical"))
+	return 0.0
 
 
 func _live_session() -> bool:
@@ -174,25 +234,43 @@ func _controls_locally(slot: int) -> bool:
 	return slot == _local_slot()
 
 
+func _slot_is_human(slot: int) -> bool:
+	if not _live_session():
+		return slot == 0
+	if has_meta("smoke_lan_roster"):
+		return slot <= 1
+	if not is_instance_valid(LanSession):
+		return slot == 0
+	for item: Variant in LanSession.get_roster():
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		if int((item as Dictionary).get("slot", -1)) == slot:
+			return true
+	return slot == 0
+
+
 func _ids_from_session() -> PackedStringArray:
-	var ids := PackedStringArray(["tanjiro", "nezuko"])
+	var ids := PackedStringArray()
 	if has_meta("smoke_lan_roster"):
 		var raw: Variant = get_meta("smoke_lan_roster")
 		if raw is Dictionary:
 			var meta := raw as Dictionary
-			ids[0] = str(meta.get("char_0", ids[0]))
-			ids[1] = str(meta.get("char_1", ids[1]))
+			ids.append(str(meta.get("char_0", "inosuke")))
+			ids.append(str(meta.get("char_1", "nezuko")))
 			return ids
 	if not is_instance_valid(LanSession):
 		return ids
-	var roster: Array = LanSession.get_roster()
-	for item: Variant in roster:
+	var found: Dictionary = {}
+	for item: Variant in LanSession.get_roster():
 		if typeof(item) != TYPE_DICTIONARY:
 			continue
 		var rec := item as Dictionary
-		var slot: int = int(rec.get("slot", -1))
-		if slot == 0 or slot == 1:
-			ids[slot] = str(rec.get("char_id", ids[slot]))
+		found[int(rec.get("slot", -1))] = str(rec.get("char_id", "tanjiro"))
+	var slot: int = 0
+	while slot < 4:
+		if found.has(slot):
+			ids.append(str(found[slot]))
+		slot += 1
 	return ids
 
 
@@ -200,18 +278,38 @@ func _resolve_roster() -> PackedStringArray:
 	if _live_session():
 		var from_lan: PackedStringArray = _ids_from_session()
 		if from_lan.size() >= 2:
-			return from_lan
+			return _fill_roster(from_lan, from_lan.size())
+		return _fill_roster(from_lan, 4)
 	var gm: Node = get_node_or_null("/root/GameMode")
 	if gm != null:
 		var from_prop: Variant = gm.get("brawl_ids")
-		var parsed: PackedStringArray = _as_id_pair(from_prop)
+		var parsed: PackedStringArray = _as_ids(from_prop)
 		if parsed.size() >= 2:
-			return parsed
+			return _fill_roster(parsed, 4)
 		if gm.has_method("get_brawl_roster"):
-			parsed = _as_id_pair(gm.call("get_brawl_roster"))
+			parsed = _as_ids(gm.call("get_brawl_roster"))
 			if parsed.size() >= 2:
-				return parsed
-	return DEFAULT_IDS
+				return _fill_roster(parsed, 4)
+	return _fill_roster(DEFAULT_IDS, 4)
+
+
+func _fill_roster(base: PackedStringArray, want: int) -> PackedStringArray:
+	var out := PackedStringArray()
+	for id: String in base:
+		if out.size() >= want:
+			break
+		out.append(id)
+	var i: int = 0
+	while out.size() < want:
+		var extra: String = FILL_IDS[i % FILL_IDS.size()]
+		if extra not in out:
+			out.append(extra)
+		elif DEFAULT_IDS[i % DEFAULT_IDS.size()] not in out:
+			out.append(DEFAULT_IDS[i % DEFAULT_IDS.size()])
+		else:
+			out.append("tanjiro")
+		i += 1
+	return out
 
 
 func _resolve_match_time() -> float:
@@ -223,16 +321,14 @@ func _resolve_match_time() -> float:
 	return MATCH_TIME
 
 
-func _as_id_pair(raw: Variant) -> PackedStringArray:
+func _as_ids(raw: Variant) -> PackedStringArray:
 	var out: PackedStringArray = []
 	if raw is PackedStringArray:
 		out = raw
 	elif raw is Array:
 		for item: Variant in raw:
 			out.append(str(item))
-	if out.size() < 2:
-		return PackedStringArray()
-	return PackedStringArray([out[0], out[1]])
+	return out
 
 
 func _spawn_hunters() -> void:
@@ -243,16 +339,16 @@ func _spawn_hunters() -> void:
 		add_child(host)
 	if host is Node2D:
 		(host as Node2D).y_sort_enabled = true
-	_p1 = _make_hunter(0, _roster[0], _controls_locally(0))
-	_p2 = _make_hunter(1, _roster[1], _controls_locally(1))
-	host.add_child(_p1)
-	host.add_child(_p2)
-	_p1.global_position = SPAWN_P1
-	_p2.global_position = SPAWN_P2
-	_attach_shadow(_p1)
-	_attach_shadow(_p2)
-	_attach_nameplate(_p1)
-	_attach_nameplate(_p2)
+	_hunters.clear()
+	var slot: int = 0
+	while slot < _roster.size() and slot < 4:
+		var pawn: CharacterBody2D = _make_hunter(slot, _roster[slot], _controls_locally(slot))
+		host.add_child(pawn)
+		pawn.global_position = MAP.SPAWNS[slot]
+		_attach_shadow(pawn)
+		_attach_nameplate(pawn)
+		_hunters.append(pawn)
+		slot += 1
 
 
 func _make_hunter(slot: int, char_id: String, local: bool) -> CharacterBody2D:
@@ -274,6 +370,7 @@ func _patch_pvp(pawn: CharacterBody2D, slot: int) -> void:
 	pawn.floor_snap_length = 0.0
 	pawn.collision_layer = 2
 	pawn.collision_mask = 1
+	pawn.set("plane_locomotion", true)
 	var team := StringName("brawl_%d" % slot)
 	var hitbox: Hitbox = pawn.get_node_or_null("%Hitbox") as Hitbox
 	var hurtbox: Hurtbox = pawn.get_node_or_null("%Hurtbox") as Hurtbox
@@ -300,22 +397,47 @@ func _wire_death(pawn: CharacterBody2D) -> void:
 		pawn.died.connect(_on_hunter_died)
 
 
-func _attach_bot() -> void:
-	if _live_session():
+func _attach_bots() -> void:
+	_bots.clear()
+	if _session_is_guest():
 		return
-	_bot = BOT_SCRIPT.new()
-	_bot.name = "BrawlBot"
-	add_child(_bot)
-	if _bot.has_method("setup"):
-		_bot.call("setup", _p2, _p1)
+	var slot: int = 0
+	while slot < _hunters.size():
+		if _slot_is_human(slot):
+			slot += 1
+			continue
+		var bot: Node = BOT_SCRIPT.new()
+		bot.name = "BrawlBot%d" % slot
+		add_child(bot)
+		if bot.has_method("setup"):
+			bot.call("setup", _hunters[slot], _nearest_rival(_hunters[slot]))
+		_bots.append(bot)
+		slot += 1
+
+
+func _nearest_rival(pawn: CharacterBody2D) -> CharacterBody2D:
+	var best: CharacterBody2D = null
+	var best_d: float = 1.0e9
+	for other: CharacterBody2D in _hunters:
+		if other == pawn or other == null:
+			continue
+		if int(other.get("hp")) <= 0:
+			continue
+		var d: float = pawn.global_position.distance_to(other.global_position)
+		if d < best_d:
+			best_d = d
+			best = other
+	return best
 
 
 func _spawn_hud() -> void:
 	_hud = HUD_SCRIPT.new() as CanvasLayer
 	_hud.name = "BrawlHud"
 	add_child(_hud)
+	_hud.set("on_rematch", restart_match)
+	_hud.set("on_leave", leave_match)
 	if _hud.has_method("bind_hunters"):
-		_hud.call("bind_hunters", _p1, _p2)
+		_hud.call("bind_hunters", _hunters)
 	if _hud.has_method("set_time_left"):
 		_hud.call("set_time_left", _time_left)
 
@@ -323,18 +445,47 @@ func _spawn_hud() -> void:
 func _spawn_touch() -> void:
 	var touch: CanvasLayer = TOUCH_SCENE.instantiate() as CanvasLayer
 	touch.name = "CombatTouchControls"
+	touch.set("hud_band_height", 188.0)
 	add_child(touch)
 
 
-func _face_each_other() -> void:
-	if _p1 != null and _p1.has_method("apply_input_frame"):
-		_p1.call("apply_input_frame", 1.0, 0, 0)
-	if _p2 != null and _p2.has_method("apply_input_frame"):
-		_p2.call("apply_input_frame", -1.0, 0, 0)
+func _face_inward() -> void:
+	var mid := MAP.MAP_SIZE * 0.5
+	for pawn: CharacterBody2D in _hunters:
+		if pawn == null or not pawn.has_method("apply_input_frame"):
+			continue
+		var dir: float = 1.0 if pawn.global_position.x < mid.x else -1.0
+		pawn.call("apply_input_frame", dir, 0, 0)
+
+
+func _setup_camera() -> void:
+	if _cam == null:
+		_cam = Camera2D.new()
+		_cam.name = "Camera2D"
+		add_child(_cam)
+	_cam.enabled = true
+	_cam.make_current()
+	_cam.position_smoothing_enabled = true
+	_cam.position_smoothing_speed = 6.0
+	_cam.limit_left = 0
+	_cam.limit_top = 0
+	_cam.limit_right = int(MAP.MAP_SIZE.x)
+	_cam.limit_bottom = int(MAP.MAP_SIZE.y)
+	_follow_camera()
+
+
+func _follow_camera() -> void:
+	if _cam == null:
+		return
+	var local: CharacterBody2D = get_hunter(_local_slot())
+	if local == null or not is_instance_valid(local):
+		return
+	_cam.global_position = local.global_position
 
 
 func _local_vertical_axis() -> float:
-	if _p1 == null or not bool(_p1.get("accept_local_input")):
+	var pawn: CharacterBody2D = get_hunter(_local_slot())
+	if pawn == null or not bool(pawn.get("accept_local_input")):
 		return 0.0
 	if not InputMap.has_action("move_up") or not InputMap.has_action("move_down"):
 		return 0.0
@@ -348,38 +499,51 @@ func _apply_plane_vertical(pawn: CharacterBody2D, axis: float) -> void:
 		pawn.velocity.y = 0.0
 		return
 	var speed: float = 220.0
-	var st: PlayerStats = pawn.get("stats") as PlayerStats
-	if st != null:
-		speed = st.move_speed
+	if pawn.has_method("get_move_speed"):
+		speed = float(pawn.call("get_move_speed"))
+	else:
+		var st: PlayerStats = pawn.get("stats") as PlayerStats
+		if st != null:
+			speed = st.move_speed
 	pawn.velocity.y = axis * speed
 
 
-func _zero_vertical(pawn: CharacterBody2D) -> void:
-	if pawn != null and is_instance_valid(pawn):
-		pawn.velocity.y = 0.0
+func _zero_all_vertical() -> void:
+	for pawn: CharacterBody2D in _hunters:
+		if pawn != null and is_instance_valid(pawn):
+			pawn.velocity.y = 0.0
 
 
 func _check_end() -> void:
 	if _over:
 		return
-	var h1: int = _hp_of(_p1)
-	var h2: int = _hp_of(_p2)
-	if h1 <= 0 and h2 <= 0:
+	var alive: Array[CharacterBody2D] = []
+	for pawn: CharacterBody2D in _hunters:
+		if _hp_of(pawn) > 0:
+			alive.append(pawn)
+	if alive.is_empty():
 		_finish("Empate")
 		return
-	if h1 <= 0:
-		_finish("%s venceu" % _display_of(_p2))
-		return
-	if h2 <= 0:
-		_finish("%s venceu" % _display_of(_p1))
+	if alive.size() == 1:
+		_finish("%s venceu" % _display_of(alive[0]))
 		return
 	if _time_left <= 0.0:
-		if h1 == h2:
-			_finish("Empate")
-		elif h1 > h2:
-			_finish("%s venceu" % _display_of(_p1))
-		else:
-			_finish("%s venceu" % _display_of(_p2))
+		_finish(_winner_by_hp())
+
+
+func _winner_by_hp() -> String:
+	var best_hp: int = -1
+	var winners: Array[CharacterBody2D] = []
+	for pawn: CharacterBody2D in _hunters:
+		var h: int = _hp_of(pawn)
+		if h > best_hp:
+			best_hp = h
+			winners = [pawn]
+		elif h == best_hp:
+			winners.append(pawn)
+	if winners.size() != 1:
+		return "Empate"
+	return "%s venceu" % _display_of(winners[0])
 
 
 func _on_hunter_died() -> void:
@@ -390,14 +554,67 @@ func _finish(text: String) -> void:
 	if _over:
 		return
 	_over = true
-	if _p1 != null and _p1.has_method("apply_input_frame"):
-		_p1.set("accept_local_input", false)
-		_p1.call("apply_input_frame", 0.0, 0, 0)
-	if _p2 != null and _p2.has_method("apply_input_frame"):
-		_p2.call("apply_input_frame", 0.0, 0, 0)
+	_close_pause()
+	for pawn: CharacterBody2D in _hunters:
+		if pawn == null:
+			continue
+		pawn.set("accept_local_input", false)
+		if pawn.has_method("apply_input_frame"):
+			pawn.call("apply_input_frame", 0.0, 0, 0)
 	if _hud != null and _hud.has_method("show_winner"):
 		_hud.call("show_winner", text)
 	print("[BrawlArena] fim: %s" % text)
+
+
+func _toggle_pause() -> void:
+	if _over:
+		return
+	if _pause_layer != null and is_instance_valid(_pause_layer):
+		_close_pause()
+		return
+	get_tree().paused = true
+	Engine.time_scale = 1.0
+	_pause_layer = CanvasLayer.new()
+	_pause_layer.name = "PauseMenu"
+	_pause_layer.layer = 80
+	_pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_pause_layer)
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0, 0, 0, 0.55)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	_pause_layer.add_child(dim)
+	var box := VBoxContainer.new()
+	box.position = Vector2(440, 200)
+	box.custom_minimum_size = Vector2(400, 260)
+	box.add_theme_constant_override("separation", 14)
+	_pause_layer.add_child(box)
+	var title := Label.new()
+	title.text = "PAUSA"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 32)
+	title.add_theme_color_override("font_color", Palette.CREAM)
+	box.add_child(title)
+	box.add_child(_pause_btn("Continuar", _close_pause))
+	box.add_child(_pause_btn("De novo", restart_match))
+	box.add_child(_pause_btn("Sair", leave_match))
+
+
+func _pause_btn(text: String, cb: Callable) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.custom_minimum_size = Vector2(0, 56)
+	btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	btn.pressed.connect(cb)
+	return btn
+
+
+func _close_pause() -> void:
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	if _pause_layer != null and is_instance_valid(_pause_layer):
+		_pause_layer.queue_free()
+	_pause_layer = null
 
 
 func _hp_of(pawn: CharacterBody2D) -> int:

@@ -52,10 +52,13 @@ func _run() -> void:
 				if n is CharacterBody2D:
 					hunters.append(n as CharacterBody2D)
 	if hunters.size() < 2:
-		_fail("esperava 2 caçadores, veio %d" % hunters.size())
+		_fail("esperava 2+ caçadores, veio %d" % hunters.size())
 		_finish()
 		return
-	_ok("dois corpos na arena")
+	if hunters.size() != 4:
+		_fail("F6 deveria encher 4 caçadores, veio %d" % hunters.size())
+	else:
+		_ok("quatro corpos na arena (você + máquinas)")
 
 	var p1: CharacterBody2D = hunters[0]
 	var p2: CharacterBody2D = hunters[1]
@@ -99,8 +102,21 @@ func _run() -> void:
 	else:
 		_ok("touch GDD presente")
 
+	if inst.has_method("get_map_size"):
+		var ms: Vector2 = inst.call("get_map_size")
+		if ms.x < 2000.0 or ms.y < 1200.0:
+			_fail("mapa pequeno %s" % ms)
+		else:
+			_ok("pátio grande %dx%d" % [int(ms.x), int(ms.y)])
+	if inst.has_method("pickup_count") and int(inst.call("pickup_count")) < 4:
+		_fail("pads do mapa < 4")
+	else:
+		_ok("pads de vida/respiração/haste")
+
 	await _check_vertical(inst, p1)
 	await _check_pvp_hit(inst, p1, p2)
+	await _check_skill_on_plane(p1)
+	await _check_end_exit(inst, hunters)
 	if inst.has_method("has_dummy") and not bool(inst.call("has_dummy")):
 		_fail("F6 sem sessão deveria ter dummy")
 	else:
@@ -159,6 +175,55 @@ func _check_pvp_hit(arena: Node, p1: CharacterBody2D, p2: CharacterBody2D) -> vo
 		_fail("PvP não descontou HP (%d -> %d)" % [hp_before, hp_after])
 	else:
 		_ok("hit no outro caçador %d -> %d" % [hp_before, hp_after])
+	if p1.has_method("get_pawn_breath") and float(p1.call("get_pawn_breath")) <= 0.0:
+		_fail("hit não encheu respiração do pawn")
+	else:
+		_ok("respiração enche no mapa")
+
+
+func _check_skill_on_plane(p1: CharacterBody2D) -> void:
+	if not bool(p1.get("plane_locomotion")):
+		_fail("p1 sem plane_locomotion")
+		return
+	p1.set("accept_local_input", false)
+	for _wait in 55:
+		await physics_frame
+	var opened: bool = false
+	for _i in 12:
+		p1.call("apply_input_frame", 1.0, 0, InputFrame.BIT_S1)
+		await physics_frame
+		if int(p1.call("get_state")) == 5:
+			opened = true
+			break
+	if not opened:
+		_fail("skill no plano não abriu (state=%s)" % p1.call("get_state"))
+	else:
+		_ok("skill sai no plano")
+
+
+func _check_end_exit(arena: Node, hunters: Array[CharacterBody2D]) -> void:
+	if hunters.size() < 2:
+		return
+	var i: int = 1
+	while i < hunters.size():
+		hunters[i].set("hp", 0)
+		i += 1
+	if arena.has_method("_check_end"):
+		arena.call("_check_end")
+	for _j in 6:
+		await process_frame
+	if not bool(arena.call("is_match_over")):
+		_fail("fim do mapa não travou")
+		return
+	var hud: Node = arena.get_node_or_null("BrawlHud")
+	if hud == null or not bool(hud.call("has_exit_actions")):
+		_fail("fim sem De novo/Sair")
+	else:
+		_ok("fim mostra De novo e Sair")
+	if not arena.has_method("leave_match") or not arena.has_method("restart_match"):
+		_fail("arena sem leave/restart")
+	else:
+		_ok("dá pra sair depois que alguém vence")
 
 
 func _check_net_host() -> void:
