@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-12 (sala no celular — sem campo de PC) 
+**Atualizado:** 2026-09-12 (sala no celular + mapa/1v1 com o amigo)
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -11,7 +11,7 @@
 
 ## Onde estamos (1 frase)
 
-**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub (Amigos à direita) → mapa (seletor de mundo) → fase → portal → loja/save. **Sala:** 2 vs oni ou 4 vs oni (cada celular um caçador); mapa/1v1 = portas. Mundo seguinte abre ao limpar o boss.
+**W1 jogável + W2–W5 no mapa:** input mouse+teclado+touch, ondas, portal trancado. Fluxo: splash → loading → hub (Amigos à direita) → mapa (seletor de mundo) → fase → portal → loja/save. **Sala:** 2 vs oni ou 4 vs oni (cada celular um caçador); mapa/1v1 = 2P com o amigo no celular (dummy só no F6). Mundo seguinte abre ao limpar o boss.
 
 ### Hotfix playability 2026-08-07 (crítico)
 
@@ -106,7 +106,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
 | UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
 | PERSONAGENS no hub | ✅ tela select real (15; portrait nos 15; locked recusa; save do id) |
-| Amigos / sala | ✅ Telefone: Wi-Fi ou outra casa via sala da estrela; sem IP na gaveta; clube/notícias/eventos ainda fora |
+| Amigos / sala | ✅ Telefone: Wi-Fi ou outra casa via sala da estrela; sem IP na gaveta; 2 ou 4 vs oni; mapa/1v1 = 2P (amigo joga); clube/notícias/eventos ainda fora |
 | Missões / XP / clube no hub | GDD: fase 2+ / fora |
 
 ### 3) Conteúdo em escala (Fase F)

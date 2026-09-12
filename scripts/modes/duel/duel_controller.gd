@@ -1,7 +1,8 @@
 extends Node2D
 ## Duelo 1v1 de frente: um round, dois corpos, vencedor em PT.
-## Porta própria — não passa pelo JOGAR / mapa. Sem net nesta fatia:
-## o 2º lutador é dummy local (puppet de input).
+## Porta própria — não passa pelo JOGAR / mapa.
+## Com LanSession + peer: roster 2P, cada celular o seu. Sem dummy.
+## F6 / smoke sem sessão: o 2º lutador é dummy local (InputFrame).
 ##
 ## Facing canônico (GDD): arte de combate olha ESQUERDA.
 ## `flip_h` só quando `_facing > 0`. Não inverter. Não flipar PNG.
@@ -65,8 +66,24 @@ func _ready() -> void:
 	_round_label.visible = true
 	_voltar.pressed.connect(_on_voltar)
 	_style_duel_hud()
-	_prepare_fighter(_left, CHAR_LEFT, true, TEAM_LEFT, FACE_RIGHT)
-	_prepare_fighter(_right, CHAR_RIGHT, false, TEAM_RIGHT, FACE_LEFT)
+	var left_id: String = CHAR_LEFT
+	var right_id: String = CHAR_RIGHT
+	if _live_session():
+		var ids: PackedStringArray = _ids_from_session()
+		left_id = ids[0]
+		right_id = ids[1]
+		if _lan_peers():
+			LanSession.mark_entered_stage()
+	var local_slot: int = _local_slot()
+	_prepare_fighter(_left, left_id, local_slot == 0, TEAM_LEFT, FACE_RIGHT)
+	_prepare_fighter(_right, right_id, local_slot == 1, TEAM_RIGHT, FACE_LEFT)
+	if _live_session() and _session_is_guest():
+		if _left:
+			_left.set("follow_host_snap", true)
+			_left.set("accept_local_input", false)
+		if _right:
+			_right.set("follow_host_snap", true)
+			_right.set("accept_local_input", false)
 	_bind_hp(_left, _hp_left_bar, _hp_left_label, _on_left_hp)
 	_bind_hp(_right, _hp_right_bar, _hp_right_label, _on_right_hp)
 	_set_locked(true)
@@ -106,6 +123,14 @@ func get_left_fighter() -> Node:
 
 func get_right_fighter() -> Node:
 	return _right
+
+
+func uses_lan_roster() -> bool:
+	return _live_session()
+
+
+func is_dummy_active() -> bool:
+	return not _live_session()
 
 
 func _apply_round_font() -> void:
@@ -193,6 +218,67 @@ func _set_hp_widgets(bar: ProgressBar, label: Label, current: int, max_hp: int) 
 		label.text = "%d / %d" % [current, max_hp]
 
 
+func _live_session() -> bool:
+	if has_meta("smoke_lan_roster"):
+		return true
+	return _lan_peers()
+
+
+func _lan_peers() -> bool:
+	return is_instance_valid(LanSession) and LanSession.in_session() and LanSession.has_peer()
+
+
+func _session_is_guest() -> bool:
+	if has_meta("smoke_lan_roster"):
+		var raw: Variant = get_meta("smoke_lan_roster")
+		if raw is Dictionary:
+			return bool((raw as Dictionary).get("is_guest", false))
+	return is_instance_valid(LanSession) and LanSession.is_guest()
+
+
+func _local_slot() -> int:
+	if has_meta("smoke_lan_roster"):
+		var raw: Variant = get_meta("smoke_lan_roster")
+		if raw is Dictionary:
+			return int((raw as Dictionary).get("local_slot", 0))
+	if not _lan_peers():
+		return 0
+	if LanSession.is_host():
+		return 0
+	var slot: int = int(LanSession.local_coop_slot)
+	return slot if slot > 0 else 1
+
+
+func _controls_locally(slot: int) -> bool:
+	if not _live_session():
+		return slot == 0
+	if _session_is_guest():
+		return false
+	return slot == _local_slot()
+
+
+func _ids_from_session() -> PackedStringArray:
+	var ids := PackedStringArray([CHAR_LEFT, CHAR_RIGHT])
+	if has_meta("smoke_lan_roster"):
+		var raw: Variant = get_meta("smoke_lan_roster")
+		if raw is Dictionary:
+			var meta := raw as Dictionary
+			ids[0] = str(meta.get("char_0", ids[0]))
+			ids[1] = str(meta.get("char_1", ids[1]))
+			return ids
+	if not is_instance_valid(LanSession):
+		return ids
+	var roster: Array = LanSession.get_roster()
+	for item: Variant in roster:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var rec := item as Dictionary
+		var slot: int = int(rec.get("slot", -1))
+		if slot == 0 or slot == 1:
+			ids[slot] = str(rec.get("char_id", ids[slot]))
+	return ids
+
+
 func _prepare_fighter(fighter: Node, char_id: String, local_pawn: bool, team: StringName, facing: float) -> void:
 	if fighter == null:
 		return
@@ -270,12 +356,13 @@ func _disable_hitbox(fighter: Node) -> void:
 
 func _set_locked(locked: bool) -> void:
 	_dummy_frozen = locked
+	var allow: bool = (not locked) and _phase != Phase.RESULT
 	if _left:
-		_left.set("accept_local_input", (not locked) and _phase != Phase.RESULT)
+		_left.set("accept_local_input", allow and _controls_locally(0))
 		if locked and _left is CharacterBody2D:
 			(_left as CharacterBody2D).velocity = Vector2.ZERO
 	if _right:
-		_right.set("accept_local_input", false)
+		_right.set("accept_local_input", allow and _controls_locally(1))
 		if locked and _right is CharacterBody2D:
 			(_right as CharacterBody2D).velocity = Vector2.ZERO
 		if locked and _right.has_method("apply_input_frame"):
@@ -286,16 +373,19 @@ func _begin_fight() -> void:
 	if _phase != Phase.INTRO:
 		return
 	_phase = Phase.FIGHT
-	if _left:
-		_left.set("follow_host_snap", false)
-	if _right:
-		_right.set("follow_host_snap", false)
+	if not (_live_session() and _session_is_guest()):
+		if _left:
+			_left.set("follow_host_snap", false)
+		if _right:
+			_right.set("follow_host_snap", false)
 	_set_locked(false)
 	_snap_fighter(_left, FACE_RIGHT, STATE_IDLE)
 	_snap_fighter(_right, FACE_LEFT, STATE_IDLE)
 
 
 func _tick_dummy() -> void:
+	if _live_session():
+		return
 	if _dummy_frozen or _right == null or _left == null:
 		return
 	if not _right.has_method("apply_input_frame"):

@@ -142,7 +142,7 @@ Toque AMIGOS → gaveta desliza da direita (painel sólido, topo→embaixo; JOGA
 
 **2 vs oni:** 2 jogadores. `MAX_CLIENTS = 1`.  
 **4 vs oni:** 4 celulares, cada um um caçador. `MAX_CLIENTS = 3`. Câmera nos vivos. Oni no mais perto. 2P/solo não mudam.  
-**Mapa de batalha / 1v1:** portas. Se a cena não existir, toast em PT e a sala continua.
+**Mapa de batalha / 1v1:** 2P. Com sala + amigo, cada celular controla o seu (mesmo `InputFrame` da fase). Sem sessão (F6), dummy local. Sem a cena: toast em PT e a sala continua.
 
 Mesmo Wi-Fi **ou** cada um na sua casa (sala da estrela no APK; se o NAT bloquear, o relay carrega o ENet). ENet 17777 + beacon UDP 17778. Código filtra o beacon (não é o IP). Host simula a fase; o amigo manda input. Sem Firebase, Play Games. Save `friends` = nomes, **sem IP**. Cap 16. Handshake `proto=1` + `version_code` — APK diferente recusa em PT. PC local = reserva de dev, não o caminho do sobrinho.
 
@@ -339,7 +339,7 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 - Direita do hub = **Amigos** (lista + sala). Clube / notícias / eventos continuam fora.
 - Depois de **Criar sala**, o anfitrião escolhe: `2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`. JOGAR ouro **não** é esse seletor — continua o mapa do mundo.
 - 2 vs oni: 2 jogadores, `MAX_CLIENTS = 1`. 4 vs oni: 4 celulares (`MAX_CLIENTS = 3`), câmera nos vivos, oni no mais perto. 2P/solo intactos.
-- Mapa de batalha / 1v1: portas para `scenes/modes/brawl/brawl_arena.tscn` e `scenes/modes/duel/duel.tscn`. Sem a cena: toast PT, sala não quebra.
+- Mapa de batalha / 1v1: 2P nas cenas `brawl_arena` / `duel`. Sala + peer = roster, cada celular o seu, sem dummy. F6 sem sessão = dummy. Sem a cena: toast PT, sala não quebra.
 - Wi-Fi da casa **ou** casa↔casa pela **sala da estrela** (host baked no APK). Sem campo de IP na gaveta. Host escolhe a fase no mapa no coop vs oni.
 - Beacon primeiro; senão a sala da estrela. Sala caiu: o jogo abre; Criar/Entrar avisa em PT. Boot **não** fala “Conectando-se…”.
 - Toque no **nome** = chamar se a sala vir o nick. O **x** apaga. Código de 6 continua (Zap).
@@ -366,6 +366,7 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-10 | Hub centro = personagem atual (não sempre Tanjiro). Elenco 15 com Nezuko playtest (unlock livre, kit = stats do Tanjiro). |
 | 2026-09-10 | Loja `[50, 200, 420]`; HP +15; Dano +3 com ripple de skill/ult; kits com números explícitos. Upgrades globais. |
 | 2026-09-10 | Amigos no hub + sala LAN 2P (ENet + código 6 + beacon UDP). Sem nuvem. |
-| 2026-09-10 | Casa↔casa: PC do meio (3a) + chamar pelo nome. LAN da onda 2 fica. Sem Firebase/Play/Hostinger. |
+| 2026-09-10 | Casa↔casa: primeiro PC do meio (3a). Superado em 2026-09-12 pela sala da estrela no APK. |
 | 2026-09-12 | Sala no celular: gaveta sem IP; sala da estrela baked; PC vira reserva de dev. |
 | 2026-09-10 | Sala: 4 opções (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`). 4 vs oni joga (`MAX_CLIENTS=3`). Portas Brawl/1v1. |
+| 2026-09-12 | Mapa/1v1: com sala o amigo joga (roster + InputFrame). Dummy só no F6. |

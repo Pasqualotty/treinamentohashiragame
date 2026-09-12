@@ -158,8 +158,102 @@ func _run() -> void:
 		else:
 			_pass("derrota em PT (Você perdeu)")
 	inst2.queue_free()
+	await process_frame
+
+	await _check_net_host()
+	await _check_net_guest()
 
 	_finish()
+
+
+func _check_net_host() -> void:
+	var duel: Node = await _spawn_net_duel({
+		"char_0": "inosuke",
+		"char_1": "nezuko",
+		"local_slot": 0,
+		"is_guest": false,
+	})
+	if duel == null:
+		return
+	if not bool(duel.call("uses_lan_roster")):
+		_fail("host sessão: uses_lan_roster=false")
+	else:
+		_pass("host sessão: roster LAN")
+	if bool(duel.call("is_dummy_active")):
+		_fail("host sessão ainda tem dummy")
+	else:
+		_pass("host sessão: sem dummy")
+	var left: Node = duel.call("get_left_fighter")
+	var right: Node = duel.call("get_right_fighter")
+	if left == null or right == null:
+		_fail("host sessão sem lutadores")
+		duel.queue_free()
+		await process_frame
+		return
+	if str(left.get("applied_character_id")) != "inosuke" or str(right.get("applied_character_id")) != "nezuko":
+		_fail("host sessão roster=%s/%s" % [left.get("applied_character_id"), right.get("applied_character_id")])
+	else:
+		_pass("host sessão: Inosuke vs Nezuko")
+	if bool(left.get("accept_local_input")) or bool(right.get("accept_local_input")):
+		## Intro ainda trava os dois; o que importa é o ramo sem dummy + InputFrame.
+		pass
+	right.set("follow_host_snap", false)
+	right.set("accept_local_input", false)
+	var x0: float = (right as Node2D).global_position.x
+	right.call("apply_input_frame", -1.0, 0, 0)
+	for _i in 12:
+		await physics_frame
+	if (right as Node2D).global_position.x >= x0 - 2.0:
+		_fail("host sessão: InputFrame no direito não moveu (%.1f -> %.1f)" % [x0, (right as Node2D).global_position.x])
+	else:
+		_pass("host sessão: amigo joga via InputFrame")
+	duel.queue_free()
+	await process_frame
+
+
+func _check_net_guest() -> void:
+	var duel: Node = await _spawn_net_duel({
+		"char_0": "inosuke",
+		"char_1": "nezuko",
+		"local_slot": 1,
+		"is_guest": true,
+	})
+	if duel == null:
+		return
+	if bool(duel.call("is_dummy_active")):
+		_fail("guest sessão ainda tem dummy")
+	else:
+		_pass("guest sessão: sem dummy")
+	var left: Node = duel.call("get_left_fighter")
+	var right: Node = duel.call("get_right_fighter")
+	if left == null or right == null:
+		_fail("guest sessão sem lutadores")
+		duel.queue_free()
+		await process_frame
+		return
+	if bool(left.get("accept_local_input")) or bool(right.get("accept_local_input")):
+		_fail("guest sessão não pode aceitar input local")
+	elif not bool(right.get("is_local_pawn")) or bool(left.get("is_local_pawn")):
+		_fail("guest sessão slot local errado")
+	elif not bool(left.get("follow_host_snap")) or not bool(right.get("follow_host_snap")):
+		_fail("guest sessão sem follow_host_snap")
+	else:
+		_pass("guest sessão: puppet + slot 1 local")
+	duel.queue_free()
+	await process_frame
+
+
+func _spawn_net_duel(meta: Dictionary) -> Node:
+	var packed: PackedScene = load(DUEL) as PackedScene
+	if packed == null:
+		_fail("reload duel net falhou")
+		return null
+	var inst: Node = packed.instantiate()
+	inst.set_meta("smoke_lan_roster", meta)
+	root.add_child(inst)
+	for _i in 16:
+		await process_frame
+	return inst
 
 
 func _assert_round_space(scene: Node) -> void:

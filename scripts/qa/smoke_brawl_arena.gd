@@ -101,6 +101,17 @@ func _run() -> void:
 
 	await _check_vertical(inst, p1)
 	await _check_pvp_hit(inst, p1, p2)
+	if inst.has_method("has_dummy") and not bool(inst.call("has_dummy")):
+		_fail("F6 sem sessão deveria ter dummy")
+	else:
+		_ok("F6 sem sessão: dummy local")
+	if inst.has_method("uses_lan_roster") and bool(inst.call("uses_lan_roster")):
+		_fail("F6 sem sessão não é roster LAN")
+	inst.queue_free()
+	await process_frame
+
+	await _check_net_host()
+	await _check_net_guest()
 
 	_finish()
 
@@ -148,6 +159,110 @@ func _check_pvp_hit(arena: Node, p1: CharacterBody2D, p2: CharacterBody2D) -> vo
 		_fail("PvP não descontou HP (%d -> %d)" % [hp_before, hp_after])
 	else:
 		_ok("hit no outro caçador %d -> %d" % [hp_before, hp_after])
+
+
+func _check_net_host() -> void:
+	var arena: Node = await _spawn_net_arena({
+		"char_0": "inosuke",
+		"char_1": "nezuko",
+		"local_slot": 0,
+		"is_guest": false,
+	})
+	if arena == null:
+		return
+	if not bool(arena.call("uses_lan_roster")):
+		_fail("host sessão: uses_lan_roster=false")
+	else:
+		_ok("host sessão: roster LAN")
+	if bool(arena.call("has_dummy")):
+		_fail("host sessão ainda tem dummy")
+	else:
+		_ok("host sessão: sem dummy")
+	var hunters: Array[CharacterBody2D] = _hunters_of(arena)
+	if hunters.size() < 2:
+		_fail("host sessão sem 2 corpos")
+		arena.queue_free()
+		await process_frame
+		return
+	var p1: CharacterBody2D = hunters[0]
+	var p2: CharacterBody2D = hunters[1]
+	if str(p1.get("applied_character_id")) != "inosuke" or str(p2.get("applied_character_id")) != "nezuko":
+		_fail("host sessão roster=%s/%s" % [p1.get("applied_character_id"), p2.get("applied_character_id")])
+	else:
+		_ok("host sessão: Inosuke vs Nezuko")
+	if bool(p1.get("accept_local_input")) != true or bool(p2.get("accept_local_input")) != false:
+		_fail("host sessão accept_local p1=%s p2=%s" % [p1.get("accept_local_input"), p2.get("accept_local_input")])
+	else:
+		_ok("host sessão: P1 local, P2 InputFrame")
+	p2.set("follow_host_snap", false)
+	var x0: float = p2.global_position.x
+	p2.call("apply_input_frame", -1.0, 0, 0)
+	for _i in 12:
+		await physics_frame
+	if p2.global_position.x >= x0 - 2.0:
+		_fail("host sessão: InputFrame no P2 não moveu (%.1f -> %.1f)" % [x0, p2.global_position.x])
+	else:
+		_ok("host sessão: amigo joga via InputFrame")
+	arena.queue_free()
+	await process_frame
+
+
+func _check_net_guest() -> void:
+	var arena: Node = await _spawn_net_arena({
+		"char_0": "inosuke",
+		"char_1": "nezuko",
+		"local_slot": 1,
+		"is_guest": true,
+	})
+	if arena == null:
+		return
+	if bool(arena.call("has_dummy")):
+		_fail("guest sessão ainda tem dummy")
+	else:
+		_ok("guest sessão: sem dummy")
+	var hunters: Array[CharacterBody2D] = _hunters_of(arena)
+	if hunters.size() < 2:
+		_fail("guest sessão sem 2 corpos")
+		arena.queue_free()
+		await process_frame
+		return
+	var p1: CharacterBody2D = hunters[0]
+	var p2: CharacterBody2D = hunters[1]
+	if bool(p1.get("accept_local_input")) or bool(p2.get("accept_local_input")):
+		_fail("guest sessão não pode aceitar input local")
+	elif not bool(p2.get("is_local_pawn")) or bool(p1.get("is_local_pawn")):
+		_fail("guest sessão slot local errado")
+	elif not bool(p1.get("follow_host_snap")) or not bool(p2.get("follow_host_snap")):
+		_fail("guest sessão sem follow_host_snap")
+	else:
+		_ok("guest sessão: puppet + slot 1 local")
+	arena.queue_free()
+	await process_frame
+
+
+func _spawn_net_arena(meta: Dictionary) -> Node:
+	var packed: PackedScene = load(ARENA) as PackedScene
+	if packed == null:
+		_fail("reload arena net falhou")
+		return null
+	var inst: Node = packed.instantiate()
+	inst.set_meta("smoke_lan_roster", meta)
+	root.add_child(inst)
+	for _i in 16:
+		await process_frame
+	return inst
+
+
+func _hunters_of(arena: Node) -> Array[CharacterBody2D]:
+	var hunters: Array[CharacterBody2D] = []
+	if arena == null or not arena.has_method("get_hunters"):
+		return hunters
+	var raw: Variant = arena.call("get_hunters")
+	if raw is Array:
+		for n: Variant in raw:
+			if n is CharacterBody2D:
+				hunters.append(n as CharacterBody2D)
+	return hunters
 
 
 func _finish() -> void:
