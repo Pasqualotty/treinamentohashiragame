@@ -81,6 +81,8 @@ var _stylebox_cache: Dictionary = {}
 var _stick_active: bool = false
 
 
+const KIT_ACTIONS: PackedStringArray = ["skill_1", "skill_2", "ultimate"]
+
 func _ready() -> void:
 	layer = 100
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -95,7 +97,55 @@ func _ready() -> void:
 	var vp: Viewport = get_viewport()
 	if vp != null:
 		vp.size_changed.connect(_on_viewport_size_changed)
+	var game: Node = get_node_or_null("/root/Game")
+	if game != null and game.has_signal("character_changed"):
+		if not game.character_changed.is_connected(_on_character_icons_changed):
+			game.character_changed.connect(_on_character_icons_changed)
 	_rebuild_layout()
+
+
+func _on_character_icons_changed(_id: String = "") -> void:
+	refresh_character_icons()
+
+
+func refresh_character_icons() -> void:
+	_clear_kit_icon_cache()
+	if _root == null:
+		return
+	_rebuild_layout()
+
+
+func get_icon_resource_path(action: String) -> String:
+	var tex: Texture2D = _load_icon(action, false)
+	if tex == null:
+		return ""
+	return tex.resource_path
+
+
+func _skill_character_id() -> String:
+	var tree: SceneTree = get_tree()
+	if tree != null:
+		for n: Node in tree.get_nodes_in_group("player"):
+			if bool(n.get("is_local_pawn")):
+				var pid: String = str(n.get("applied_character_id"))
+				if pid != "":
+					return pid
+	var game: Node = get_node_or_null("/root/Game")
+	if game != null:
+		var gid: String = str(game.get("current_character_id"))
+		if gid != "":
+			return gid
+	return "tanjiro"
+
+
+func _clear_kit_icon_cache() -> void:
+	var drop: Array[String] = []
+	for key: Variant in _tex_cache.keys():
+		var ks: String = str(key)
+		if "skill_1" in ks or "skill_2" in ks or "ultimate" in ks:
+			drop.append(ks)
+	for k: String in drop:
+		_tex_cache.erase(k)
 
 
 func _exit_tree() -> void:
@@ -362,10 +412,19 @@ func _texture_size(tex: Texture2D, fallback: float) -> Vector2:
 
 
 func _load_icon(action: String, pressed: bool) -> Texture2D:
-	var key := "%s_%s" % [action, "p" if pressed else "n"]
+	var is_kit: bool = action in KIT_ACTIONS
+	var char_id: String = _skill_character_id() if is_kit else ""
+	var key := "%s_%s_%s" % [char_id, action, "p" if pressed else "n"]
 	if _tex_cache.has(key):
 		return _tex_cache[key] as Texture2D
 	var suffix := "_pressed" if pressed else ""
+	if is_kit and char_id != "":
+		var kit_path := "%s/%s/%s%s.png" % [ICONS_DIR, char_id, action, suffix]
+		if ResourceLoader.exists(kit_path):
+			var kit_tex := load(kit_path) as Texture2D
+			if kit_tex:
+				_tex_cache[key] = kit_tex
+				return kit_tex
 	for base in [ICONS_DIR, LABELED_DIR]:
 		var path := "%s/%s%s.png" % [base, action, suffix]
 		if ResourceLoader.exists(path):

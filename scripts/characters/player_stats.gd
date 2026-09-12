@@ -22,6 +22,8 @@ extends Resource
 @export var dash_cooldown: float = 1.0
 ## Passo curto no active do ataque básico (peso do swing). Loja não mexe.
 @export var attack_step_speed: float = 110.0
+## Impulso vertical no active do básico (0 = no chão). Kit da Nezuko (chute/salto).
+@export var attack_lunge_y: float = 0.0
 
 # --- Vida ---
 @export var max_hp: int = 100
@@ -88,6 +90,10 @@ extends Resource
 @export var skill_1_hitbox_offset_x: float = 32.0
 @export var skill_1_hitbox_sizes: PackedVector2Array = PackedVector2Array()
 @export var skill_1_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array()
+@export var skill_1_lunge_speed: float = 0.0
+@export var skill_1_lunge_y: float = 0.0
+@export var skill_1_hit_count: int = 1
+@export var skill_1_vfx_tint: Color = Color(0.36, 0.55, 0.94, 1.0)
 
 # --- Skill 2: Investida (placeholder GDD) ---
 @export var skill_2_display_name: String = "Investida"
@@ -98,10 +104,13 @@ extends Resource
 @export var skill_2_active: float = 0.18
 @export var skill_2_recovery: float = 0.12
 @export var skill_2_lunge_speed: float = 480.0
+@export var skill_2_lunge_y: float = 0.0
+@export var skill_2_hit_count: int = 1
 @export var skill_2_hitbox_size: Vector2 = Vector2(44.0, 28.0)
 @export var skill_2_hitbox_offset_x: float = 30.0
 @export var skill_2_hitbox_sizes: PackedVector2Array = PackedVector2Array()
 @export var skill_2_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array()
+@export var skill_2_vfx_tint: Color = Color(0.55, 0.35, 0.95, 1.0)
 
 # --- Ultimate (consome barra de respiração) ---
 @export var ultimate_display_name: String = "Respiração"
@@ -115,6 +124,8 @@ extends Resource
 @export var ultimate_hitbox_offset_x: float = 36.0
 @export var ultimate_hitbox_sizes: PackedVector2Array = PackedVector2Array()
 @export var ultimate_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array()
+@export var ultimate_lunge_speed: float = 0.0
+@export var ultimate_vfx_tint: Color = Color(0.91, 0.72, 0.29, 1.0)
 ## Breath ganho por hit que acerta (via Game.add_breath_from_hit).
 @export var breath_per_hit: float = 10.0
 ## Fração do dano causado convertida em cura (0 = desligado). Kit do Muzan.

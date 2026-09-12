@@ -65,6 +65,7 @@ func _run() -> void:
 	# Arte não depende de resolução: confere uma vez só.
 	_ctx = "arte"
 	_check_icons()
+	_check_character_skill_icons(node)
 
 	for res: Dictionary in RESOLUTIONS:
 		_ctx = String(res["label"])
@@ -302,6 +303,48 @@ func _check_icons() -> void:
 			_fail("%s: estado pressed quase idêntico ao normal (diff=%.2f)" % [action, diff])
 		else:
 			_notes.append("icone %s ok (pressed diff=%.1f)" % [action, diff])
+
+
+func _check_character_skill_icons(node: CanvasLayer) -> void:
+	## skill/ult mudam de pasta por caçador; stick/dash/pulo/atk/pause ficam genéricos.
+	var game: Node = root.get_node_or_null("Game")
+	if game == null:
+		_fail("Game ausente para ícones por id")
+		return
+	if not node.has_method("refresh_character_icons") or not node.has_method("get_icon_resource_path"):
+		_fail("touch sem refresh/get_icon_resource_path")
+		return
+	game.set("current_character_id", "tanjiro")
+	node.call("refresh_character_icons")
+	var tan_s1: String = str(node.call("get_icon_resource_path", "skill_1"))
+	var tan_jump: String = str(node.call("get_icon_resource_path", "jump"))
+	var tan_atk: String = str(node.call("get_icon_resource_path", "attack_basic"))
+	if "tanjiro" not in tan_s1:
+		_fail("tanjiro skill_1 path=%s" % tan_s1)
+		return
+	if "tanjiro" in tan_jump or "tanjiro" in tan_atk:
+		_fail("jump/atk não devem ir pra pasta do id (jump=%s atk=%s)" % [tan_jump, tan_atk])
+		return
+	game.set("current_character_id", "zenitsu")
+	node.call("refresh_character_icons")
+	var zen_s1: String = str(node.call("get_icon_resource_path", "skill_1"))
+	var zen_ult: String = str(node.call("get_icon_resource_path", "ultimate"))
+	var zen_jump: String = str(node.call("get_icon_resource_path", "jump"))
+	if "zenitsu" not in zen_s1 or "zenitsu" not in zen_ult:
+		_fail("zenitsu skill/ult path s1=%s ult=%s" % [zen_s1, zen_ult])
+		return
+	if zen_s1 == tan_s1:
+		_fail("skill_1 ícone igual entre tanjiro e zenitsu")
+		return
+	if zen_jump != tan_jump:
+		_fail("jump mudou de pasta (tan=%s zen=%s)" % [tan_jump, zen_jump])
+		return
+	for character_id: String in CharacterCatalog.EXPECTED_IDS:
+		for action: String in ["skill_1", "skill_2", "ultimate"]:
+			var p := "%s/%s/%s.png" % [ICONS_DIR, character_id, action]
+			if _load_texture(p) == null:
+				return
+	_notes.append("ícones skill por id: tanjiro≠zenitsu; jump/atk genéricos")
 
 
 func _load_texture(path: String) -> Texture2D:

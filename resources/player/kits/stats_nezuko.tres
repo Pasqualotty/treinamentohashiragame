@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="PlayerStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/player_stats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+move_speed = 268.0
+max_hp = 96
+dash_speed = 620.0
+dash_duration = 0.15
+dash_cooldown = 0.70
+attack_damage = 7
+attack_knockback = Vector2(150, -140)
+attack_startup = 0.055
+attack_active = 0.12
+attack_recovery = 0.11
+attack_step_speed = 55.0
+attack_lunge_y = -90.0
+attack_hitbox_size = Vector2(40, 46)
+attack_hitbox_offset_x = 26.0
+attack_hitbox_sizes = PackedVector2Array(28, 34, 40, 46, 48, 52)
+attack_hitbox_offsets_x = PackedFloat32Array(16, 26, 32)
+skill_1_damage = 11
+skill_1_knockback = Vector2(150, -160)
+skill_1_cooldown = 2.7
+skill_1_startup = 0.08
+skill_1_active = 0.14
+skill_1_recovery = 0.16
+skill_1_hitbox_size = Vector2(46, 54)
+skill_1_hitbox_offset_x = 28.0
+skill_1_hitbox_sizes = PackedVector2Array(32, 40, 46, 54, 54, 60)
+skill_1_hitbox_offsets_x = PackedFloat32Array(18, 28, 34)
+skill_1_lunge_speed = 40.0
+skill_1_lunge_y = -40.0
+skill_1_hit_count = 1
+skill_1_vfx_tint = Color(1.0, 0.42, 0.62, 1)
+skill_2_damage = 9
+skill_2_knockback = Vector2(120, -220)
+skill_2_cooldown = 3.5
+skill_2_startup = 0.07
+skill_2_active = 0.2
+skill_2_recovery = 0.14
+skill_2_lunge_speed = 160.0
+skill_2_lunge_y = -380.0
+skill_2_hit_count = 1
+skill_2_hitbox_size = Vector2(44, 58)
+skill_2_hitbox_offset_x = 24.0
+skill_2_hitbox_sizes = PackedVector2Array(30, 42, 44, 58, 50, 66)
+skill_2_hitbox_offsets_x = PackedFloat32Array(16, 24, 30)
+skill_2_vfx_tint = Color(0.95, 0.28, 0.55, 1)
+ultimate_damage = 26
+ultimate_knockback = Vector2(210, -200)
+ultimate_startup = 0.11
+ultimate_active = 0.22
+ultimate_recovery = 0.2
+ultimate_iframes = 0.38
+ultimate_hitbox_size = Vector2(70, 72)
+ultimate_hitbox_offset_x = 30.0
+ultimate_hitbox_sizes = PackedVector2Array(48, 50, 70, 72, 82, 80)
+ultimate_hitbox_offsets_x = PackedFloat32Array(20, 30, 38)
+ultimate_lunge_speed = 120.0
+ultimate_vfx_tint = Color(1.0, 0.55, 0.72, 1)
+breath_per_hit = 11.0
+lifesteal_ratio = 0.12
