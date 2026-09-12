@@ -1,8 +1,8 @@
 {
-	"version_code": 6,
-	"version_name": "0.0.6",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.6/TreinamentoHashira.apk",
-	"changelog": "Amigos no botao do treino. Personagens sem cara cortada. Da pra entrar na sala da outra casa com o computador ligado.",
-	"size_bytes": 131402296,
-	"sha256": "3f63323c02f4ab4ee56010fe3a1df075089fbaf168017315d0032d5818d6839e"
+	"version_code": 7,
+	"version_name": "0.0.7",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.7/TreinamentoHashira.apk",
+	"changelog": "Sala no celular sem ligar o PC. Quatro modos com o amigo. Cada cacador tem ataque, skills e botoes proprios.",
+	"size_bytes": 144830159,
+	"sha256": "3ccb798cfd05c54b5673463a9c9257be2222f6c1378c39ff14753b5589ade0aa"
 }

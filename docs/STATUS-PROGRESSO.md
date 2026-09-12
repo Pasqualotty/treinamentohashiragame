@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-12 (sala no celular + mapa/1v1 com o amigo)
+**Atualizado:** 2026-09-12 (APK 0.0.7: sala no celular + kits únicos)
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -188,3 +188,4 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | 2026-09-10 | **Economia/skills:** loja `[50, 200, 420]`; Dano ripple nas skills/ult; kits com atk/s1/s2/ult/CD explícitos. Números canônicos em `GDD-DECISOES.md` §6/§9. |
 | 2026-09-10 | **Sala de outra casa:** PC do meio (3a) + chamar pelo nome. LAN Wi-Fi da onda 2 permanece. Sem Firebase/Play/Hostinger. |
 | 2026-09-12 | **Sala no celular:** gaveta sem IP; `hashira/sala_host` baked; HTTP/TCP + UDP; PC = reserva de dev. |
+| 2026-09-12 | **APK 0.0.7:** sala da estrela no celular (sem ligar PC); 4 modos com o amigo; ataque/skill/ícone por caçador. |

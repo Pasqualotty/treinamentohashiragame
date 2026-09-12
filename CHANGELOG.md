@@ -1,5 +1,12 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.7 — sala no celular + kits (2026-09-12)
+
+- Sobrinho joga com o amigo **só no celular** — sem ligar PC
+- Mesma Wi-Fi ou outra casa: a sala da estrela já vem no APK
+- Quatro modos na sala: 2 vs oni, 4 vs oni, mapa, 1v1
+- Cada caçador: ataque, skills e botões próprios (andar/pulo/dash iguais)
+
 ## Unreleased — sala de outra casa
 
 - Amigo na casa dele entra na sala (2 vs oni) pelo **computador da sala** no PC do Matheus
