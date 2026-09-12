@@ -20,11 +20,8 @@ var _wait_box: VBoxContainer
 var _code_label: Label
 var _status_label: Label
 var _code_input: LineEdit
-var _ip_box: VBoxContainer
-var _ip_input: LineEdit
 var _toast: Label
 var _toast_tween: Tween
-var _meio_input: LineEdit
 var _scroll: ScrollContainer
 var _backdrop: ColorRect
 var _drawer: Control
@@ -43,7 +40,6 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build()
 	_bind_session()
-	_load_meio_field()
 	_refresh_list()
 	_set_drawer_open(false, true)
 	call_deferred("_sync_rows_width")
@@ -239,22 +235,8 @@ func _build() -> void:
 	_scroll.resized.connect(_sync_rows_width)
 	_list_box.add_child(_plate_btn("Criar sala", _on_create_pressed))
 	_list_box.add_child(_plate_btn("Entrar", _on_join_open_pressed))
-	var meio_l := Label.new()
-	meio_l.text = "Computador da sala"
-	meio_l.add_theme_font_size_override("font_size", 15)
-	meio_l.add_theme_color_override("font_color", Palette.CREAM)
-	_fit_label(meio_l, false)
-	_list_box.add_child(meio_l)
-	_meio_input = LineEdit.new()
-	_meio_input.placeholder_text = "vazio = só o Wi-Fi"
-	_meio_input.max_length = 64
-	_meio_input.custom_minimum_size = Vector2(0, TOUCH_MIN)
-	_meio_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_meio_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_URL
-	_meio_input.text_changed.connect(_on_meio_typed)
-	_list_box.add_child(_meio_input)
 	var hint := Label.new()
-	hint.text = "Wi-Fi da casa ou o PC da sala.\nSem VPN."
+	hint.text = "Mesmo Wi-Fi ou outra casa.\nSem VPN."
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
 	_fit_label(hint, true)
@@ -316,24 +298,6 @@ func _build() -> void:
 	_code_input.text_changed.connect(_on_code_typed)
 	_join_box.add_child(_code_input)
 	_join_box.add_child(_plate_btn("Entrar", _on_join_confirm))
-	var ip_toggle := Button.new()
-	ip_toggle.text = "Não achou? IP do anfitrião"
-	ip_toggle.flat = true
-	ip_toggle.clip_text = false
-	ip_toggle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ip_toggle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ip_toggle.custom_minimum_size = Vector2(0, TOUCH_MIN)
-	ip_toggle.pressed.connect(func() -> void: _ip_box.visible = not _ip_box.visible)
-	_join_box.add_child(ip_toggle)
-	_ip_box = VBoxContainer.new()
-	_ip_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_ip_box.visible = false
-	_ip_input = LineEdit.new()
-	_ip_input.placeholder_text = "127.0.0.1"
-	_ip_input.custom_minimum_size = Vector2(0, TOUCH_MIN)
-	_ip_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_ip_box.add_child(_ip_input)
-	_join_box.add_child(_ip_box)
 	_join_box.add_child(_plate_btn("VOLTAR", _on_close_room))
 
 	_wait_box = VBoxContainer.new()
@@ -442,9 +406,6 @@ func _process(_delta: float) -> void:
 		return
 	if LanSession.has_peer():
 		_show(View.GUEST_WAIT)
-		return
-	if LanSession.join_wait_elapsed_ms() >= 2500:
-		_ip_box.visible = true
 
 
 func _show(v: int) -> void:
@@ -510,36 +471,6 @@ func _make_call_handler(friend_name: String) -> Callable:
 		_on_call_friend(friend_name)
 
 
-func _load_meio_field() -> void:
-	if _meio_input == null or not is_instance_valid(LanSession):
-		return
-	_meio_input.text = LanSession.get_sala_meio()
-
-
-func _on_meio_typed(t: String) -> void:
-	if not is_instance_valid(LanSession):
-		return
-	var s := t.strip_edges()
-	if s.is_empty():
-		LanSession.set_sala_meio("")
-		return
-	if SalaMeioClient.parse_endpoint(s).is_empty():
-		return
-	LanSession.set_sala_meio(s)
-
-
-func _apply_meio_now() -> void:
-	if _meio_input == null or not is_instance_valid(LanSession):
-		return
-	var t := _meio_input.text.strip_edges()
-	if t.is_empty():
-		LanSession.set_sala_meio("")
-		return
-	if not LanSession.set_sala_meio(t):
-		show_toast("Endereço inválido")
-		LanSession.set_sala_meio("")
-
-
 func _on_call_friend(friend_name: String) -> void:
 	if is_instance_valid(LanSession):
 		LanSession.call_friend(friend_name)
@@ -548,7 +479,6 @@ func _on_call_friend(friend_name: String) -> void:
 func _on_create_pressed() -> void:
 	if not is_instance_valid(LanSession):
 		return
-	_apply_meio_now()
 	var code := LanSession.host_room()
 	if code.is_empty():
 		return
@@ -611,8 +541,6 @@ func _refresh_host_status() -> void:
 
 func _on_join_open_pressed() -> void:
 	_code_input.text = ""
-	_ip_input.text = ""
-	_ip_box.visible = false
 	_show(View.JOIN)
 
 
@@ -626,13 +554,9 @@ func _on_code_typed(t: String) -> void:
 func _on_join_confirm() -> void:
 	if not is_instance_valid(LanSession):
 		return
-	_apply_meio_now()
 	var code := _code_input.text
 	if not RoomCode.is_valid(code):
 		show_toast("Código inválido")
-		return
-	if _ip_box.visible and not _ip_input.text.strip_edges().is_empty():
-		LanSession.join_by_ip(_ip_input.text, code)
 		return
 	LanSession.join_room(code)
 

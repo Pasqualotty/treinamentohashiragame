@@ -1,0 +1,23 @@
+services:
+  hashira-sala:
+    container_name: hashira-sala
+    build:
+      context: ../../..
+      dockerfile: tools/docker/hashira-sala/Dockerfile
+    ports:
+      - "17779:17779/udp"
+      - "17779:17779/tcp"
+      - "17780:17780/udp"
+      - "8080:8080/tcp"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; s=socket.create_connection(('127.0.0.1',8080),2); s.sendall(b'GET /ping HTTP/1.1\\r\\nHost: x\\r\\n\\r\\n'); r=s.recv(256); s.close(); raise SystemExit(0 if b'pong' in r else 1)",
+        ]
+      interval: 20s
+      timeout: 3s
+      retries: 3

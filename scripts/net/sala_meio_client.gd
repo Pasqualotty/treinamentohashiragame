@@ -1,32 +1,67 @@
 class_name SalaMeioClient
 extends RefCounted
-## Cliente UDP do computador da sala (saída 3a). Sem Firebase, sem save de IP.
+## Cliente da sala da estrela. UDP primeiro; HTTP 8080 / TCP se o UDP morrer.
+## Host baked em ProjectSettings hashira/sala_host. Sem save de IP.
 
 const MAGIC := "HASHIRA_MEIO"
 const PROTO := 1
 const DEFAULT_PORT := 17779
+const HTTP_PORT := 8080
 const MAX_BYTES := 512
 const PING_MS := 500
 const LOOKUP_MS := 800
+const SETTING_HOST := "hashira/sala_host"
+const SETTING_HTTP := "hashira/sala_http_port"
 
 
 var host: String = ""
 var port: int = DEFAULT_PORT
+var http_port: int = HTTP_PORT
 var _sock: PacketPeerUDP
+var _via_http: bool = false
+
+
+static func baked_host() -> String:
+	if not ProjectSettings.has_setting(SETTING_HOST):
+		return ""
+	return str(ProjectSettings.get_setting(SETTING_HOST)).strip_edges()
+
+
+static func baked_http_port() -> int:
+	if ProjectSettings.has_setting(SETTING_HTTP):
+		var p: int = int(ProjectSettings.get_setting(SETTING_HTTP))
+		if p > 0 and p <= 65535:
+			return p
+	return HTTP_PORT
+
+
+func apply_baked() -> bool:
+	var raw := baked_host()
+	if raw.is_empty():
+		return false
+	http_port = baked_http_port()
+	return set_endpoint(raw)
 
 
 func is_configured() -> bool:
 	return not host.strip_edges().is_empty() and port > 0 and port <= 65535
 
 
+func uses_http() -> bool:
+	return _via_http
+
+
 func clear() -> void:
 	host = ""
 	port = DEFAULT_PORT
+	http_port = HTTP_PORT
+	_via_http = false
 	_close_sock()
 
 
 func set_endpoint(raw: String) -> bool:
 	_close_sock()
+	_via_http = false
 	var parsed: Dictionary = parse_endpoint(raw)
 	if parsed.is_empty():
 		clear()
@@ -132,6 +167,22 @@ func drain() -> Array[Dictionary]:
 func request(body: Dictionary, timeout_ms: int) -> Dictionary:
 	if not is_configured():
 		return {}
+	var udp: Dictionary = _request_udp(body, timeout_ms)
+	if not udp.is_empty():
+		_via_http = false
+		return udp
+	var http: Dictionary = _request_http(body, timeout_ms)
+	if not http.is_empty():
+		_via_http = true
+		return http
+	var tcp: Dictionary = _request_tcp(body, timeout_ms)
+	if not tcp.is_empty():
+		_via_http = true
+		return tcp
+	return {}
+
+
+func _request_udp(body: Dictionary, timeout_ms: int) -> Dictionary:
 	var sock := PacketPeerUDP.new()
 	var bind_err := sock.bind(0, "0.0.0.0")
 	if bind_err != OK:
@@ -158,6 +209,91 @@ func request(body: Dictionary, timeout_ms: int) -> Dictionary:
 		return _parse_reply(pkt)
 	sock.close()
 	return {}
+
+
+func _request_http(body: Dictionary, timeout_ms: int) -> Dictionary:
+	var raw := _encode(body)
+	if raw.is_empty():
+		return {}
+	var http := HTTPClient.new()
+	if http.connect_to_host(host, http_port) != OK:
+		return {}
+	var t0: int = Time.get_ticks_msec()
+	while (
+		http.get_status() == HTTPClient.STATUS_CONNECTING
+		or http.get_status() == HTTPClient.STATUS_RESOLVING
+	):
+		if Time.get_ticks_msec() - t0 >= timeout_ms:
+			http.close()
+			return {}
+		http.poll()
+		OS.delay_msec(15)
+	if http.get_status() != HTTPClient.STATUS_CONNECTED:
+		http.close()
+		return {}
+	var headers := PackedStringArray(["Content-Type: application/json"])
+	if http.request(HTTPClient.METHOD_POST, "/sala", headers, raw.get_string_from_utf8()) != OK:
+		http.close()
+		return {}
+	var buf := PackedByteArray()
+	while Time.get_ticks_msec() - t0 < timeout_ms:
+		http.poll()
+		var st: int = http.get_status()
+		if st == HTTPClient.STATUS_BODY:
+			var chunk: PackedByteArray = http.read_response_body_chunk()
+			if chunk.size() > 0:
+				buf.append_array(chunk)
+		elif st == HTTPClient.STATUS_CONNECTED:
+			if not buf.is_empty():
+				break
+		elif (
+			st != HTTPClient.STATUS_REQUESTING
+			and st != HTTPClient.STATUS_BODY
+		):
+			break
+		OS.delay_msec(15)
+	http.close()
+	return _parse_reply(buf)
+
+
+func _request_tcp(body: Dictionary, timeout_ms: int) -> Dictionary:
+	var raw := _encode(body)
+	if raw.is_empty():
+		return {}
+	var tcp := StreamPeerTCP.new()
+	if tcp.connect_to_host(host, port) != OK:
+		return {}
+	var t0: int = Time.get_ticks_msec()
+	while tcp.get_status() == StreamPeerTCP.STATUS_CONNECTING:
+		tcp.poll()
+		if Time.get_ticks_msec() - t0 >= timeout_ms:
+			tcp.disconnect_from_host()
+			return {}
+		OS.delay_msec(15)
+	if tcp.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+		tcp.disconnect_from_host()
+		return {}
+	var payload: PackedByteArray = raw.duplicate()
+	payload.append(10)
+	tcp.put_data(payload)
+	var got := PackedByteArray()
+	while Time.get_ticks_msec() - t0 < timeout_ms:
+		tcp.poll()
+		var avail: int = tcp.get_available_bytes()
+		if avail > 0:
+			var pair: Array = tcp.get_partial_data(avail)
+			if int(pair[0]) == OK:
+				got.append_array(pair[1])
+			if got.find(10) >= 0:
+				break
+		OS.delay_msec(15)
+	tcp.disconnect_from_host()
+	if got.is_empty():
+		return {}
+	var cut: int = got.find(10)
+	if cut >= 0:
+		got = got.slice(0, cut)
+	return _parse_reply(got)
 
 
 func _encode(body: Dictionary) -> PackedByteArray:

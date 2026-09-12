@@ -52,7 +52,7 @@ Como `image_to_video` pode falhar (ZDR), usamos:
 - **Não** lotar `hub.gd` — o painel cuida da lista e da sala. Sem `go_to` / troca de tela.  
 - JOGAR continua no mapa; se o toque for de **guest** em sala, abre a gaveta + toast “O anfitrião escolhe a fase”.  
 - Placas internas: tema / StyleBoxFlat (sem PNG Imagine novo nesta onda).  
-- Campo **Computador da sala** (`host:porta`). Vazio = só o Wi-Fi. Não grava IP no save.  
-- Toque no **nome** = chamar (se o PC vir o nick). O **x** continua apagando.  
+- Sem campo de IP. Criar / Entrar / código. A sala da estrela vem no APK (`hashira/sala_host`).  
+- Toque no **nome** = chamar (se a sala vir o nick). O **x** continua apagando.  
 - Gaveta largura **360**, mínima **320**. Textos: wrap **por palavra**. Empty = `Ninguém` numa linha.  
 - Fonte do hub: `FontVariation.spacing_space = 6` no tema + `ui_font.gd` se U+0020 ainda tiver advance 0.  

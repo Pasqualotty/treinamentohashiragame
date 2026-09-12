@@ -1,7 +1,9 @@
-# 12 — Coop 2P: LAN **ou** casa↔casa
+# 12 — Coop 2P: LAN **ou** casa↔casa no celular
 
-Fan game sideload. **Sem Firebase, sem Play Games, sem Hostinger, sem conta Google.**  
+Fan game sideload. **Sem Firebase, sem Play Games, sem conta Google.**  
 2 jogadores. `max_clients = 1`. Host escolhe a fase no **mapa**. JOGAR solo **não** muda.
+
+O sobrinho joga no **telefone**. PC é reserva de dev, não o caminho dele.
 
 ## Portas
 
@@ -9,48 +11,50 @@ Fan game sideload. **Sem Firebase, sem Play Games, sem Hostinger, sem conta Goog
 |-------|-------|--------|
 | Jogo (ENet) | **17777** | UDP |
 | Beacon (achar o host no Wi-Fi) | **17778** | UDP broadcast |
-| Computador da sala (pedido) | **17779** | UDP JSON |
-| Computador da sala (relay ENet) | **17780** | UDP (porta do pedido + 1) |
+| Sala da estrela (pedido) | **17779** | UDP JSON + TCP JSON |
+| Sala da estrela (HTTP) | **8080** | HTTP POST `/sala`, GET `/ping` |
+| Sala da estrela (relay ENet) | **17780** | UDP (porta do pedido + 1) |
 
 `proto = 1`. Handshake também manda `version_code`.
 
 ## Ordem de join (não inverter)
 
 1. **Beacon Wi-Fi** (~2,5 s). Se achar, conecta no IP do pacote. LAN da onda 2 **não some**.
-2. Se não achar e o campo **Computador da sala** estiver preenchido: pergunta ao PC (código de 6 → caminho). O guest entra no **relay** do PC (`host:porta+1`); o PC carrega o ENet até o celular anfitrião.
-3. Se o PC estiver desligado: o jogo **já abriu**; Criar/Entrar avisa em PT (“O computador da sala está desligado”). Boot **nunca** “Conectando-se…”.
-4. Fallback QA: “IP do anfitrião” (`127.0.0.1` no PC).
+2. Se não achar: pergunta à **sala da estrela** (host baked em `hashira/sala_host`). O guest entra no **relay** (`host:porta+1`).
+3. Se a sala estiver desligada: o jogo **já abriu**; Criar/Entrar avisa em PT (“A sala da estrela está desligada”). Boot **nunca** “Conectando-se…”.
+4. Reserva de dev: `LanSession.join_by_ip` no editor. **Não** aparece na gaveta.
 
-Campo vazio = **só LAN**. Playtest: colar `IP_DO_PC:17779` (ou hostname).
+Sem campo de IP na UI. Criar / Entrar / código bastam.
 
-## Computador da sala (saída 3a)
+## Sala da estrela
 
-Serviço fino no **PC do Matheus**, ligado na hora do playtest:
+Serviço no host do APK (`tools/sala_meio.py`, Docker `hashira-sala`):
 
 ```powershell
+python tools/sala_meio.py --self-test
+# reserva local:
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/ligar_computador_da_sala.ps1
 ```
 
 - Acha o código de 6 → IP/porta do host (o IP vem do datagrama, **não** do JSON do celular).
-- Se o NAT da operadora bloquear o caminho direto, o **mesmo** PC relaya o UDP do ENet.
+- 4G: UDP primeiro; senão HTTP 8080 / TCP 17779.
+- Se o NAT da operadora bloquear o caminho direto, o **mesmo** host relaya o UDP do ENet.
 - Nick + “está numa sala / não está”. Sem e-mail, telefone, Google.
-- Desligou o PC: casa↔casa para; o Wi-Fi da sala continua.
-
-Não é nuvem de produto. Não abre porta no roteador da família como caminho principal (só desespero, fora desta frente).
+- Sala caiu: casa↔casa para; o Wi-Fi da sala continua.
 
 ## Código de 6 e chamar
 
 Charset `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (sem 0/O/I/1). Zap ainda vale.
 
-Toque no **nome** da lista (não o **x**): se o PC vir o nick online, manda o chamado. Offline: “O amigo não está aí agora”. Sem o PC: “Cole o computador da sala para chamar. Ou mande o código.”
+Toque no **nome** da lista (não o **x**): se a sala vir o nick online, manda o chamado. Offline: “O amigo não está aí agora”. Sem sala no APK: “Mande o código da sala”.
 
 ## Save
 
-`friends` = `{name, added_unix}` só. **Sem IP** (nem o do computador da sala). O endereço do PC vive no autoload da sessão, não no `user://save.json`.
+`friends` = `{name, added_unix}` só. **Sem IP**. O endereço da sala vive no ProjectSettings / autoload, não no `user://save.json`.
 
 ## Quem simula
 
-Host no celular é a verdade (ondas, hitbox, clear, morte). Guest manda `InputFrame`. O PC do meio **não** simula combate — só apresenta e, se preciso, carrega pacotes.
+Host no celular é a verdade (ondas, hitbox, clear, morte). Guest manda `InputFrame`. A sala da estrela **não** simula combate — só apresenta e, se preciso, carrega pacotes.
 
 Desconexão: host cai → guest hub. Guest cai → host segue solo.
 
@@ -66,16 +70,16 @@ Já tinha `INTERNET` (OTA). Continua:
 
 ## Duas instâncias no PC (QA)
 
-1. Ligar `tools/ligar_computador_da_sala.ps1`.
-2. Duas cópias Play. Host: Criar sala. Guest: campo `127.0.0.1:17779` + código (beacon de loopback costuma falhar; o PC cobre).
+1. Ligar `tools/ligar_computador_da_sala.ps1` (reserva).
+2. Duas cópias Play. Host: Criar sala. Guest: código (beacon de loopback costuma falhar; a sala cobre se `hashira/sala_host` apontar para 127.0.0.1).
 3. Host JOGAR → mapa → fase.
 
 ## Autoload
 
 `LanSession` (`scripts/autoload/lan_session.gd`) + `SalaMeioClient` (`scripts/net/sala_meio_client.gd`).  
-Combate **não** mora no `Game`. `hub.gd` **não** lotar — o campo e o toque no nome ficam no `FriendsPanel`.
+Combate **não** mora no `Game`. `hub.gd` **não** lotar — lista e sala ficam no `FriendsPanel`.
 
-`close_session` no fechar a janela, sair da sala, e ao voltar splash. **Não** apaga o texto do computador da sala (autoload).
+`close_session` no fechar a janela, sair da sala, e ao voltar splash. **Não** apaga o host baked (ProjectSettings).
 
 ## JOGAR / mapa
 

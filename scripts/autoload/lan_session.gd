@@ -11,9 +11,10 @@ const BEACON_WAIT_MS := 2500
 const LEASH_X := 720.0
 const MEIO_ANNOUNCE_HZ := 0.4
 const MEIO_CALL_HZ := 1.0
-const MSG_PC_OFF := "O computador da sala está desligado"
+const MSG_PC_OFF := "A sala da estrela está desligada"
 const MSG_FRIEND_OFF := "O amigo não está aí agora"
-const MSG_CALL_NEED_PC := "Cole o computador da sala para chamar. Ou mande o código."
+const MSG_CALL_NEED_PC := "Mande o código da sala"
+const MSG_SALA_MISSING := "Sala não achada na sala da estrela"
 
 signal peer_joined(nick: String)
 signal peer_left
@@ -65,9 +66,16 @@ var _meio_pc_off_told: bool = false
 
 
 func _ready() -> void:
+	_apply_baked_sala()
 	var win := get_window()
 	if win != null and not win.close_requested.is_connected(_on_window_close):
 		win.close_requested.connect(_on_window_close)
+
+
+func _apply_baked_sala() -> void:
+	if _meio.is_configured():
+		return
+	_meio.apply_baked()
 
 
 func _on_window_close() -> void:
@@ -172,7 +180,7 @@ func _resize_server(want: int) -> bool:
 	room_code = code
 	var nick := _nick()
 	if not _beacon.start_broadcast(room_code, ENET_PORT, nick, _version_code()):
-		toast_requested.emit("Beacon da sala falhou — use o IP no PC")
+		toast_requested.emit("Beacon da sala falhou. O código ainda vale.")
 	_beacon_t = 0.0
 	return true
 
@@ -242,7 +250,7 @@ func host_room() -> String:
 	_hook_peer_signals()
 	var nick := _nick()
 	if not _beacon.start_broadcast(room_code, ENET_PORT, nick, _version_code()):
-		toast_requested.emit("Beacon da sala falhou — use o IP no PC")
+		toast_requested.emit("Beacon da sala falhou. O código ainda vale.")
 	_beacon_t = 0.0
 	_meio_announce_t = 0.0
 	_meio_pc_off_told = false
@@ -991,7 +999,7 @@ func _try_meio_lookup() -> void:
 		return
 	var reply: Dictionary = _meio.lookup(_listening_for_code)
 	if str(reply.get("op", "")) != "found":
-		toast_requested.emit("Sala não achada no computador da sala")
+		toast_requested.emit(MSG_SALA_MISSING)
 		return
 	var code := RoomCode.normalize(str(reply.get("code", "")))
 	if code != _listening_for_code:

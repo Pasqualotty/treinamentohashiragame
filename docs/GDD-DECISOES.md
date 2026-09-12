@@ -2,7 +2,7 @@
 
 **Projeto:** Treinamento Hashira (2D · Android · fan / uso pessoal)  
 **Estúdio:** Pasqualotti Studio  
-**Atualizado:** 2026-09-10 (W1–W5 + elenco 15 — progresso vivo em `STATUS-PROGRESSO.md`)
+**Atualizado:** 2026-09-12 (sala no celular — progresso vivo em `STATUS-PROGRESSO.md`)
 
 ---
 
@@ -69,7 +69,7 @@ Ordem **obrigatória** (confirmada com prints):
 
 **Nossas regras de loading:**
 
-- Offline-first no **boot**: texto **“Carregando…”** / “Preparando o dojo…” — **não** “Conectando-se…”. Check de sala/PC só **depois** do hub (Criar/Entrar).
+- Offline-first no **boot**: texto **“Carregando…”** / “Preparando o dojo…” — **não** “Conectando-se…”. Check da sala da estrela só **depois** do hub (Criar/Entrar).
 - Barra reflete progresso real (load de cenas/assets) + mínimo de tempo pra não piscar (ex. 0.8s floor).
 - Arte: key art própria (pixel / paint) — placeholder no começo.
 - **Não** reutilizar assets de Brawl Stars.
@@ -134,18 +134,17 @@ Toque AMIGOS → gaveta desliza da direita (painel sólido, topo→embaixo; JOGA
                          │ Ninguém                      │
                          │ [ Criar sala ]               │
                          │ [ Entrar     ]               │
-                         │ Computador da sala           │
 ```
 
 **Sala (host):** código de 6 caracteres (tap = copiar) + “Esperando amigo…” / “Amigo entrou” + **modo** (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`) + Fechar sala.  
-**Entrar (guest):** código 6, auto-uppercase. Beacon Wi-Fi primeiro (~2,5 s); senão o **computador da sala**. Fallback: IP do anfitrião (recolhido; `127.0.0.1` no PC).  
+**Entrar (guest):** código 6, auto-uppercase. Beacon Wi-Fi primeiro (~2,5 s); senão a **sala da estrela** (host baked no APK). Sem campo de IP na gaveta.  
 **JOGAR:** sempre abre o **mapa**. Só o **host** escolhe a fase no coop vs oni. Guest no hub: “O anfitrião escolhe a fase”.
 
 **2 vs oni:** 2 jogadores. `MAX_CLIENTS = 1`.  
 **4 vs oni:** 4 celulares, cada um um caçador. `MAX_CLIENTS = 3`. Câmera nos vivos. Oni no mais perto. 2P/solo não mudam.  
 **Mapa de batalha / 1v1:** portas. Se a cena não existir, toast em PT e a sala continua.
 
-Mesmo Wi-Fi **ou** cada um na sua casa (PC do Matheus ligado só pra achar o amigo; se o NAT bloquear, o mesmo PC carrega o ENet). ENet 17777 + beacon UDP 17778. Código filtra o beacon (não é o IP). Host simula a fase; o amigo manda input. Sem Firebase, Play Games, Hostinger. Save `friends` = nomes, **sem IP**. Cap 16. Handshake `proto=1` + `version_code` — APK diferente recusa em PT.
+Mesmo Wi-Fi **ou** cada um na sua casa (sala da estrela no APK; se o NAT bloquear, o relay carrega o ENet). ENet 17777 + beacon UDP 17778. Código filtra o beacon (não é o IP). Host simula a fase; o amigo manda input. Sem Firebase, Play Games. Save `friends` = nomes, **sem IP**. Cap 16. Handshake `proto=1` + `version_code` — APK diferente recusa em PT. PC local = reserva de dev, não o caminho do sobrinho.
 
 **Não entra:** split-screen, clube, notícias, eventos, ranking, sync de loja. Implementar o mapa Brawl e o duelo = outras frentes.
 
@@ -341,12 +340,12 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 - Depois de **Criar sala**, o anfitrião escolhe: `2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`. JOGAR ouro **não** é esse seletor — continua o mapa do mundo.
 - 2 vs oni: 2 jogadores, `MAX_CLIENTS = 1`. 4 vs oni: 4 celulares (`MAX_CLIENTS = 3`), câmera nos vivos, oni no mais perto. 2P/solo intactos.
 - Mapa de batalha / 1v1: portas para `scenes/modes/brawl/brawl_arena.tscn` e `scenes/modes/duel/duel.tscn`. Sem a cena: toast PT, sala não quebra.
-- Wi-Fi da casa **ou** casa↔casa com o **PC do Matheus ligado** (campo Computador da sala). Host escolhe a fase no mapa no coop vs oni.
-- Beacon primeiro; senão o PC. PC desligado: o jogo abre; Criar/Entrar avisa em PT. Boot **não** fala “Conectando-se…”.
-- Toque no **nome** = chamar se o PC vir o nick. O **x** apaga. Código de 6 continua (Zap).
+- Wi-Fi da casa **ou** casa↔casa pela **sala da estrela** (host baked no APK). Sem campo de IP na gaveta. Host escolhe a fase no mapa no coop vs oni.
+- Beacon primeiro; senão a sala da estrela. Sala caiu: o jogo abre; Criar/Entrar avisa em PT. Boot **não** fala “Conectando-se…”.
+- Toque no **nome** = chamar se a sala vir o nick. O **x** apaga. Código de 6 continua (Zap).
 - Moedas da run = pote do grupo; no clear o grupo banka no save local. 2P: morte de qualquer um = wipe. 4 vs oni: wipe quando ninguém vivo resta.
-- Textos de sala: “Criar sala”, “Entrar”, “Procurando na rede…”, “Procurando o amigo…”, “Amigo entrou”, “O computador da sala está desligado”.
-- Sem persistir IP. Sem Firebase / Play Games / Hostinger.
+- Textos de sala: “Criar sala”, “Entrar”, “Procurando na rede…”, “Procurando o amigo…”, “Amigo entrou”, “A sala da estrela está desligada”.
+- Sem persistir IP. Sem Firebase / Play Games. PC local = reserva de dev.
 
 ### Ainda pos-MVP
 
@@ -368,4 +367,5 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-10 | Loja `[50, 200, 420]`; HP +15; Dano +3 com ripple de skill/ult; kits com números explícitos. Upgrades globais. |
 | 2026-09-10 | Amigos no hub + sala LAN 2P (ENet + código 6 + beacon UDP). Sem nuvem. |
 | 2026-09-10 | Casa↔casa: PC do meio (3a) + chamar pelo nome. LAN da onda 2 fica. Sem Firebase/Play/Hostinger. |
+| 2026-09-12 | Sala no celular: gaveta sem IP; sala da estrela baked; PC vira reserva de dev. |
 | 2026-09-10 | Sala: 4 opções (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`). 4 vs oni joga (`MAX_CLIENTS=3`). Portas Brawl/1v1. |
