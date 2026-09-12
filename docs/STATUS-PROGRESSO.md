@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-10 (sala: 2 vs oni + 4 vs oni + portas mapa/1v1) 
+**Atualizado:** 2026-09-12 (sala no celular — sem campo de PC) 
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -78,7 +78,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
 | Créditos fan game | ✅ engrenagem do hub |
 | Pause na fase | ✅ Continuar / Mapa / Hub |
 | SceneRouter (shop/credits/mapa) | ✅ (hotfix 2026-08-07) |
-| Amigos + sala | ✅ LAN Wi-Fi + casa↔casa; modos na sala (2 vs oni / 4 vs oni / mapa / 1v1); código 6; sem Firebase |
+| Amigos + sala | ✅ Telefone: Wi-Fi ou sala da estrela (baked); sem campo de IP; modos 2/4 vs oni + portas; sem Firebase |
 
 ---
 
@@ -106,7 +106,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
 | UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
 | PERSONAGENS no hub | ✅ tela select real (15; portrait nos 15; locked recusa; save do id) |
-| Amigos / sala | ✅ Wi-Fi **ou** outra casa; 2 ou 4 vs oni; mapa/1v1 = porta; clube/notícias/eventos ainda fora |
+| Amigos / sala | ✅ Telefone: Wi-Fi ou outra casa via sala da estrela; sem IP na gaveta; clube/notícias/eventos ainda fora |
 | Missões / XP / clube no hub | GDD: fase 2+ / fora |
 
 ### 3) Conteúdo em escala (Fase F)
@@ -187,3 +187,4 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | 2026-09-10 | **Desafio oni:** fraco 48/7 + poise no swing; elite mais rápido; W2/W3 fase 1 deixam de clonar o tutorial |
 | 2026-09-10 | **Economia/skills:** loja `[50, 200, 420]`; Dano ripple nas skills/ult; kits com atk/s1/s2/ult/CD explícitos. Números canônicos em `GDD-DECISOES.md` §6/§9. |
 | 2026-09-10 | **Sala de outra casa:** PC do meio (3a) + chamar pelo nome. LAN Wi-Fi da onda 2 permanece. Sem Firebase/Play/Hostinger. |
+| 2026-09-12 | **Sala no celular:** gaveta sem IP; `hashira/sala_host` baked; HTTP/TCP + UDP; PC = reserva de dev. |

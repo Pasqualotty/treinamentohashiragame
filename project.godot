@@ -122,6 +122,11 @@ pointing/emulate_touch_from_mouse=true
 2d_physics/layer_4="hitbox"
 2d_physics/layer_5="hurtbox"
 
+[hashira]
+
+sala_host="72.61.36.194"
+sala_http_port=8080
+
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0

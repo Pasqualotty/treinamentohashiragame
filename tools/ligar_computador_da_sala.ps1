@@ -1,10 +1,11 @@
 <#
 .SYNOPSIS
-  Liga o computador da sala (saída 3a) no PC do Matheus.
+  Reserva de DEV: sobe a sala da estrela neste PC.
 
 .DESCRIPTION
-  Sobe tools/sala_meio.py: achar código de 6 e, se o NAT bloquear, carregar o ENet.
-  Sem Firebase, sem Play Games, sem Hostinger.
+  O APK do sobrinho já aponta para a sala da estrela. Este script é só
+  para editor / duas instâncias no mesmo computador.
+  Sem Firebase, sem Play Games.
   Desligou esta janela: o jogo ainda abre; Criar/Entrar avisa em português.
 
 .EXAMPLE
@@ -13,7 +14,8 @@
 [CmdletBinding()]
 param(
     [string]$Bind = "0.0.0.0",
-    [int]$Port = 17779
+    [int]$Port = 17779,
+    [int]$HttpPort = 8080
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,15 +39,15 @@ if (-not $py) {
     exit 2
 }
 
-Write-Host "=== Computador da sala ==="
-Write-Host "Cole no celular (Amigos): IP_DESTE_PC:${Port}"
-Write-Host "Beacon Wi-Fi da onda 2 continua. Este PC so entra se o Wi-Fi nao achar."
+Write-Host "=== Sala da estrela (reserva de DEV) ==="
+Write-Host "O celular do sobrinho NAO usa este PC. Host baked: hashira/sala_host"
+Write-Host "UDP/TCP ${Port}  HTTP ${HttpPort}  relay $($Port + 1)"
 Write-Host ""
 
 $pyArgs = @()
 if ((Split-Path -Leaf $py) -eq "py.exe") {
     $pyArgs += "-3"
 }
-$pyArgs += @($script, "--bind", $Bind, "--port", "$Port")
+$pyArgs += @($script, "--bind", $Bind, "--port", "$Port", "--http-port", "$HttpPort")
 & $py @pyArgs
 exit $LASTEXITCODE

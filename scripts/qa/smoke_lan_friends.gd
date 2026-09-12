@@ -239,8 +239,13 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	if _find_label(fp, "Computador da sala") == null:
-		_fail("FriendsPanel sem campo Computador da sala")
+	if _find_label(fp, "Computador da sala") != null:
+		_fail("FriendsPanel ainda tem campo Computador da sala")
+		inst.queue_free()
+		await process_frame
+		return
+	if _find_line_placeholder(fp, "só o Wi-Fi") != null:
+		_fail("FriendsPanel ainda tem LineEdit de IP")
 		inst.queue_free()
 		await process_frame
 		return
@@ -292,7 +297,7 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	if _find_label(fp, "Wi-Fi da casa ou o PC da sala.\nSem VPN.") == null:
+	if _find_label(fp, "Mesmo Wi-Fi ou outra casa.\nSem VPN.") == null:
 		_fail("dica Sem VPN sumiu ou quebrou")
 		inst.queue_free()
 		await process_frame
@@ -327,7 +332,7 @@ func _test_hub_panel() -> void:
 			inst.queue_free()
 			await process_frame
 			return
-	var hint_lan: Label = _find_label(fp, "Wi-Fi da casa ou o PC da sala.\nSem VPN.")
+	var hint_lan: Label = _find_label(fp, "Mesmo Wi-Fi ou outra casa.\nSem VPN.")
 	if hint_lan != null and play.visible:
 		var h_over: Rect2 = hint_lan.get_global_rect().intersection(play.get_global_rect())
 		if h_over.size.x > 4.0 and h_over.size.y > 4.0:
@@ -869,7 +874,7 @@ func _test_meio_pc_off(lan: Node) -> void:
 		return
 	var saw_off := false
 	for t in toasts:
-		if t.contains("desligado"):
+		if t.contains("desligad"):
 			saw_off = true
 			break
 	lan.call("close_session")
@@ -913,26 +918,39 @@ func _test_hub_computador_field() -> void:
 	_open_drawer(fp)
 	for i in range(4):
 		await process_frame
-	var edit: LineEdit = _find_line_placeholder(fp, "só o Wi-Fi")
-	if edit == null:
-		_fail("campo Computador da sala sem LineEdit")
+	if _find_label(fp, "Computador da sala") != null:
+		_fail("gaveta ainda tem Computador da sala")
 		inst.queue_free()
 		await process_frame
 		return
-	edit.text = "127.0.0.1:17779"
-	edit.text_changed.emit(edit.text)
+	if _find_line_placeholder(fp, "só o Wi-Fi") != null:
+		_fail("gaveta ainda tem LineEdit de IP")
+		inst.queue_free()
+		await process_frame
+		return
+	if _find_button(fp, "Não achou? IP do anfitrião") != null:
+		_fail("IP do anfitrião ainda na UI")
+		inst.queue_free()
+		await process_frame
+		return
 	var lan: Node = root.get_node_or_null("LanSession")
-	if lan == null or str(lan.call("get_sala_meio")) != "127.0.0.1:17779":
-		_fail("campo não foi para LanSession")
+	var baked := SalaMeioClient.baked_host()
+	if not baked.is_empty():
+		if SalaMeioClient.parse_endpoint(baked).is_empty():
+			_fail("sala_host baked inválido: %s" % baked)
+			inst.queue_free()
+			await process_frame
+			return
 		if lan != null:
+			if not bool(lan.call("set_sala_meio", baked)) or not bool(lan.call("has_sala_meio")):
+				_fail("sala_host baked não entrou no LanSession")
+				inst.queue_free()
+				await process_frame
+				return
 			lan.call("set_sala_meio", "")
-		inst.queue_free()
-		await process_frame
-		return
-	lan.call("set_sala_meio", "")
 	inst.queue_free()
 	await process_frame
-	_pass("campo Computador da sala grava no autoload, não no save")
+	_pass("gaveta sem campo de PC; sala baked no APK")
 
 
 func _test_call_name_not_x() -> void:
@@ -1011,7 +1029,9 @@ func _test_meio_two_process(lan: Node) -> void:
 		_fail("tools/sala_meio.py ausente")
 		return
 	var port: int = 18779
-	var extra := PackedStringArray([script, "--bind", "127.0.0.1", "--port", str(port)])
+	var extra := PackedStringArray([
+		script, "--bind", "127.0.0.1", "--port", str(port), "--http-port", str(port + 20)
+	])
 	var pid: int = OS.create_process("python", extra)
 	if pid <= 0:
 		var py_args := PackedStringArray(["-3"])
