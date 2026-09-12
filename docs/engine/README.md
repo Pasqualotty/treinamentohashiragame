@@ -21,6 +21,8 @@ Esta pasta é a **consulta técnica** do projeto. Decisões de produto ficam em 
 | [10-skills-pasqualotti.md](./10-skills-pasqualotti.md) | Skills obrigatórias de design/arte |
 | [11-combat-hud.md](./11-combat-hud.md) | HUD de combate (HP / breath / moedas run) |
 | [12-lan-coop.md](./12-lan-coop.md) | Coop 2P: LAN **ou** casa↔casa (beacon + PC do meio) |
+| [13-brawl.md](./13-brawl.md) | Mapa de batalha: 2P na sala, dummy só no F6 |
+| [14-duel.md](./14-duel.md) | 1v1: 2P na sala, dummy só no F6 |
 
 **Skills Grok (sempre):**
 

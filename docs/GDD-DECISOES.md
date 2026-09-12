@@ -143,7 +143,7 @@ Toque AMIGOS → gaveta desliza da direita (painel sólido, topo→embaixo; JOGA
 
 **2 vs oni:** 2 jogadores. `MAX_CLIENTS = 1`.  
 **4 vs oni:** 4 celulares, cada um um caçador. `MAX_CLIENTS = 3`. Câmera nos vivos. Oni no mais perto. 2P/solo não mudam.  
-**Mapa de batalha / 1v1:** portas. Se a cena não existir, toast em PT e a sala continua.
+**Mapa de batalha / 1v1:** 2P. Com sala + amigo, cada celular controla o seu (mesmo `InputFrame` da fase). Sem sessão (F6), dummy local. Sem a cena: toast em PT e a sala continua.
 
 Mesmo Wi-Fi **ou** cada um na sua casa (PC do Matheus ligado só pra achar o amigo; se o NAT bloquear, o mesmo PC carrega o ENet). ENet 17777 + beacon UDP 17778. Código filtra o beacon (não é o IP). Host simula a fase; o amigo manda input. Sem Firebase, Play Games, Hostinger. Save `friends` = nomes, **sem IP**. Cap 16. Handshake `proto=1` + `version_code` — APK diferente recusa em PT.
 
@@ -340,7 +340,7 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 - Direita do hub = **Amigos** (lista + sala). Clube / notícias / eventos continuam fora.
 - Depois de **Criar sala**, o anfitrião escolhe: `2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`. JOGAR ouro **não** é esse seletor — continua o mapa do mundo.
 - 2 vs oni: 2 jogadores, `MAX_CLIENTS = 1`. 4 vs oni: 4 celulares (`MAX_CLIENTS = 3`), câmera nos vivos, oni no mais perto. 2P/solo intactos.
-- Mapa de batalha / 1v1: portas para `scenes/modes/brawl/brawl_arena.tscn` e `scenes/modes/duel/duel.tscn`. Sem a cena: toast PT, sala não quebra.
+- Mapa de batalha / 1v1: 2P nas cenas `brawl_arena` / `duel`. Sala + peer = roster, cada celular o seu, sem dummy. F6 sem sessão = dummy. Sem a cena: toast PT, sala não quebra.
 - Wi-Fi da casa **ou** casa↔casa com o **PC do Matheus ligado** (campo Computador da sala). Host escolhe a fase no mapa no coop vs oni.
 - Beacon primeiro; senão o PC. PC desligado: o jogo abre; Criar/Entrar avisa em PT. Boot **não** fala “Conectando-se…”.
 - Toque no **nome** = chamar se o PC vir o nick. O **x** apaga. Código de 6 continua (Zap).
@@ -369,3 +369,4 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-10 | Amigos no hub + sala LAN 2P (ENet + código 6 + beacon UDP). Sem nuvem. |
 | 2026-09-10 | Casa↔casa: PC do meio (3a) + chamar pelo nome. LAN da onda 2 fica. Sem Firebase/Play/Hostinger. |
 | 2026-09-10 | Sala: 4 opções (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`). 4 vs oni joga (`MAX_CLIENTS=3`). Portas Brawl/1v1. |
+| 2026-09-12 | Mapa/1v1: com sala o amigo joga (roster + InputFrame). Dummy só no F6. |

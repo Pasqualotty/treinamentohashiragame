@@ -1,6 +1,7 @@
 extends Node2D
-## Arena placeholder do modo batalha (feel Brawl): plano 2D, PvP local.
-## F6 / standalone. Lê GameMode se o autoload existir. Não é o botão JOGAR.
+## Arena placeholder do modo batalha (feel Brawl): plano 2D, PvP.
+## Com LanSession + peer: roster 2P, cada celular o seu. Sem dummy.
+## F6 / smoke sem sessão: dummy local no 2º corpo.
 
 const PLAYER_SCENE: PackedScene = preload("res://scenes/characters/player/player.tscn")
 const TOUCH_SCENE: PackedScene = preload("res://scenes/ui/combat_touch_controls.tscn")
@@ -30,6 +31,8 @@ func _ready() -> void:
 		cam.make_current()
 	_roster = _resolve_roster()
 	_time_left = _resolve_match_time()
+	if _lan_peers():
+		LanSession.mark_entered_stage()
 	_spawn_hunters()
 	_patch_pvp(_p1, 0)
 	_patch_pvp(_p2, 1)
@@ -41,7 +44,10 @@ func _ready() -> void:
 	_face_each_other()
 	if is_instance_valid(Audio) and Audio.has_method("play_bgm"):
 		Audio.play_bgm("stage")
-	print("[BrawlArena] F6 standalone roster=%s vs %s" % [_roster[0], _roster[1]])
+	if uses_lan_roster():
+		print("[BrawlArena] sessão roster=%s vs %s dummy=nao" % [_roster[0], _roster[1]])
+	else:
+		print("[BrawlArena] F6 standalone roster=%s vs %s" % [_roster[0], _roster[1]])
 
 
 func _physics_process(delta: float) -> void:
@@ -83,6 +89,14 @@ func get_time_left() -> float:
 	return _time_left
 
 
+func uses_lan_roster() -> bool:
+	return _live_session()
+
+
+func has_dummy() -> bool:
+	return _bot != null and is_instance_valid(_bot)
+
+
 func hunter_team(slot: int) -> StringName:
 	var pawn: CharacterBody2D = get_hunter(slot)
 	if pawn == null:
@@ -121,7 +135,72 @@ func _axis_for(slot: int, fallback: float) -> float:
 	return fallback
 
 
+func _live_session() -> bool:
+	if has_meta("smoke_lan_roster"):
+		return true
+	return _lan_peers()
+
+
+func _lan_peers() -> bool:
+	return is_instance_valid(LanSession) and LanSession.in_session() and LanSession.has_peer()
+
+
+func _session_is_guest() -> bool:
+	if has_meta("smoke_lan_roster"):
+		var raw: Variant = get_meta("smoke_lan_roster")
+		if raw is Dictionary:
+			return bool((raw as Dictionary).get("is_guest", false))
+	return is_instance_valid(LanSession) and LanSession.is_guest()
+
+
+func _local_slot() -> int:
+	if has_meta("smoke_lan_roster"):
+		var raw: Variant = get_meta("smoke_lan_roster")
+		if raw is Dictionary:
+			return int((raw as Dictionary).get("local_slot", 0))
+	if not _lan_peers():
+		return 0
+	if LanSession.is_host():
+		return 0
+	var slot: int = int(LanSession.local_coop_slot)
+	return slot if slot > 0 else 1
+
+
+func _controls_locally(slot: int) -> bool:
+	if not _live_session():
+		return slot == 0
+	if _session_is_guest():
+		return false
+	return slot == _local_slot()
+
+
+func _ids_from_session() -> PackedStringArray:
+	var ids := PackedStringArray(["tanjiro", "nezuko"])
+	if has_meta("smoke_lan_roster"):
+		var raw: Variant = get_meta("smoke_lan_roster")
+		if raw is Dictionary:
+			var meta := raw as Dictionary
+			ids[0] = str(meta.get("char_0", ids[0]))
+			ids[1] = str(meta.get("char_1", ids[1]))
+			return ids
+	if not is_instance_valid(LanSession):
+		return ids
+	var roster: Array = LanSession.get_roster()
+	for item: Variant in roster:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var rec := item as Dictionary
+		var slot: int = int(rec.get("slot", -1))
+		if slot == 0 or slot == 1:
+			ids[slot] = str(rec.get("char_id", ids[slot]))
+	return ids
+
+
 func _resolve_roster() -> PackedStringArray:
+	if _live_session():
+		var from_lan: PackedStringArray = _ids_from_session()
+		if from_lan.size() >= 2:
+			return from_lan
 	var gm: Node = get_node_or_null("/root/GameMode")
 	if gm != null:
 		var from_prop: Variant = gm.get("brawl_ids")
@@ -164,8 +243,8 @@ func _spawn_hunters() -> void:
 		add_child(host)
 	if host is Node2D:
 		(host as Node2D).y_sort_enabled = true
-	_p1 = _make_hunter(0, _roster[0], true)
-	_p2 = _make_hunter(1, _roster[1], false)
+	_p1 = _make_hunter(0, _roster[0], _controls_locally(0))
+	_p2 = _make_hunter(1, _roster[1], _controls_locally(1))
 	host.add_child(_p1)
 	host.add_child(_p2)
 	_p1.global_position = SPAWN_P1
@@ -182,9 +261,9 @@ func _make_hunter(slot: int, char_id: String, local: bool) -> CharacterBody2D:
 	pawn.set("coop_slot", slot)
 	pawn.set("forced_character_id", char_id)
 	pawn.set("skip_local_upgrades", true)
-	pawn.set("is_local_pawn", local)
+	pawn.set("is_local_pawn", slot == _local_slot())
 	pawn.set("accept_local_input", local)
-	pawn.set("follow_host_snap", false)
+	pawn.set("follow_host_snap", _live_session() and _session_is_guest())
 	return pawn
 
 
@@ -222,6 +301,8 @@ func _wire_death(pawn: CharacterBody2D) -> void:
 
 
 func _attach_bot() -> void:
+	if _live_session():
+		return
 	_bot = BOT_SCRIPT.new()
 	_bot.name = "BrawlBot"
 	add_child(_bot)
