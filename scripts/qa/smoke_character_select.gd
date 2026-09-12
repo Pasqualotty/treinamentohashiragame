@@ -47,6 +47,7 @@ func _run() -> void:
 	_test_select_and_persist()
 	_test_legacy_save()
 	_test_player_kit()
+	_test_unique_kits()
 	await _test_own_art()
 	await _test_scenes(router)
 	_finish()
@@ -280,6 +281,75 @@ func _test_player_kit() -> void:
 	_pass("player aplica kit do id salvo")
 
 
+func _kit_fingerprint(stats: PlayerStats) -> String:
+	return "%d|%.3f|%.1f|%d|%.0f|%.2f|%.3f|%.0f|%d|%.0f|%.2f|%d|%.0f|%.2f" % [
+		stats.attack_damage,
+		stats.attack_startup,
+		stats.attack_step_speed,
+		stats.skill_1_damage,
+		stats.skill_1_knockback.x,
+		stats.skill_1_cooldown,
+		stats.skill_1_startup,
+		stats.skill_1_hitbox_size.x,
+		stats.skill_2_damage,
+		stats.skill_2_lunge_speed,
+		stats.skill_2_cooldown,
+		stats.ultimate_damage,
+		stats.ultimate_hitbox_size.x,
+		stats.lifesteal_ratio,
+	]
+
+
+func _test_unique_kits() -> void:
+	var seen: Dictionary = {}
+	var nezuko: CharacterDef = CharacterCatalog.find("nezuko")
+	if nezuko == null:
+		_fail("nezuko ausente")
+		return
+	var nz: PlayerStats = nezuko.build_stats()
+	if nz.lifesteal_ratio < 0.119:
+		_fail("nezuko lifesteal=%.3f want>=0.12" % nz.lifesteal_ratio)
+		return
+	var ino: CharacterDef = CharacterCatalog.find("inosuke")
+	if ino == null or ino.build_stats().skill_1_hit_count < 2:
+		_fail("inosuke skill_1_hit_count < 2")
+		return
+	var shi: CharacterDef = CharacterCatalog.find("shinobu")
+	if shi == null:
+		_fail("shinobu ausente")
+		return
+	var ss: PlayerStats = shi.build_stats()
+	if ss.skill_1_hitbox_size.x >= 30.0 or ss.skill_1_hitbox_offset_x < 50.0:
+		_fail("shinobu reach fino falhou size=%.0f off=%.0f" % [ss.skill_1_hitbox_size.x, ss.skill_1_hitbox_offset_x])
+		return
+	var gyo: CharacterDef = CharacterCatalog.find("gyomei")
+	if gyo == null or gyo.build_stats().skill_1_hitbox_size.x < 100.0:
+		_fail("gyomei hitbox grande falhou")
+		return
+	var zen: CharacterDef = CharacterCatalog.find("zenitsu")
+	if zen == null or zen.build_stats().skill_1_lunge_speed < 800.0:
+		_fail("zenitsu dash lunge falhou")
+		return
+	for character_id: String in CharacterCatalog.EXPECTED_IDS:
+		var def: CharacterDef = CharacterCatalog.find(character_id)
+		if def == null:
+			_fail("%s ausente no catálogo (kits)" % character_id)
+			return
+		var stats: PlayerStats = def.build_stats()
+		var fp: String = _kit_fingerprint(stats)
+		if seen.has(fp):
+			_fail("kit fingerprint igual %s e %s" % [seen[fp], character_id])
+			return
+		seen[fp] = character_id
+		for action: String in ["skill_1", "skill_2", "ultimate"]:
+			var icon := "res://assets/ui/touch/icons/%s/%s.png" % [character_id, action]
+			var pressed := "res://assets/ui/touch/icons/%s/%s_pressed.png" % [character_id, action]
+			if not FileAccess.file_exists(icon) or not FileAccess.file_exists(pressed):
+				_fail("ícone ausente %s" % icon)
+				return
+	_pass("15 kits únicos + ícones + perfis (nezuko/inosuke/shinobu/gyomei/zenitsu)")
+
+
 func _test_own_art() -> void:
 	for character_id: String in CharacterCatalog.EXPECTED_IDS:
 		var def: CharacterDef = CharacterCatalog.find(character_id)
@@ -377,6 +447,35 @@ func _test_own_art() -> void:
 				_fail("%s dash frames=%d" % [character_id, spr.sprite_frames.get_frame_count(&"dash")])
 				player.queue_free()
 				return
+		for skill_anim: StringName in [&"skill_1", &"skill_2", &"ultimate"]:
+			if not spr.sprite_frames.has_animation(skill_anim):
+				_fail("%s sem anim %s" % [character_id, skill_anim])
+				player.queue_free()
+				return
+			if spr.sprite_frames.get_frame_count(skill_anim) < 1:
+				_fail("%s %s vazio" % [character_id, skill_anim])
+				player.queue_free()
+				return
+		var s1_tex: Texture2D = spr.sprite_frames.get_frame_texture(&"skill_1", 0)
+		var atk_tex: Texture2D = spr.sprite_frames.get_frame_texture(&"attack", 0)
+		if s1_tex == null or atk_tex == null:
+			_fail("%s skill/attack tex null" % character_id)
+			player.queue_free()
+			return
+		var s1_path: String = s1_tex.resource_path
+		if character_id == "zenitsu":
+			if "zenitsu" not in s1_path:
+				_fail("zenitsu skill_1 path sem id: %s" % s1_path)
+				player.queue_free()
+				return
+			if "player/combat" in s1_path:
+				_fail("zenitsu skill_1 usou pack genérico: %s" % s1_path)
+				player.queue_free()
+				return
+		if "skill_1" in s1_path and s1_path == atk_tex.resource_path:
+			_fail("%s skill_1 path == attack" % character_id)
+			player.queue_free()
+			return
 		player.queue_free()
 	_game.set("current_character_id", prev_id)
 	_pass("player carrega path do id + WHITE; quarteto com counts")

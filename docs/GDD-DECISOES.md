@@ -365,6 +365,7 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-08-03 | Playtest PC: splash → loading → hub → mapa stub OK; combate ainda não; ver STATUS-PROGRESSO |
 | 2026-09-01 | Mapa com 5 mundos (W1 Montanha → W5 Céu Vermelho). W2 tranca até `w1_boss`. Ondas dos mundos novos no StageDef. Placeholder de BG por tema. |
 | 2026-09-10 | Hub centro = personagem atual (não sempre Tanjiro). Elenco 15 com Nezuko playtest (unlock livre, kit = stats do Tanjiro). |
+| 2026-09-12 | 15 kits únicos (ataque/skill/ult + ícones por id). Nezuko lifesteal 0.12; Inosuke 2 hits; Zenitsu dash; Shinobu reach fino; Gyomei hitbox grande. Stick/dash/pulo/pause iguais. |
 | 2026-09-10 | Loja `[50, 200, 420]`; HP +15; Dano +3 com ripple de skill/ult; kits com números explícitos. Upgrades globais. |
 | 2026-09-10 | Amigos no hub + sala LAN 2P (ENet + código 6 + beacon UDP). Sem nuvem. |
 | 2026-09-10 | Casa↔casa: PC do meio (3a) + chamar pelo nome. LAN da onda 2 fica. Sem Firebase/Play/Hostinger. |

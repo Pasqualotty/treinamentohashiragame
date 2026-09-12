@@ -86,6 +86,9 @@ const TARGET_VISUAL_HEIGHT: float = 140.0
 const ANIM_IDLE: StringName = &"idle"
 const ANIM_RUN: StringName = &"run"
 const ANIM_ATTACK: StringName = &"attack"
+const ANIM_SKILL_1: StringName = &"skill_1"
+const ANIM_SKILL_2: StringName = &"skill_2"
+const ANIM_ULTIMATE: StringName = &"ultimate"
 const ANIM_HURT: StringName = &"hurt"
 const ANIM_DASH: StringName = &"dash"
 
@@ -159,6 +162,8 @@ var _combo_reset_timer: float = 0.0
 ## Squash de pouso (procedural, sem frame novo) — timer decai em _update_run_bob.
 var _landing_squash_t: float = 0.0
 const LANDING_SQUASH_DUR: float = 0.16
+var _action_vfx_tint: Color = Color.WHITE
+var _extra_hit_fired: bool = false
 
 
 func _ready() -> void:
@@ -602,14 +607,14 @@ func _process_action(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + stats.gravity * delta, stats.max_fall_speed)
 
-	# Skill 2 investida: avanca durante active.
-	# Basic: passo curto no active (peso do swing).
+	# Cada kit tem lunge próprio no active (Zenitsu dash, Nezuko hop, etc.).
 	var in_active: bool = _action_timer >= _action_startup \
 			and _action_timer < _action_startup + _action_active
-	if _state == State.SKILL_2 and in_active:
-		velocity.x = _facing * stats.skill_2_lunge_speed
-	elif _state == State.ATTACK_BASIC and in_active:
-		velocity.x = _facing * stats.attack_step_speed
+	if in_active:
+		var lunge: Vector2 = _action_lunge()
+		velocity.x = _facing * lunge.x
+		if not is_zero_approx(lunge.y):
+			velocity.y = lunge.y
 	else:
 		velocity.x = 0.0
 
@@ -617,6 +622,7 @@ func _process_action(delta: float) -> void:
 
 	# Frame + AABB da hitbox via timeline (startup/recovery off; active por frame).
 	_sync_attack_frame_to_action()
+	_maybe_pulse_extra_hit()
 	# Cancel leve: jump/dash no fim do recovery (basic e skills, não ultimate).
 	if _can_cancel_attack_to_mobility():
 		if _buf_dash > 0.0 and try_dash():
@@ -830,6 +836,8 @@ func _begin_action(
 	_action_startup = startup
 	_action_active = active
 	_action_recovery = recovery
+	_extra_hit_fired = false
+	_action_vfx_tint = _vfx_tint_for_state(new_state)
 	_set_state(new_state)
 	velocity.x = 0.0
 	_hitbox_base_x = offset_x
@@ -851,9 +859,9 @@ func _begin_action(
 			_:
 				slash_kind = &"basic"
 		var slash_pos: Vector2 = global_position + Vector2(offset_x * 0.55 * _facing, -28.0)
-		CombatVfx.swing_slash(slash_pos, _facing, slash_kind)
+		CombatVfx.swing_slash(slash_pos, _facing, slash_kind, _action_vfx_tint)
 		if new_state == State.SKILL_1 and is_instance_valid(Fx):
-			Fx.water(slash_pos + Vector2(_facing * 24.0, 0.0), _facing)
+			Fx.flash(_action_vfx_tint * Color(1, 1, 1, 0.18), 0.12)
 	_sync_attack_frame_to_action()
 
 
@@ -1085,16 +1093,25 @@ func _setup_sprite_frames() -> void:
 	var attack_paths: Array[String] = ATTACK_FRAME_PATHS
 	var hurt_paths: Array[String] = HURT_FRAME_PATHS
 	var dash_paths: Array[String] = []
+	var skill_1_paths: Array[String] = attack_paths
+	var skill_2_paths: Array[String] = attack_paths
+	var ult_paths: Array[String] = attack_paths
 	if def != null:
 		idle_paths = def.combat_anim_paths("idle_side", IDLE_FRAME_PATHS)
 		run_paths = def.combat_anim_paths("run", RUN_FRAME_PATHS)
 		attack_paths = def.combat_anim_paths("attack", ATTACK_FRAME_PATHS)
 		hurt_paths = def.combat_anim_paths("hurt", HURT_FRAME_PATHS)
+		skill_1_paths = def.combat_anim_paths("skill_1", attack_paths)
+		skill_2_paths = def.combat_anim_paths("skill_2", attack_paths)
+		ult_paths = def.combat_anim_paths("ultimate", attack_paths)
 		var empty_dash: Array[String] = []
 		dash_paths = def.combat_anim_paths("dash", empty_dash)
 	_add_anim_from_paths(frames, ANIM_IDLE, idle_paths, 11.0, true)
 	_add_anim_from_paths(frames, ANIM_RUN, run_paths, 14.0, true)
 	_add_anim_from_paths(frames, ANIM_ATTACK, attack_paths, 12.0, false)
+	_add_anim_from_paths(frames, ANIM_SKILL_1, skill_1_paths, 12.0, false)
+	_add_anim_from_paths(frames, ANIM_SKILL_2, skill_2_paths, 12.0, false)
+	_add_anim_from_paths(frames, ANIM_ULTIMATE, ult_paths, 12.0, false)
 	_add_anim_from_paths(frames, ANIM_HURT, hurt_paths, 1.0, false)
 	if dash_paths.size() >= 1:
 		_add_anim_from_paths(frames, ANIM_DASH, dash_paths, 16.0, false)
@@ -1110,6 +1127,70 @@ func _setup_sprite_frames() -> void:
 	sprite.scale = Vector2(_base_sprite_scale, _base_sprite_scale)
 	sprite.position = Vector2(0.0, _sprite_base_y)
 	sprite.play(ANIM_IDLE)
+
+
+func _action_lunge() -> Vector2:
+	if stats == null:
+		return Vector2.ZERO
+	match _state:
+		State.SKILL_1:
+			return Vector2(stats.skill_1_lunge_speed, stats.skill_1_lunge_y)
+		State.SKILL_2:
+			return Vector2(stats.skill_2_lunge_speed, stats.skill_2_lunge_y)
+		State.ULTIMATE:
+			return Vector2(stats.ultimate_lunge_speed, 0.0)
+		State.ATTACK_BASIC:
+			return Vector2(stats.attack_step_speed, stats.attack_lunge_y)
+		_:
+			return Vector2.ZERO
+
+
+func _vfx_tint_for_state(st: State) -> Color:
+	if stats == null:
+		return Color.WHITE
+	match st:
+		State.SKILL_1:
+			return stats.skill_1_vfx_tint
+		State.SKILL_2:
+			return stats.skill_2_vfx_tint
+		State.ULTIMATE:
+			return stats.ultimate_vfx_tint
+		_:
+			return Color.WHITE
+
+
+func _maybe_pulse_extra_hit() -> void:
+	if _extra_hit_fired or hitbox == null or stats == null:
+		return
+	var count: int = 1
+	if _state == State.SKILL_1:
+		count = stats.skill_1_hit_count
+	elif _state == State.SKILL_2:
+		count = stats.skill_2_hit_count
+	if count < 2:
+		return
+	var mid: float = _action_startup + _action_active * 0.55
+	if _action_timer < mid or _action_timer >= _action_startup + _action_active:
+		return
+	_extra_hit_fired = true
+	hitbox.disable()
+	hitbox.enable()
+
+
+func _strike_anim() -> StringName:
+	match _state:
+		State.SKILL_1:
+			if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation(ANIM_SKILL_1):
+				return ANIM_SKILL_1
+		State.SKILL_2:
+			if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation(ANIM_SKILL_2):
+				return ANIM_SKILL_2
+		State.ULTIMATE:
+			if sprite and sprite.sprite_frames and sprite.sprite_frames.has_animation(ANIM_ULTIMATE):
+				return ANIM_ULTIMATE
+		_:
+			pass
+	return ANIM_ATTACK
 
 
 func _add_anim_from_paths(
@@ -1160,8 +1241,8 @@ func _sync_sprite_to_state() -> void:
 		State.RUN:
 			_play_anim(ANIM_RUN)
 		State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE:
-			# Ataque: controlamos frame por fase de hitbox (não auto-play solto).
-			_play_anim(ANIM_ATTACK, false)
+			# Cada golpe usa a anim do kit (skill_1/skill_2/ultimate), não recicla attack.
+			_play_anim(_strike_anim(), false)
 			sprite.pause()
 			_sync_attack_frame_to_action()
 		State.HURT:
@@ -1190,7 +1271,8 @@ func _play_anim(anim: StringName, restart: bool = true) -> void:
 	if sprite.animation == anim and sprite.is_playing() and not restart:
 		return
 	if sprite.animation == anim and not restart:
-		if not sprite.is_playing() and anim != ANIM_ATTACK:
+		if not sprite.is_playing() and anim != ANIM_ATTACK \
+				and anim != ANIM_SKILL_1 and anim != ANIM_SKILL_2 and anim != ANIM_ULTIMATE:
 			sprite.play(anim)
 		return
 	sprite.play(anim)
@@ -1202,13 +1284,14 @@ func _sync_attack_frame_to_action() -> void:
 		return
 	if _state not in [State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE]:
 		return
-	if not sprite.sprite_frames.has_animation(ANIM_ATTACK):
+	var anim: StringName = _strike_anim()
+	if not sprite.sprite_frames.has_animation(anim):
 		return
-	var count: int = sprite.sprite_frames.get_frame_count(ANIM_ATTACK)
+	var count: int = sprite.sprite_frames.get_frame_count(anim)
 	if count <= 0:
 		return
-	if sprite.animation != ANIM_ATTACK:
-		sprite.play(ANIM_ATTACK)
+	if sprite.animation != anim:
+		sprite.play(anim)
 	sprite.pause()
 	sprite.frame = HitboxTimeline.visual_frame(
 		_action_timer, _action_startup, _action_active, count

@@ -69,7 +69,11 @@ func has_combat_art() -> bool:
 func combat_anim_paths(anim_sub: String, fallback: Array[String]) -> Array[String]:
 	if combat_frames_dir == "":
 		return fallback
-	var listed: Array[String] = list_png_sequence("%s/%s" % [combat_frames_dir.rstrip("/"), anim_sub])
+	var root: String = combat_frames_dir.rstrip("/")
+	var listed: Array[String] = list_png_sequence("%s/%s" % [root, anim_sub])
+	if listed.is_empty() and anim_sub in ["skill_1", "skill_2", "ultimate"]:
+		# Sem pasta de skill: usa o attack DESTE id, nunca o pack genérico do Tanjiro.
+		listed = list_png_sequence("%s/attack" % root)
 	if listed.is_empty():
 		return fallback
 	return listed

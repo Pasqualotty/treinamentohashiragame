@@ -19,6 +19,7 @@ func _run() -> void:
 	_check_helper_frames()
 	_check_helper_fallback()
 	_check_stats_tables()
+	_check_kit_hitboxes_unique()
 	await _check_player_swing()
 	await _check_combo_tables_live()
 
@@ -179,6 +180,29 @@ func _assert_table_changes(tables: Dictionary, label: String) -> void:
 		_fail("%s: offset[0] == offset[last] — hitbox não muda com o frame" % label)
 	if offsets[0] <= 0.0 or offsets[offsets.size() - 1] <= 0.0:
 		_fail("%s: offset deveria ser > 0 na frente" % label)
+
+
+func _check_kit_hitboxes_unique() -> void:
+	print("-- kits hitbox únicos --")
+	var seen: Dictionary = {}
+	for character_id: String in CharacterCatalog.EXPECTED_IDS:
+		var def: CharacterDef = CharacterCatalog.find(character_id)
+		if def == null:
+			_fail("kit hitbox: %s ausente" % character_id)
+			return
+		var stats: PlayerStats = def.build_stats()
+		var key := "%.1fx%.1f|%.1f|%.3f|%d" % [
+			stats.skill_1_hitbox_size.x,
+			stats.skill_1_hitbox_size.y,
+			stats.skill_1_hitbox_offset_x,
+			stats.skill_1_startup,
+			stats.skill_1_damage,
+		]
+		if seen.has(key):
+			_fail("kit hitbox igual %s e %s (%s)" % [seen[key], character_id, key])
+			return
+		seen[key] = character_id
+	print("  OK 15 hitboxes skill_1 distintos")
 
 
 func _check_player_swing() -> void:

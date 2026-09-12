@@ -72,7 +72,7 @@ func spark(pos: Vector2, color: Color = COLOR_WHITE, amount: int = 10) -> void:
 		inst.call("play", color, amount)
 
 
-func slash(pos: Vector2, facing: float, kind: StringName = &"basic") -> void:
+func slash(pos: Vector2, facing: float, kind: StringName = &"basic", tint: Color = Color(0, 0, 0, 0)) -> void:
 	var size: float = 128.0
 	var life: float = 0.22
 	match kind:
@@ -90,7 +90,7 @@ func slash(pos: Vector2, facing: float, kind: StringName = &"basic") -> void:
 		return
 	inst.global_position = pos
 	if inst.has_method("play"):
-		inst.call("play", facing, kind)
+		inst.call("play", facing, kind, tint)
 
 
 func impact(pos: Vector2) -> void:

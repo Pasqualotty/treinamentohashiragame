@@ -62,10 +62,10 @@ static func dash_tick(sprite: Node, pos: Vector2, facing: float) -> void:
 		fx.call("dust", pos + Vector2(-f * 10.0, 6.0), f)
 
 
-static func swing_slash(pos: Vector2, facing: float, kind: StringName) -> void:
+static func swing_slash(pos: Vector2, facing: float, kind: StringName, tint: Color = Color(0, 0, 0, 0)) -> void:
 	var fx: Node = _fx()
 	if fx and fx.has_method("slash"):
-		fx.call("slash", pos, facing, kind)
+		fx.call("slash", pos, facing, kind, tint)
 
 
 static func hit_burst(pos: Vector2, kind: StringName, damage: int, crit: bool) -> void:

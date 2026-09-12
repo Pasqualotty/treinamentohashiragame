@@ -13,7 +13,7 @@ const DURATION: float = 0.22
 const ARC_SPAN: float = 0.95
 
 
-func play(facing: float, kind: StringName = &"basic") -> void:
+func play(facing: float, kind: StringName = &"basic", tint: Color = Color(0, 0, 0, 0)) -> void:
 	if line == null:
 		queue_free()
 		return
@@ -34,6 +34,8 @@ func play(facing: float, kind: StringName = &"basic") -> void:
 			color = COLOR_BASIC
 			radius = 42.0
 			width = 8.0
+	if tint.a > 0.01:
+		color = Color(tint.r, tint.g, tint.b, maxf(tint.a, 0.9))
 
 	line.antialiased = false
 	line.default_color = color
