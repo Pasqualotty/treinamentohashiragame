@@ -11,4 +11,4 @@ Um round, dois corpos de frente, vencedor em PT. HUD próprio (2 HP + respiraç�
 | Facing | Arte de combate olha ESQUERDA. `flip_h` só se facing > 0. |
 | Rede | `LanSession` em sessão + peer: spawn pelo roster (igual a fase). Cada celular controla o seu via `InputFrame` / snap. **Sem dummy.** F6/smoke sem sessão: dummy local no 2º corpo. Sem Firebase. Sem 4P neste modo. |
 
-O player canônico é **instanciado** (não editado). Times `duel_left` / `duel_right`. `coop_slot` é o do roster (0 esquerda / 1 direita) nos dois celulares — sem inverter no guest. Host simula; guest manda `InputFrame` e segue snap. Fim em sala: **De novo** (os dois) ou **Lobby** (mesma sala, sem convidar de novo). Texto: `{nome} · {caçador} ganhou`.
+O player canônico é **instanciado** (não editado). Times `duel_left` / `duel_right`. `coop_slot` é o do roster (0 esquerda / 1 direita) nos dois celulares — sem inverter no guest. Skills e ultimate **não** exigem `is_on_floor()`. Host simula; guest manda `InputFrame` e segue snap. Fim em sala: **De novo** (os dois) ou **Lobby** (mesma sala, sem convidar de novo). Texto: `{nome} · {caçador} ganhou`.

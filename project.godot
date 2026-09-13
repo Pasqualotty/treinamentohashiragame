@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Treinamento Hashira"
 config/description="Fan game 2D Demon Slayer â€” uso pessoal. Pasqualotti Studio."
-config/version="0.0.11"
+config/version="0.0.12"
 run/main_scene="res://scenes/boot/splash_studio.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
@@ -42,6 +42,11 @@ window/stretch/aspect="expand"
 [gui]
 
 theme/custom="res://resources/theme/default_theme.tres"
+
+[hashira]
+
+sala_host="72.61.36.194"
+sala_http_port=8080
 
 [input]
 
@@ -121,11 +126,6 @@ pointing/emulate_touch_from_mouse=true
 2d_physics/layer_3="enemy"
 2d_physics/layer_4="hitbox"
 2d_physics/layer_5="hurtbox"
-
-[hashira]
-
-sala_host="72.61.36.194"
-sala_http_port=8080
 
 [rendering]
 

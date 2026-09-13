@@ -12,4 +12,4 @@ Gênero **novo**, separado do side-scroller vs oni. Feel Brawl: mapa 2D em que o
 | Mapa | Pátio 2880×1620, cobertura, lanternas, pads de vida / respiração / haste. |
 | Rede | `LanSession` em sessão + peer: spawn pelo roster. Cada celular controla o seu via `InputFrame` / snap. Vagas vazias no F6 viram máquina. Sem Firebase. |
 
-O player canônico é **instanciado** (não editado). Times `brawl_0` / `brawl_1` no hit/hurt pra o golpe atravessar. Movimento no plano: `MOTION_MODE_FLOATING` + eixo `move_up` / `move_down` (stick do GDD). Host simula; guest manda `InputFrame` e segue snap.
+O player canônico é **instanciado** (não editado). Times `brawl_0` / `brawl_1` no hit/hurt pra o golpe atravessar. Movimento no plano: `MOTION_MODE_FLOATING` + eixo `move_up` / `move_down` (stick do GDD). Spawn **dentro do pátio** (não no canto de cima à esquerda). O pawn no plano **não** zera `velocity.y` como se fosse chão de side-scroller. Host simula; guest manda `InputFrame` (eixo Y no 4º byte) e segue snap.

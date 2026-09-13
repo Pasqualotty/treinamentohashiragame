@@ -73,6 +73,10 @@ func _run() -> void:
 	else:
 		_ok("Nezuko no slot 1")
 
+	if p1.global_position.y < 560.0:
+		_fail("slot 0 nasceu no canto de cima y=%s" % p1.global_position.y)
+	else:
+		_ok("slot 0 no pátio y=%s" % p1.global_position.y)
 	if p1.motion_mode != CharacterBody2D.MOTION_MODE_FLOATING:
 		_fail("p1 não está FLOATING (sobe/desce)")
 	else:

@@ -1,8 +1,8 @@
 {
-	"version_code": 11,
-	"version_name": "0.0.11",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.11/TreinamentoHashira.apk",
-	"changelog": "Troféus na sala, nome em cima do corpo, 1v1 com fundo e respiração, De novo ou Lobby.",
-	"size_bytes": 148568449,
-	"sha256": "be9acdaa36aed8359a9b2da84d89ed39c25a7bbc9d6ab9a74a775b1bc86a1cfc"
+	"version_code": 12,
+	"version_name": "0.0.12",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.12/TreinamentoHashira.apk",
+	"changelog": "Sala troca de modo com o amigo dentro. 2 vs oni tem Começar. Skills no 1v1. Dá pra defender e recuar. Mapa desce do canto. Créditos novos.",
+	"size_bytes": 148576641,
+	"sha256": "f0950d96254eeec6fb1cd692f5a4fdf55bb347c39fd3450f5cd7f7421078a51c"
 }

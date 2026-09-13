@@ -125,6 +125,33 @@ func _run() -> void:
 	else:
 		_pass("times distintos")
 
+	if right.has_method("apply_damage"):
+		right.set("follow_host_snap", false)
+		right.set("accept_local_input", false)
+		right.call("apply_input_frame", -1.0, 0, 0)
+		right.set("_invuln_timer", 0.0)
+		var hp0: int = int(right.get("hp"))
+		right.call("apply_damage", 20, Vector2(180.0, 0.0))
+		var hp1: int = int(right.get("hp"))
+		if hp1 != hp0 - 5:
+			_fail("block 1v1 chip=%s (hp %s -> %s)" % [hp0 - hp1, hp0, hp1])
+		elif int(right.call("get_state")) == 8:
+			_fail("block 1v1 ainda entrou em hurt")
+		else:
+			_pass("block segura o golpe")
+		right.set("_invuln_timer", 0.0)
+	if right.has_method("_try_start_skill_1"):
+		right.set("follow_host_snap", false)
+		var air_y: float = (right as Node2D).global_position.y
+		(right as Node2D).global_position.y = air_y - 48.0
+		var skill_ok: bool = bool(right.call("_try_start_skill_1"))
+		if not skill_ok:
+			_fail("skill 1v1 não abriu fora do chão")
+		else:
+			_pass("skill 1v1 no ar")
+		(right as Node2D).global_position.y = air_y
+		right.set("follow_host_snap", true)
+
 	if not right.has_method("apply_damage"):
 		_fail("apply_damage ausente no dummy")
 		_finish()

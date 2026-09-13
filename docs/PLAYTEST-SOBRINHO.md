@@ -117,11 +117,11 @@ Não entra no CI. O sobrinho **não liga PC**. Cada um na sua casa (ou 4G).
 
 Não entra no CI. Quatro APKs (ou 4 instâncias Play).
 
-1. Host: Amigos → **Criar sala** → toca **4 vs oni** (antes dos amigos entrarem).
-2. Até 3 amigos **Entrar** com o código. Cada celular = um caçador.
-3. Host **JOGAR** → mapa → fase. Guest não escolhe fase.
-4. A câmera segue quem está vivo. Oni corre no mais perto.
-5. **Mapa de batalha:** host toca **Começar** (até 4). Sem amigo, as vagas são máquina. Skills e respiração funcionam. Quem vence vê **De novo** / **Lobby** (mesma sala). **1v1** na sala: fundo do pátio, nome em cima, respiração no HUD, corpos maiores. Fim: nome + caçador + **De novo** ou **Lobby**.
+1. Host: Amigos → **Criar sala**. Dá para trocar o modo **com o amigo já dentro**.
+2. Até 3 amigos **Entrar** com o código (no **4 vs oni**). Cada celular = um caçador.
+3. **2 vs oni:** host toca **Começar** → mapa → fase. Ou JOGAR. Guest não escolhe fase.
+4. A câmera segue quem está vivo. Oni corre no mais perto. Apanhando: segura para trás para defender; dá para recuar.
+5. **Mapa de batalha:** host toca **Começar** (até 4). Sem amigo, as vagas são máquina. Quem nasce em cima à esquerda **desce**. Skills e respiração funcionam. Quem vence vê **De novo** / **Lobby** (mesma sala). **1v1** na sala: fundo do pátio, skills, nome em cima, respiração no HUD, corpos maiores. Fim: nome + caçador + **De novo** ou **Lobby**.
 
 ---
 

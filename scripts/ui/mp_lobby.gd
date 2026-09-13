@@ -477,10 +477,12 @@ func _refresh_status() -> void:
 	if GameMode.max_clients_for(mode_id) > 1:
 		var n: int = LanSession.hunter_count() if LanSession.has_peer() else 1
 		var cap: int = GameMode.hunter_cap(mode_id)
-		if GameMode.scene_path(mode_id).is_empty():
-			_status_label.text = "Caçadores %d/%d" % [n, cap]
+		if GameMode.is_vs_oni(mode_id):
+			_status_label.text = "Caçadores %d/%d · Começar vai ao mapa" % [n, cap]
 		else:
 			_status_label.text = "Caçadores %d/%d · Começar quando quiser" % [n, cap]
+	elif GameMode.is_vs_oni(mode_id):
+		_status_label.text = "Começar para escolher a fase"
 	elif not GameMode.scene_path(mode_id).is_empty():
 		_status_label.text = "Começar quando quiser"
 	elif LanSession.has_peer():
@@ -496,7 +498,8 @@ func _sync_start() -> void:
 	if is_instance_valid(LanSession):
 		mid = int(LanSession.game_mode)
 	var path := GameMode.scene_path(mid)
-	_start_btn.visible = _is_host() and not path.is_empty() and ResourceLoader.exists(path)
+	var oni: bool = GameMode.is_vs_oni(mid)
+	_start_btn.visible = _is_host() and (oni or (not path.is_empty() and ResourceLoader.exists(path)))
 
 
 func _sync_mode_buttons() -> void:

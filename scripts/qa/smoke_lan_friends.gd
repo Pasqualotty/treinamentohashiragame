@@ -52,8 +52,10 @@ func _run() -> void:
 	await _test_guest_clears_packed(lan)
 	_test_boot_never_conectando()
 	_test_max_clients(lan)
+	_test_mode_switch_occupied(lan)
 	_test_game_mode_contract()
 	await _test_mode_options()
+	_test_credits_line()
 	_test_pick_character_api(lan)
 	await _test_lobby_character_pick()
 	_test_mode_doors(lan)
@@ -732,16 +734,16 @@ func _test_max_clients(lan: Node) -> void:
 	if code.is_empty():
 		_fail("max_clients: host_room falhou")
 		return
-	if int(lan.get("MAX_CLIENTS")) != 1:
-		_fail("2 vs oni MAX_CLIENTS=%s (deve ser 1)" % lan.get("MAX_CLIENTS"))
+	if int(lan.get("MAX_CLIENTS")) != GameMode.ENET_CEILING:
+		_fail("sala abriu MAX_CLIENTS=%s (teto ENet=%s)" % [lan.get("MAX_CLIENTS"), GameMode.ENET_CEILING])
 		lan.call("close_session")
 		return
 	if not bool(lan.call("set_game_mode", GameMode.Id.VS_ONI_4)):
 		_fail("set_game_mode 4 vs oni falhou")
 		lan.call("close_session")
 		return
-	if int(lan.get("MAX_CLIENTS")) != 3:
-		_fail("4 vs oni MAX_CLIENTS=%s (deve ser 3)" % lan.get("MAX_CLIENTS"))
+	if int(lan.get("MAX_CLIENTS")) != GameMode.ENET_CEILING:
+		_fail("4 vs oni recriou o peer MAX_CLIENTS=%s" % lan.get("MAX_CLIENTS"))
 		lan.call("close_session")
 		return
 	if not bool(lan.call("is_four_vs_oni")):
@@ -752,19 +754,80 @@ func _test_max_clients(lan: Node) -> void:
 		_fail("set_game_mode mapa de batalha falhou")
 		lan.call("close_session")
 		return
-	if int(lan.get("MAX_CLIENTS")) != 3:
-		_fail("mapa de batalha MAX_CLIENTS=%s (deve ser 3)" % lan.get("MAX_CLIENTS"))
+	if int(lan.get("MAX_CLIENTS")) != GameMode.ENET_CEILING:
+		_fail("mapa de batalha MAX_CLIENTS=%s" % lan.get("MAX_CLIENTS"))
 		lan.call("close_session")
 		return
 	if bool(lan.call("is_four_vs_oni")):
 		_fail("mapa de batalha não é 4 vs oni")
 		lan.call("close_session")
 		return
+	if not bool(lan.call("set_game_mode", GameMode.Id.VS_ONI_2)):
+		_fail("voltar para 2 vs oni falhou")
+		lan.call("close_session")
+		return
 	lan.call("close_session")
 	if int(lan.get("MAX_CLIENTS")) != 1:
 		_fail("close_session não voltou MAX_CLIENTS=1")
 		return
-	_pass("MAX_CLIENTS=1 no 2P e =3 no modo 4")
+	_pass("sala abre no teto ENet=3; modo troca sem recriar peer")
+
+
+func _test_mode_switch_occupied(lan: Node) -> void:
+	var code: String = str(lan.call("host_room"))
+	if code.is_empty():
+		_fail("modo ocupado: host_room falhou")
+		return
+	lan.set("_handshake_ok", true)
+	var guests: Dictionary = lan.get("_guests")
+	guests[2] = {"slot": 1, "nick": "Amigo", "char_id": "tanjiro"}
+	if not bool(lan.call("set_game_mode", GameMode.Id.DUEL)):
+		_fail("com amigo na sala não trocou para 1v1")
+		lan.call("close_session")
+		return
+	if not bool(lan.call("set_game_mode", GameMode.Id.BRAWL)):
+		_fail("com amigo na sala não trocou para mapa")
+		lan.call("close_session")
+		return
+	if not bool(lan.call("set_game_mode", GameMode.Id.VS_ONI_2)):
+		_fail("com 1 amigo não voltou para 2 vs oni")
+		lan.call("close_session")
+		return
+	guests[3] = {"slot": 2, "nick": "Outro", "char_id": "nezuko"}
+	if bool(lan.call("set_game_mode", GameMode.Id.VS_ONI_2)):
+		_fail("2 amigos cabem em 2 vs oni")
+		lan.call("close_session")
+		return
+	if not bool(lan.call("set_game_mode", GameMode.Id.VS_ONI_4)):
+		_fail("2 amigos não foram para 4 vs oni")
+		lan.call("close_session")
+		return
+	lan.call("close_session")
+	_pass("troca de modo com amigo na sala")
+
+
+func _test_credits_line() -> void:
+	var packed: PackedScene = load("res://scenes/ui/credits.tscn") as PackedScene
+	if packed == null:
+		_fail("créditos não carregam")
+		return
+	var inst: Node = packed.instantiate()
+	var body: Label = inst.get_node_or_null("Body") as Label
+	if body == null:
+		_fail("créditos sem Body")
+		inst.free()
+		return
+	var t: String = body.text
+	if not t.contains("Feito com carinho") or not t.contains("Incendeie seu coração"):
+		_fail("créditos sem a linha do coração")
+		inst.free()
+		return
+	if t.contains("partida"):
+		_fail("créditos usam a palavra partida")
+		inst.free()
+		return
+	inst.free()
+	_pass("créditos: Incendeie seu coração")
 
 
 func _test_game_mode_contract() -> void:
@@ -848,6 +911,24 @@ func _test_mode_options() -> void:
 			inst.queue_free()
 			await process_frame
 			return
+	var lan: Node = root.get_node_or_null("LanSession")
+	var hosted: bool = lan != null and bool(lan.call("is_host"))
+	var oni2_btn: Button = _find_button(fp, "2 vs oni")
+	if oni2_btn:
+		oni2_btn.pressed.emit()
+		for i in range(4):
+			await process_frame
+	var start_oni: Button = _find_button(fp, "Começar")
+	if start_oni == null:
+		_fail("2 vs oni sem botão Começar")
+		inst.queue_free()
+		await process_frame
+		return
+	if hosted and not start_oni.visible:
+		_fail("Começar escondido no 2 vs oni")
+		inst.queue_free()
+		await process_frame
+		return
 	var brawl_btn: Button = _find_button(fp, "Mapa de batalha")
 	if brawl_btn:
 		brawl_btn.pressed.emit()
@@ -859,8 +940,6 @@ func _test_mode_options() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	var lan: Node = root.get_node_or_null("LanSession")
-	var hosted: bool = lan != null and bool(lan.call("is_host"))
 	if hosted and not start_btn.visible:
 		_fail("Começar escondido com a sala aberta no mapa")
 		inst.queue_free()

@@ -78,6 +78,7 @@ var move_speed_mul: float = 1.0
 var _boost_left: float = 0.0
 
 var _remote_axis: float = 0.0
+var _remote_axis_y: float = 0.0
 var _remote_just: int = 0
 
 @onready var sprite: AnimatedSprite2D = %AnimatedSprite2D
@@ -354,9 +355,10 @@ func add_breath_pickup(amount: float) -> void:
 	_add_pawn_breath(amount)
 
 
-func apply_input_frame(axis: float, _held: int, just: int) -> void:
+func apply_input_frame(axis: float, _held: int, just: int, axis_y: float = 0.0) -> void:
 	_remote_axis = axis
 	_remote_just = just
+	_remote_axis_y = axis_y
 
 
 func apply_host_snap(pos: Vector2, vx: float, facing: float, state_id: int, hp_now: int, breath_v: float, breath_m: float) -> void:
@@ -384,6 +386,40 @@ func _move_axis() -> float:
 	if not accept_local_input:
 		return _remote_axis
 	return Input.get_axis("move_left", "move_right")
+
+
+func _move_vertical_axis() -> float:
+	if not accept_local_input:
+		return _remote_axis_y
+	if not InputMap.has_action("move_up") or not InputMap.has_action("move_down"):
+		return 0.0
+	return Input.get_axis("move_up", "move_down")
+
+
+func _hurt_can_escape() -> bool:
+	if stats == null:
+		return _hurt_timer <= 0.12
+	return _hurt_timer <= stats.hurt_stun * 0.6
+
+
+func _is_blocking(knockback: Vector2) -> bool:
+	if _state == State.DEAD or _state == State.DASH:
+		return false
+	if _state == State.ATTACK_BASIC or _state == State.SKILL_1 or _state == State.SKILL_2 or _state == State.ULTIMATE:
+		return false
+	var axis: float = _move_axis()
+	if plane_locomotion:
+		var input := Vector2(axis, _move_vertical_axis())
+		if input.length() < 0.35:
+			return false
+		if knockback.length() >= 8.0:
+			return input.normalized().dot(knockback.normalized()) < -0.25
+		return not is_zero_approx(axis) and signf(axis) != signf(_facing)
+	if is_zero_approx(axis):
+		return false
+	if absf(knockback.x) >= 1.0:
+		return signf(axis) != signf(knockback.x)
+	return not is_zero_approx(_facing) and signf(axis) != signf(_facing)
 
 
 func _just_pressed(action: StringName) -> bool:
@@ -455,7 +491,9 @@ func is_busy() -> bool:
 
 
 func try_jump() -> bool:
-	if _state == State.DASH or _state == State.DEAD or _state == State.HURT:
+	if _state == State.DASH or _state == State.DEAD:
+		return false
+	if _state == State.HURT and not _hurt_can_escape():
 		return false
 	if _is_attack_locked() and not _can_cancel_attack_to_mobility():
 		return false
@@ -473,7 +511,9 @@ func try_jump() -> bool:
 
 func try_dash() -> bool:
 	## Dash curto na direcao que olha. Cooldown; 1 dash aereo. Sem i-frames.
-	if _state == State.DASH or _state == State.DEAD or _state == State.HURT:
+	if _state == State.DASH or _state == State.DEAD:
+		return false
+	if _state == State.HURT and not _hurt_can_escape():
 		return false
 	if _is_attack_locked() and not _can_cancel_attack_to_mobility():
 		return false
@@ -506,6 +546,22 @@ func apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 	if _invuln_timer > 0.0:
 		return
 	if amount <= 0:
+		return
+
+	if _is_blocking(knockback):
+		var chip: int = maxi(1, int(round(float(amount) * 0.25)))
+		hp = maxi(0, hp - chip)
+		hp_changed.emit(hp, stats.max_hp if stats else hp)
+		_start_flash()
+		if is_instance_valid(Audio):
+			Audio.play_sfx("hurt")
+		if hp <= 0:
+			_enter_dead()
+			return
+		velocity = knockback * 0.32
+		_invuln_timer = maxf(_invuln_timer, 0.12)
+		if hurtbox:
+			hurtbox.invulnerable = true
 		return
 
 	hp = maxi(0, hp - amount)
@@ -573,7 +629,9 @@ func _capture_input_buffers() -> void:
 
 
 func _try_consume_buffers() -> void:
-	if _state == State.DEAD or _state == State.HURT or _state == State.DASH:
+	if _state == State.DEAD or _state == State.DASH:
+		return
+	if _state == State.HURT and not _hurt_can_escape():
 		return
 	# Ordem: dash > jump > attack (mobilidade primeiro — feel responsivo).
 	if _buf_dash > 0.0:
@@ -593,6 +651,10 @@ func _try_consume_buffers() -> void:
 # ---------------------------------------------------------------------------
 
 func _process_locomotion(delta: float) -> void:
+	if plane_locomotion:
+		_apply_horizontal_feel(_move_axis(), delta)
+		_apply_plane_vertical(delta, 1.0)
+		return
 	if not is_on_floor():
 		velocity.y = minf(velocity.y + stats.gravity * delta, stats.max_fall_speed)
 	else:
@@ -621,12 +683,26 @@ func _apply_horizontal_feel(axis: float, delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, friction * delta)
 
 
+func _apply_plane_vertical(delta: float, speed_mul: float) -> void:
+	var vaxis: float = _move_vertical_axis()
+	var accel: float = stats.move_accel if stats and stats.move_accel > 0.0 else get_move_speed() * 12.0
+	var target: float = vaxis * get_move_speed() * speed_mul
+	if not accept_local_input:
+		velocity.y = move_toward(velocity.y, target, accel * delta)
+		return
+	if is_zero_approx(vaxis):
+		return
+	velocity.y = move_toward(velocity.y, target, accel * delta)
+
+
 func _process_dash(delta: float) -> void:
 	_dash_time_left -= delta
 	var dur: float = stats.dash_duration if stats and stats.dash_duration > 0.0 else 0.15
 	var p: float = 1.0 - clampf(_dash_time_left / dur, 0.0, 1.0)
 	velocity.x = _facing * stats.dash_speed * (1.0 - p * p)
-	if is_on_floor():
+	if plane_locomotion:
+		pass
+	elif is_on_floor():
 		velocity.y = 0.0
 	else:
 		velocity.y = minf(velocity.y + stats.gravity * 0.35 * delta, stats.max_fall_speed)
@@ -647,13 +723,27 @@ func _process_dash(delta: float) -> void:
 
 
 func _process_hurt(delta: float) -> void:
-	if not is_on_floor():
+	if plane_locomotion:
+		_apply_horizontal_feel(_move_axis(), delta)
+		_apply_plane_vertical(delta, 0.85)
+	elif not is_on_floor():
 		velocity.y = minf(velocity.y + stats.gravity * delta, stats.max_fall_speed)
+		var air_axis: float = _move_axis()
+		if not is_zero_approx(air_axis):
+			var accel: float = stats.move_accel if stats.move_accel > 0.0 else stats.move_speed * 12.0
+			velocity.x = move_toward(velocity.x, air_axis * get_move_speed() * 0.75, accel * delta)
 	else:
-		var fric: float = stats.hurt_friction if stats.hurt_friction > 0.0 else stats.move_speed * 5.0
-		velocity.x = move_toward(velocity.x, 0.0, fric * delta)
+		var walk_axis: float = _move_axis()
+		if not is_zero_approx(walk_axis):
+			var accel_g: float = stats.move_accel if stats.move_accel > 0.0 else stats.move_speed * 12.0
+			velocity.x = move_toward(velocity.x, walk_axis * get_move_speed() * 0.85, accel_g * delta)
+		else:
+			var fric: float = stats.hurt_friction if stats.hurt_friction > 0.0 else stats.move_speed * 5.0
+			velocity.x = move_toward(velocity.x, 0.0, fric * delta)
 
 	_hurt_timer -= delta
+	if _hurt_can_escape():
+		_try_consume_buffers()
 	if _hurt_timer <= 0.0:
 		_set_state(State.IDLE if _grounded() else State.JUMP)
 		# Após recovery, tenta buffers de mobilidade (jump/dash) se ainda vivos.
@@ -661,7 +751,7 @@ func _process_hurt(delta: float) -> void:
 
 
 func _process_action(delta: float) -> void:
-	if not is_on_floor():
+	if not plane_locomotion and not is_on_floor():
 		velocity.y = minf(velocity.y + stats.gravity * delta, stats.max_fall_speed)
 
 	# Cada kit tem lunge próprio no active (Zenitsu dash, Nezuko hop, etc.).
@@ -702,7 +792,9 @@ func _process_action(delta: float) -> void:
 
 
 func _try_start_attack_basic() -> bool:
-	if _state == State.DASH or _state == State.DEAD or _state == State.HURT:
+	if _state == State.DASH or _state == State.DEAD:
+		return false
+	if _state == State.HURT and not _hurt_can_escape():
 		return false
 	if _is_attack_locked():
 		# Só encadeia combo se já estamos no meio de um attack_basic e a janela
@@ -803,8 +895,6 @@ func _try_start_skill_1() -> bool:
 		return false
 	if _skill_1_cd > 0.0:
 		return false
-	if not _grounded():
-		return false
 	_reset_combo()
 	_skill_1_cd = stats.skill_1_cooldown
 	_begin_action(
@@ -825,8 +915,6 @@ func _try_start_skill_2() -> bool:
 		return false
 	if _skill_2_cd > 0.0:
 		return false
-	if not _grounded():
-		return false
 	_reset_combo()
 	_skill_2_cd = stats.skill_2_cooldown
 	_begin_action(
@@ -846,8 +934,6 @@ func _try_start_ultimate() -> bool:
 	if _is_attack_locked() or _state == State.DASH or _state == State.DEAD or _state == State.HURT:
 		return false
 	if not _ult_ready():
-		return false
-	if not _grounded():
 		return false
 
 	_reset_combo()
@@ -1033,7 +1119,8 @@ func _update_state_after_move() -> void:
 		return
 
 	var axis: float = _move_axis()
-	if absf(axis) > 0.01:
+	var vaxis: float = _move_vertical_axis() if plane_locomotion else 0.0
+	if absf(axis) > 0.01 or absf(vaxis) > 0.01:
 		_set_state(State.RUN)
 	else:
 		_set_state(State.IDLE)

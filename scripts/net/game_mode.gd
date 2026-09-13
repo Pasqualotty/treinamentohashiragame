@@ -7,6 +7,9 @@ enum Id { VS_ONI_2, VS_ONI_4, BRAWL, DUEL }
 
 const BRAWL_SCENE := "res://scenes/modes/brawl/brawl_arena.tscn"
 const DUEL_SCENE := "res://scenes/modes/duel/duel.tscn"
+## Teto ENet (host + 3). A cap do modo vive em max_clients_for — a sala não recria o peer.
+const ENET_CEILING := 3
+const TOAST_MODE_TOO_FULL := "Esse modo cabe menos caçadores"
 
 const LABEL_VS_ONI_2 := "2 vs oni"
 const LABEL_VS_ONI_4 := "4 vs oni"

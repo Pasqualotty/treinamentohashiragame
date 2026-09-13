@@ -38,7 +38,7 @@ signal rematch_changed
 
 enum Role { NONE, HOST, GUEST }
 
-## 1 = 2 vs oni (host + 1). 3 = 4 vs oni (host + 3).
+## Teto ENet da sala (sempre 3 depois de Criar). Cap do modo = GameMode.max_clients_for.
 var MAX_CLIENTS: int = 1
 var game_mode: int = GameMode.Id.VS_ONI_2
 ## Guest: slot que este celular controla (host = 0).
@@ -149,17 +149,23 @@ func set_game_mode(mode_id: int) -> bool:
 		if path.is_empty() or not ResourceLoader.exists(path):
 			toast_requested.emit(GameMode.missing_toast(mode_id))
 			return true
-	var want: int = GameMode.max_clients_for(mode_id)
-	if not _resize_server(want):
+	var cap: int = GameMode.max_clients_for(mode_id)
+	if _guests.size() > cap:
+		toast_requested.emit(GameMode.TOAST_MODE_TOO_FULL)
 		return false
 	game_mode = mode_id
 	mode_changed.emit(mode_id)
+	_broadcast_roster()
 	return true
 
 
 func start_selected_mode() -> bool:
 	if not is_host():
 		return false
+	if GameMode.is_vs_oni(game_mode):
+		if _handshake_ok:
+			toast_requested.emit("Escolhe a fase no mapa")
+		return SceneRouter.to_world_map()
 	var path := GameMode.scene_path(game_mode)
 	if path.is_empty() or not ResourceLoader.exists(path):
 		toast_requested.emit(GameMode.missing_toast(game_mode))
@@ -350,7 +356,7 @@ func _nick() -> String:
 func host_room() -> String:
 	close_session()
 	game_mode = GameMode.Id.VS_ONI_2
-	MAX_CLIENTS = GameMode.max_clients_for(game_mode)
+	MAX_CLIENTS = GameMode.ENET_CEILING
 	local_coop_slot = 0
 	room_code = RoomCode.generate()
 	var peer := ENetMultiplayerPeer.new()
@@ -853,7 +859,7 @@ func _rpc_hello(proto: int, version_code: int, nick: String, char_id: String) ->
 		_rpc_reject.rpc_id(sender, "A fase já começou")
 		call_deferred("_drop_peer", sender)
 		return
-	if _guests.size() >= MAX_CLIENTS:
+	if _guests.size() >= GameMode.max_clients_for(game_mode):
 		_rpc_reject.rpc_id(sender, "Sala cheia")
 		call_deferred("_drop_peer", sender)
 		return
@@ -966,7 +972,8 @@ func _rpc_input(packed: PackedByteArray) -> void:
 			"apply_input_frame",
 			InputFrame.unpack_axis(packed),
 			InputFrame.unpack_held(packed),
-			InputFrame.unpack_just(packed)
+			InputFrame.unpack_just(packed),
+			InputFrame.unpack_axis_y(packed)
 		)
 	if InputFrame.has_bit(InputFrame.unpack_just(packed), InputFrame.BIT_PAUSE):
 		var sc := _stage_controller()

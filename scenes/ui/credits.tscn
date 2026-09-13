@@ -60,9 +60,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -420.0
-offset_top = -160.0
+offset_top = -180.0
 offset_right = 420.0
-offset_bottom = 160.0
+offset_bottom = 200.0
 grow_horizontal = 2
 grow_vertical = 1
 theme_override_font_sizes/font_size = 18
@@ -76,7 +76,8 @@ Demon-Slayer-inspired, uso pessoal e familiar.
 Nao e afiliado a ufotable, Aniplex, Shueisha ou Shonen Jump.
 
 Obrigado por jogar.
-Feito com carinho (e muita cafeina)."
+Feito com carinho (e muita cafeína).
+Incendeie seu coração"
 horizontal_alignment = 1
 vertical_alignment = 0
 autowrap_mode = 0

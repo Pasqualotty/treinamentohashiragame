@@ -1,7 +1,7 @@
 # 12 — Coop 2P: LAN **ou** casa↔casa no celular
 
 Fan game sideload. **Sem Firebase, sem Play Games, sem conta Google.**  
-2 jogadores. `max_clients = 1`. Host escolhe a fase no **mapa**. JOGAR solo **não** muda.
+2 jogadores no **2 vs oni** (cap 1 amigo). A sala ENet abre no teto **3** para poder trocar de modo sem fechar. Host escolhe a fase no **mapa** (botão **Começar** na sala ou JOGAR). JOGAR solo **não** muda.
 
 O sobrinho joga no **telefone**. PC é reserva de dev, não o caminho dele.
 
@@ -88,4 +88,4 @@ Combate **não** mora no `Game`. `hub.gd` **não** lotar — lista e sala ficam 
 
 ## JOGAR / mapa
 
-Solo intocado. Com 2 na sala: só o host navega o mapa. Guest no hub: “O anfitrião escolhe a fase”.
+Solo intocado. No **2 vs oni** / **4 vs oni**, **Começar** na lobby leva o host ao mapa. Guest no hub: “O anfitrião escolhe a fase”. Trocar o modo com amigo já dentro **não** fecha a sala.

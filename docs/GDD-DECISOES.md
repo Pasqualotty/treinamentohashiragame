@@ -141,9 +141,10 @@ Toque AMIGOS → gaveta desliza da direita (painel sólido, topo→embaixo; JOGA
 **Entrar (guest):** convite da sala (entra sozinho) **ou** código 6 na mão. Beacon Wi-Fi primeiro (~2,5 s); senão a **sala da estrela** (host baked no APK) — os dois só **saem** pro VPS (NAT da casa não precisa abrir porta). Sem campo de IP na gaveta.  
 **JOGAR:** sempre abre o **mapa**. Só o **host** escolhe a fase no coop vs oni. Guest no hub: “O anfitrião escolhe a fase”.
 
-**2 vs oni:** 2 jogadores. `MAX_CLIENTS = 1`.  
-**4 vs oni:** 4 celulares, cada um um caçador. `MAX_CLIENTS = 3`. Câmera nos vivos. Oni no mais perto. 2P/solo não mudam.  
-**Mapa de batalha:** até 4 celulares. Host toca **Começar**. Sem amigo (F6 ou sala sozinha), as vagas viram máquina. Pátio grande com pads de vida / respiração / haste. Depois do fim: **De novo** ou **Sair**. **1v1:** 2P. Com sala + amigo, cada celular controla o seu (mesmo `InputFrame` da fase). Sem sessão (F6), dummy local. Sem a cena: toast em PT e a sala continua.
+**2 vs oni:** 2 jogadores. Cap de 1 amigo. **Começar** leva o anfitrião ao mapa (escolhe a fase).  
+**4 vs oni:** 4 celulares, cada um um caçador. Cap de 3 amigos. Câmera nos vivos. Oni no mais perto. 2P/solo não mudam.  
+A sala **abre no teto ENet (3)**. Trocar de modo com alguém já dentro **não fecha** a sala. Se o modo novo cabe menos gente do que já entrou: toast “Esse modo cabe menos caçadores”.  
+**Mapa de batalha:** até 4 celulares. Host toca **Começar**. Sem amigo (F6 ou sala sozinha), as vagas viram máquina. Pátio grande com pads de vida / respiração / haste. Nasce **dentro** do pátio (não no canto de cima). Guest manda eixo vertical no `InputFrame`. Depois do fim: **De novo** ou **Sair**. **1v1:** 2P. Skills/ult sem exigir chão. Com sala + amigo, cada celular controla o seu (mesmo `InputFrame` da fase). Sem sessão (F6), dummy local. Sem a cena: toast em PT e a sala continua.
 
 Mesmo Wi-Fi **ou** cada um na sua casa (sala da estrela no APK; se o NAT bloquear, o relay carrega o ENet). ENet 17777 + beacon UDP 17778. Código filtra o beacon (não é o IP). Host simula a fase; o amigo manda input. Sem Firebase, Play Games. Save `friends` = nomes, **sem IP**. Cap 16. Handshake `proto=1` + `version_code` — APK diferente recusa em PT. PC local = reserva de dev, não o caminho do sobrinho.
 
@@ -226,6 +227,8 @@ Celular **deitado**. Esquerda = movimento; direita = combate.
 | Habilidade 1 | Skill única do personagem |
 | Habilidade 2 | 2ª skill única |
 | Ultimate | Golpe forte de respiração; **só com barra no máximo** |
+
+**Feel (Street Fighter):** segurar para trás (contra o golpe) **defende** — toma um pouco (chip) e não trava no atordoamento. Apanhando ainda dá para **andar, recuar e dash** depois de um instante. Não fica preso no combo.
 
 ---
 
@@ -343,8 +346,9 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 - Nome do jogador fica **em cima do corpo** no multiplayer.
 - Fim em sala: pergunta **De novo** (revanche) ou **Lobby**. Lobby = mesma sala e os mesmos players, sem convidar de novo. Sem a palavra “partida”.
 - Depois de **Criar sala**, o anfitrião escolhe: `2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`. JOGAR ouro **não** é esse seletor — continua o mapa do mundo.
-- 2 vs oni: 2 jogadores, `MAX_CLIENTS = 1`. 4 vs oni: 4 celulares (`MAX_CLIENTS = 3`), câmera nos vivos, oni no mais perto. 2P/solo intactos.
-- Mapa de batalha: até 4, Começar na sala, pátio com pads, De novo/Lobby com sala. 1v1: 2P, fundo do pátio, corpos maiores, respiração no HUD. Sala + peer = roster. F6 sem sessão = máquina. Sem a cena: toast PT, sala não quebra.
+- 2 vs oni: 2 jogadores, cap 1 amigo; **Começar** abre o mapa. 4 vs oni: 4 celulares (cap 3), câmera nos vivos, oni no mais perto. 2P/solo intactos. Sala ENet no teto 3 — troca de modo com gente dentro não recria o peer.
+- Mapa de batalha: até 4, Começar na sala, pátio com pads, spawn no pátio, eixo vertical no InputFrame, De novo/Lobby com sala. 1v1: 2P, fundo do pátio, corpos maiores, respiração no HUD, skills no ar. Sala + peer = roster. F6 sem sessão = máquina. Sem a cena: toast PT, sala não quebra.
+- Combate: block no recuo + recuo/dash no hurt. Créditos: “Incendeie seu coração” depois de feito com carinho.
 - Wi-Fi da casa **ou** casa↔casa pela **sala da estrela** (host baked no APK). Sem campo de IP na gaveta. Host escolhe a fase no mapa no coop vs oni.
 - Beacon primeiro; senão a sala da estrela. Sala caiu: o jogo abre; Criar/Entrar avisa em PT. Boot **não** fala “Conectando-se…”.
 - **Adicionar amigo** pelo nome do perfil (os dois no hub). O **x** apaga. Código de 6 da sala continua (Zap).
@@ -380,3 +384,4 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-13 | Lobby da sala em tela cheia + escolha de caçador (não força Inosuke). |
 | 2026-09-13 | Convite de amigo pelo nome do perfil (sem código de 8 na tela). |
 | 2026-09-13 | Troféus MP, nametag, 1v1 com fundo/chão/corpo maior + respiração, revanche ou volta à lobby. |
+| 2026-09-13 | Modo troca com sala ocupada; Começar no 2 vs oni; skills 1v1; block/recuo; spawn do mapa no pátio; créditos “Incendeie seu coração”. |

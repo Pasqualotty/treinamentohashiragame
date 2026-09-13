@@ -1,6 +1,6 @@
 class_name InputFrame
 extends RefCounted
-## Frame de input do guest → host. 4 bytes: axis i8 + held u8 + just u8 + pad.
+## Frame de input do guest → host. 4 bytes: axis i8 + held u8 + just u8 + axis_y i8.
 
 const BIT_JUMP := 1
 const BIT_DASH := 2
@@ -56,13 +56,20 @@ static func axis_now() -> int:
 	return clampi(int(round(axis * 127.0)), -127, 127)
 
 
+static func axis_y_now() -> int:
+	if not InputMap.has_action("move_up") or not InputMap.has_action("move_down"):
+		return 0
+	var axis: float = Input.get_axis("move_up", "move_down")
+	return clampi(int(round(axis * 127.0)), -127, 127)
+
+
 static func pack_from_local(just_or: int) -> PackedByteArray:
 	var buf := PackedByteArray()
 	buf.resize(PACK_SIZE)
 	buf.encode_s8(0, axis_now())
 	buf.encode_u8(1, held_mask_now() & 0xFF)
 	buf.encode_u8(2, just_or & 0xFF)
-	buf.encode_u8(3, 0)
+	buf.encode_s8(3, axis_y_now())
 	return buf
 
 
@@ -82,6 +89,12 @@ static func unpack_just(buf: PackedByteArray) -> int:
 	if buf.size() < PACK_SIZE:
 		return 0
 	return buf.decode_u8(2)
+
+
+static func unpack_axis_y(buf: PackedByteArray) -> float:
+	if buf.size() < PACK_SIZE:
+		return 0.0
+	return float(buf.decode_s8(3)) / 127.0
 
 
 static func has_bit(mask: int, bit: int) -> bool:

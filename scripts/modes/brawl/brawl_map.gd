@@ -13,10 +13,10 @@ const TEX_HASTE := "res://assets/modes/brawl/pickup_haste.png"
 const PICKUP_SCRIPT: Script = preload("res://scripts/modes/brawl/brawl_pickup.gd")
 
 const SPAWNS: Array[Vector2] = [
-	Vector2(360, 420),
-	Vector2(2520, 420),
-	Vector2(360, 1280),
-	Vector2(2520, 1280),
+	Vector2(620, 700),
+	Vector2(2260, 700),
+	Vector2(620, 1120),
+	Vector2(2260, 1120),
 ]
 
 

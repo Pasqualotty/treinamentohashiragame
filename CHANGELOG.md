@@ -1,5 +1,14 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.12 — sala, 1v1, combate e mapa (2026-09-13)
+
+- Dá para trocar o modo com o amigo já na sala (a sala não fecha)
+- **2 vs oni:** o anfitrião vê **Começar** e vai ao mapa escolher a fase
+- Skills e ultimate no **1v1** (não pedem mais “pés no chão”)
+- Combate: segura para trás para defender; apanhando ainda consegue correr e recuar
+- Mapa de batalha: quem nasce em cima à esquerda desce para o pátio; o amigo manda o eixo de cima/baixo
+- Créditos: **Incendeie seu coração** depois de feito com carinho
+
 ## 0.0.11 — troféus, nametag, 1v1 e revanche (2026-09-13)
 
 - Troféus no multiplayer: vitória soma no save; a lobby mostra o número
