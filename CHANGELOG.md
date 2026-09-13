@@ -1,5 +1,12 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.10 — lobby + convite pelo nome (2026-09-13)
+
+- Depois de Criar sala: lobby em tela cheia (equipe, caçador, modos, faixa de retratos)
+- Cada celular escolhe o caçador na sala — não cai mais em Inosuke no multiplayer
+- Lista de amigos continua na gaveta; **+ Chamar amigo** fica na lobby
+- Convite de amigo pelo **nome do perfil**, sem código de 8 na tela
+
 ## 0.0.8 — mapa de batalha (2026-09-12)
 
 - Depois que alguém vence: **De novo** ou **Sair**

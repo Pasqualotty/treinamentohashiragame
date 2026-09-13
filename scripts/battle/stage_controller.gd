@@ -158,8 +158,16 @@ func _setup_coop_if_needed() -> void:
 		_player.set("is_local_pawn", local_slot == 0)
 		_player.set("accept_local_input", local_slot == 0)
 		_player.set("follow_host_snap", LanSession.is_guest() and local_slot != 0)
-		if LanSession.is_guest() and _player.has_method("reload_character_kit"):
-			var host_char: String = LanSession.remote_character_id
+		var host_char: String = str(Game.current_character_id) if LanSession.is_host() else str(LanSession.remote_character_id)
+		for item in roster:
+			if typeof(item) != TYPE_DICTIONARY:
+				continue
+			if int((item as Dictionary).get("slot", -1)) == 0:
+				var rid: String = str((item as Dictionary).get("char_id", ""))
+				if not rid.is_empty():
+					host_char = rid
+				break
+		if _player.has_method("reload_character_kit") and not host_char.is_empty():
 			_player.call("reload_character_kit", host_char)
 		var cam := _player.get_node_or_null("Camera2D") as Camera2D
 		if cam:

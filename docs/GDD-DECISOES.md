@@ -136,7 +136,7 @@ Toque AMIGOS → gaveta desliza da direita (painel sólido, topo→embaixo; JOGA
                          │ [ Entrar     ]               │
 ```
 
-**Amigos:** cada celular tem **código de amigo** (8, tap = copiar). **Adicionar amigo** manda convite; a outra pessoa **Aceita** ou **Não**. Só então fica na lista. **+** convida pra **sala já criada**. Sem aceite, sem lista.  
+**Amigos:** **Adicionar amigo** pelo **nome do perfil**. A outra pessoa **Aceita** ou **Não**. Só então fica na lista. **+** convida pra **sala já criada**. Sem aceite, sem lista. Sem código de amigo na tela.  
 **Sala (host):** código de 6 caracteres (tap = copiar) + “Esperando amigo…” / “Amigo entrou” + **modo** (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`) + lista com **+** + Fechar sala.  
 **Entrar (guest):** convite da sala (entra sozinho) **ou** código 6 na mão. Beacon Wi-Fi primeiro (~2,5 s); senão a **sala da estrela** (host baked no APK) — os dois só **saem** pro VPS (NAT da casa não precisa abrir porta). Sem campo de IP na gaveta.  
 **JOGAR:** sempre abre o **mapa**. Só o **host** escolhe a fase no coop vs oni. Guest no hub: “O anfitrião escolhe a fase”.
@@ -338,12 +338,13 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 ### Amigos / sala (2026-09-10, casa↔casa 2026-09-10, modos 2026-09-10)
 
 - Direita do hub = **Amigos** (lista + sala). Clube / notícias / eventos continuam fora.
+- Depois de **Criar sala**, a sala abre **lobby em tela cheia**: equipe à esquerda, caçador no centro, modos à direita, faixa de retratos embaixo. Cada celular escolhe o próprio caçador ali (não cai em Inosuke). Lista de amigos continua na gaveta.
 - Depois de **Criar sala**, o anfitrião escolhe: `2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`. JOGAR ouro **não** é esse seletor — continua o mapa do mundo.
 - 2 vs oni: 2 jogadores, `MAX_CLIENTS = 1`. 4 vs oni: 4 celulares (`MAX_CLIENTS = 3`), câmera nos vivos, oni no mais perto. 2P/solo intactos.
 - Mapa de batalha: até 4, Começar na sala, pátio com pads, De novo/Sair. 1v1: 2P. Sala + peer = roster. F6 sem sessão = máquina. Sem a cena: toast PT, sala não quebra.
 - Wi-Fi da casa **ou** casa↔casa pela **sala da estrela** (host baked no APK). Sem campo de IP na gaveta. Host escolhe a fase no mapa no coop vs oni.
 - Beacon primeiro; senão a sala da estrela. Sala caiu: o jogo abre; Criar/Entrar avisa em PT. Boot **não** fala “Conectando-se…”.
-- Toque no **nome** = chamar se a sala vir o nick. O **x** apaga. Código de 6 continua (Zap).
+- **Adicionar amigo** pelo nome do perfil (os dois no hub). O **x** apaga. Código de 6 da sala continua (Zap).
 - Moedas da run = pote do grupo; no clear o grupo banka no save local. 2P: morte de qualquer um = wipe. 4 vs oni: wipe quando ninguém vivo resta.
 - Textos de sala: “Criar sala”, “Entrar”, “Procurando na rede…”, “Procurando o amigo…”, “Amigo entrou”, “A sala da estrela está desligada”.
 - Sem persistir IP. Sem Firebase / Play Games. PC local = reserva de dev.
@@ -373,3 +374,5 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-10 | Sala: 4 opções (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`). 4 vs oni joga (`MAX_CLIENTS=3`). Portas Brawl/1v1. |
 | 2026-09-12 | Mapa/1v1: com sala o amigo joga (roster + InputFrame). Dummy só no F6. |
 | 2026-09-12 | Mapa de batalha: até 4, pátio grande, pads, barras verde/amarelo/vermelho, skills no plano, De novo/Sair. |
+| 2026-09-13 | Lobby da sala em tela cheia + escolha de caçador (não força Inosuke). |
+| 2026-09-13 | Convite de amigo pelo nome do perfil (sem código de 8 na tela). |

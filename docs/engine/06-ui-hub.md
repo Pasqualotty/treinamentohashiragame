@@ -52,7 +52,8 @@ Como `image_to_video` pode falhar (ZDR), usamos:
 - **Não** lotar `hub.gd` — o painel cuida da lista e da sala. Sem `go_to` / troca de tela.  
 - JOGAR continua no mapa; se o toque for de **guest** em sala, abre a gaveta + toast “O anfitrião escolhe a fase”.  
 - Placas internas: tema / StyleBoxFlat (sem PNG Imagine novo nesta onda).  
-- Sem campo de IP. Código de amigo (8) + Adicionar/Aceitar. Criar sala; **+** chama. Entrar + código de 6 ainda vale. A sala da estrela vem no APK (`hashira/sala_host`).  
+- Sem campo de IP. **Adicionar amigo** pelo nome do perfil + Aceitar. Criar sala; **+** chama. Entrar + código de 6 ainda vale. A sala da estrela vem no APK (`hashira/sala_host`).  
 - O **+** chama pra sala. O **x** apaga.  
 - Gaveta largura **360**, mínima **320**. Textos: wrap **por palavra**. Empty = `Ninguém` numa linha.  
+- **Criar sala** / guest na sala → `MpLobby` tela cheia (equipe + showcase + faixa de caçadores + modos). Fechar/Sair volta à gaveta. Sem copiar arte de outro jogo.  
 - Fonte do hub: `FontVariation.spacing_space = 6` no tema + `ui_font.gd` se U+0020 ainda tiver advance 0.  

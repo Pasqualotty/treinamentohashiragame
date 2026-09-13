@@ -39,7 +39,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/ligar_computador_da_sa
 - Acha o código de 6 → IP/porta do host (o IP vem do datagrama, **não** do JSON do celular).
 - 4G: UDP primeiro; senão HTTP 8080 / TCP 17779.
 - Se o NAT da operadora bloquear o caminho direto, o **mesmo** host relaya o UDP do ENet **com os dois saindo** (bind/join no 17780). Pacote ENet até 4096.
-- Código de amigo (8) + convite/aceite. **+** na lista manda convite de sala (com code). Poll de `calls` antigo **não** leva code.
+- Convite de amigo pelo **nome do perfil** (presence na sala da estrela) + aceite. **+** na lista manda convite de sala (com code). Poll de `calls` antigo **não** leva code. O id interno de 8 continua só no save/servidor — não aparece na gaveta.
 - Nick + “está numa sala / não está”. Sem e-mail, telefone, Google.
 - Sala caiu: casa↔casa para; o Wi-Fi da sala continua.
 
@@ -48,6 +48,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/ligar_computador_da_sa
 Charset `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (sem 0/O/I/1). Zap ainda vale.
 
 Toque no **+** (não o **x**): se a sala já existe e o amigo está no hub, ele entra. Sem sala criada: “Cria a sala primeiro”. Offline: “O amigo não está aí agora”. Sem sala no APK: “Mande o código da sala”.
+
+Na lobby (tela cheia depois de Criar / entrar), cada celular escolhe o caçador na faixa de retratos. `LanSession.pick_character` atualiza o roster. 1v1 / mapa de batalha com sessão usam o roster — Inosuke/Nezuko default só no F6 sem sala.
 
 ## Save
 

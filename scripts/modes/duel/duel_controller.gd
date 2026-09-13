@@ -258,7 +258,12 @@ func _controls_locally(slot: int) -> bool:
 
 
 func _ids_from_session() -> PackedStringArray:
-	var ids := PackedStringArray([CHAR_LEFT, CHAR_RIGHT])
+	var left_fb: String = CHAR_LEFT
+	if _live_session() and is_instance_valid(Game):
+		var mine: String = str(Game.current_character_id)
+		if not mine.is_empty():
+			left_fb = mine
+	var ids := PackedStringArray([left_fb, CHAR_RIGHT])
 	if has_meta("smoke_lan_roster"):
 		var raw: Variant = get_meta("smoke_lan_roster")
 		if raw is Dictionary:

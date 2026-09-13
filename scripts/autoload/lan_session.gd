@@ -18,7 +18,7 @@ const MSG_FRIEND_OFF := "O amigo não está aí agora"
 const MSG_CALL_NEED_PC := "Mande o código da sala"
 const MSG_SALA_MISSING := "Sala não achada na sala da estrela"
 const MSG_CREATE_ROOM_FIRST := "Cria a sala primeiro"
-const MSG_NEED_FRIEND_CODE := "Pede o código de amigo dele"
+const MSG_NEED_FRIEND_NAME := "Adiciona ele na lista primeiro"
 
 signal peer_joined(nick: String)
 signal peer_left
@@ -33,6 +33,7 @@ signal stage_wipe
 signal waves_unlocked
 signal mode_changed(mode_id: int)
 signal room_invite_received(from_nick: String, code: String)
+signal roster_changed
 
 enum Role { NONE, HOST, GUEST }
 
@@ -222,17 +223,17 @@ func call_friend(raw_nick: String) -> void:
 	invite_friend_to_room(raw_nick)
 
 
-func send_friend_invite(raw_code: String) -> void:
+func send_friend_invite(raw_name: String) -> void:
 	if _in_boot():
 		return
-	var dest := FriendCode.normalize(raw_code)
-	if not FriendCode.is_valid(dest):
-		toast_requested.emit("Código de amigo inválido")
+	var dest_name := Game.sanitize_player_name(raw_name)
+	if dest_name.is_empty():
+		toast_requested.emit("Escreve o nome dele")
 		return
-	if dest == _friend_id():
-		toast_requested.emit("Esse código é o seu")
+	if dest_name == _nick():
+		toast_requested.emit("Esse nome é o seu")
 		return
-	if is_instance_valid(Game) and Game.has_friend_id(dest):
+	if is_instance_valid(Game) and Game.has_method("has_friend_named") and bool(Game.has_friend_named(dest_name)):
 		toast_requested.emit("Já é amigo")
 		return
 	if not has_sala_meio():
@@ -242,18 +243,22 @@ func send_friend_invite(raw_code: String) -> void:
 		toast_requested.emit(MSG_PC_OFF)
 		return
 	_meio.presence(_nick(), room_code if is_host() else "", _friend_id())
-	var reply: Dictionary = _meio.friend_invite(_friend_id(), _nick(), dest)
+	var reply: Dictionary = _meio.friend_invite(_friend_id(), _nick(), "", dest_name)
 	var op := str(reply.get("op", ""))
+	var dest_id := str(reply.get("to", ""))
+	if op == "offline":
+		toast_requested.emit(MSG_FRIEND_OFF)
+		return
 	if op == "already":
 		if is_instance_valid(Game):
-			Game.add_friend("Caçador", dest)
+			Game.add_friend(dest_name, dest_id)
 		toast_requested.emit("Já é amigo")
 		return
 	if op != "invited":
 		toast_requested.emit("Não deu para mandar o convite")
 		return
 	if is_instance_valid(Game):
-		Game.remember_outgoing_invite(dest, "Caçador")
+		Game.remember_outgoing_invite(dest_id, dest_name)
 	toast_requested.emit("Convite enviado")
 
 
@@ -309,8 +314,8 @@ func invite_friend_to_room(raw_nick: String) -> void:
 	var dest_id := ""
 	if is_instance_valid(Game):
 		dest_id = Game.friend_id_of(dest_name)
-	if dest_id.is_empty():
-		toast_requested.emit(MSG_NEED_FRIEND_CODE)
+	if dest_id.is_empty() and dest_name.is_empty():
+		toast_requested.emit(MSG_NEED_FRIEND_NAME)
 		return
 	if not has_sala_meio():
 		toast_requested.emit(MSG_CALL_NEED_PC)
@@ -319,7 +324,7 @@ func invite_friend_to_room(raw_nick: String) -> void:
 		toast_requested.emit(MSG_PC_OFF)
 		return
 	_meio.presence(_nick(), room_code, _friend_id())
-	var reply: Dictionary = _meio.room_invite(_friend_id(), _nick(), dest_id, room_code)
+	var reply: Dictionary = _meio.room_invite(_friend_id(), _nick(), dest_id, room_code, dest_name)
 	if str(reply.get("op", "")) != "invited":
 		toast_requested.emit(MSG_FRIEND_OFF)
 		return
@@ -645,12 +650,61 @@ func _slot_of_peer(peer_id: int) -> int:
 	return 1
 
 
+func pick_character(character_id: String) -> bool:
+	if not in_session():
+		return false
+	if not is_instance_valid(Game) or not Game.select_character(character_id):
+		return false
+	if is_host():
+		_broadcast_roster()
+		return true
+	if is_guest():
+		_patch_local_roster_char(character_id)
+		roster_changed.emit()
+		if _handshake_ok:
+			_rpc_pick_char.rpc_id(1, character_id)
+	return true
+
+
+func _patch_local_roster_char(character_id: String) -> void:
+	if _roster.is_empty():
+		return
+	var slot: int = local_coop_slot if local_coop_slot > 0 else 1
+	var next: Array = []
+	for item in _roster:
+		if typeof(item) != TYPE_DICTIONARY:
+			next.append(item)
+			continue
+		var rec: Dictionary = (item as Dictionary).duplicate()
+		if int(rec.get("slot", -1)) == slot:
+			rec["char_id"] = character_id
+		next.append(rec)
+	_roster = next
+
+
 func _broadcast_roster() -> void:
 	if not is_host():
 		return
 	var arr: Array = get_roster()
 	if _handshake_ok:
 		_rpc_roster.rpc(game_mode, arr)
+	roster_changed.emit()
+
+
+@rpc("any_peer", "reliable")
+func _rpc_pick_char(character_id: String) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if not _guests.has(sender):
+		return
+	if CharacterCatalog.find(character_id) == null:
+		return
+	var rec: Dictionary = _guests[sender]
+	rec["char_id"] = character_id
+	_guests[sender] = rec
+	remote_character_id = character_id
+	_broadcast_roster()
 
 
 @rpc("any_peer", "reliable")
@@ -706,6 +760,7 @@ func _rpc_welcome(host_nick: String, host_char: String, assigned_slot: int = 1, 
 	_handshake_ok = true
 	toast_requested.emit("Amigo entrou")
 	peer_joined.emit(remote_nick)
+	roster_changed.emit()
 
 
 @rpc("authority", "reliable")
@@ -717,6 +772,7 @@ func _rpc_roster(mode_id: int, roster: Array) -> void:
 	for item in roster:
 		if typeof(item) == TYPE_DICTIONARY:
 			_roster.append(item)
+	roster_changed.emit()
 
 
 @rpc("authority", "reliable")

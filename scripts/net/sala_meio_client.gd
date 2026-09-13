@@ -150,13 +150,17 @@ func poll_calls(nick: String, friend_id: String = "") -> Dictionary:
 	return request(body, PING_MS)
 
 
-func friend_invite(from_id: String, from_name: String, to_id: String) -> Dictionary:
-	return request({
+func friend_invite(from_id: String, from_name: String, to_id: String = "", to_name: String = "") -> Dictionary:
+	var body: Dictionary = {
 		"op": "friend_invite",
 		"from_id": FriendCode.normalize(from_id),
 		"from_name": from_name,
-		"to_id": FriendCode.normalize(to_id),
-	}, LOOKUP_MS)
+	}
+	if FriendCode.is_valid(to_id):
+		body["to_id"] = FriendCode.normalize(to_id)
+	if not to_name.is_empty():
+		body["to_name"] = to_name
+	return request(body, LOOKUP_MS)
 
 
 func friend_accept(my_id: String, my_name: String, their_id: String) -> Dictionary:
@@ -176,14 +180,18 @@ func friend_decline(my_id: String, their_id: String) -> Dictionary:
 	}, LOOKUP_MS)
 
 
-func room_invite(from_id: String, from_name: String, to_id: String, room_code: String) -> Dictionary:
-	return request({
+func room_invite(from_id: String, from_name: String, to_id: String, room_code: String, to_name: String = "") -> Dictionary:
+	var body: Dictionary = {
 		"op": "room_invite",
 		"from_id": FriendCode.normalize(from_id),
 		"from_name": from_name,
-		"to_id": FriendCode.normalize(to_id),
 		"code": RoomCode.normalize(room_code),
-	}, LOOKUP_MS)
+	}
+	if FriendCode.is_valid(to_id):
+		body["to_id"] = FriendCode.normalize(to_id)
+	if not to_name.is_empty():
+		body["to_name"] = to_name
+	return request(body, LOOKUP_MS)
 
 
 func send_fire(body: Dictionary) -> bool:

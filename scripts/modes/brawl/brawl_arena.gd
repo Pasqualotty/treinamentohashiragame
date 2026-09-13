@@ -277,6 +277,10 @@ func _ids_from_session() -> PackedStringArray:
 func _resolve_roster() -> PackedStringArray:
 	if _live_session():
 		var from_lan: PackedStringArray = _ids_from_session()
+		if from_lan.is_empty() and is_instance_valid(Game):
+			var mine: String = str(Game.current_character_id)
+			if not mine.is_empty():
+				from_lan.append(mine)
 		if from_lan.size() >= 2:
 			return _fill_roster(from_lan, from_lan.size())
 		return _fill_roster(from_lan, 4)

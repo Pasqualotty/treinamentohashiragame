@@ -87,7 +87,7 @@ Data: ________  Dispositivo: ________  Quem jogou: ________
 Não entra no CI. Dois APKs (ou 2 instâncias Play no PC com `127.0.0.1`).
 
 1. Os dois no **mesmo Wi-Fi da casa** (sem rede de convidado isolado). Sem campo de IP — Criar/Entrar basta.
-2. Host: hub → Amigos → **Criar sala** → código de 6 na cara (tap copia). Escolhe **2 vs oni** (já vem marcado). Ou **+** no amigo já aceito.
+2. Host: hub → Amigos → **Criar sala** → lobby tela cheia. Código de 6 no topo (tap copia). Cada um escolhe o caçador embaixo. Escolhe **2 vs oni** (já vem marcado). **+ Chamar amigo** no amigo já aceito.
 3. Guest: entra pelo **+** do host, ou **Entrar** + código. Beacon acha no Wi-Fi; se não, a sala da estrela cobre.
 4. Host toca **JOGAR** → mapa → `w1_01`. Guest **não** escolhe fase (“O anfitrião escolhe a fase”).
 5. Os dois aparecem na fase; cada um controla o **próprio** caçador (touch no celular dele).
@@ -102,8 +102,8 @@ Não entra no CI. Dois APKs (ou 2 instâncias Play no PC com `127.0.0.1`).
 
 Não entra no CI. O sobrinho **não liga PC**. Cada um na sua casa (ou 4G).
 
-1. Os dois no hub → Amigos. Cada um vê o **código de amigo** (8). Sem colar IP.
-2. Host manda o código no Zap. Sobrinho: **Adicionar amigo** → cola → **Enviar convite**. Host **Aceita**.
+1. Os dois no hub → Amigos. Sem código de amigo. Sem colar IP.
+2. Host: **Adicionar amigo** → escreve o **nome do perfil** do sobrinho → **Enviar convite**. Sobrinho **Aceita**.
 3. Host: **Criar sala**. Na lista, toca **+** no sobrinho (não o x). O celular dele entra sozinho.
 4. Reserva: **Entrar** + código de 6 da sala (Zap ainda vale) se o + não achar.
 5. Host **JOGAR** → mapa → fase. Guest não escolhe fase.

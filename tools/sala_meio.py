@@ -393,26 +393,43 @@ class SalaMeio:
         if len(bucket) > INBOX_CAP:
             self.invites[dest_id] = bucket[-INBOX_CAP:]
 
+    def _id_for_name(self, nick: str) -> str:
+        if not nick:
+            return ""
+        rec = self.presence.get(nick) or {}
+        found = _normalize_friend_id(rec.get("friend_id"))
+        if found:
+            return found
+        for fid, item in self.presence_ids.items():
+            if str(item.get("name") or "") == nick:
+                return _normalize_friend_id(fid)
+        return ""
+
     def _friend_invite(self, parsed: dict) -> bytes:
         src = _normalize_friend_id(parsed.get("from_id"))
         dst = _normalize_friend_id(parsed.get("to_id"))
+        to_name = _sanitize_nick(parsed.get("to_name"))
         name = _sanitize_nick(parsed.get("from_name"))
-        if not src or not dst or src == dst:
+        if not dst and to_name:
+            dst = self._id_for_name(to_name)
+        if not src or src == dst:
             return _reply("error", reason="id")
+        if not dst:
+            return _reply("offline", to=to_name)
         if not name:
             name = "Caçador"
         if self._are_friends(src, dst):
-            return _reply("already", to=dst)
+            return _reply("already", to=dst, name=to_name)
         bucket = self.friend_pending.setdefault(dst, [])
         for item in bucket:
             if str(item.get("from_id") or "") == src:
                 item["ts"] = _now()
                 item["from_name"] = name
-                return _reply("invited", to=dst)
+                return _reply("invited", to=dst, name=to_name)
         bucket.append({"from_id": src, "from_name": name, "ts": _now()})
         if len(bucket) > INBOX_CAP:
             self.friend_pending[dst] = bucket[-INBOX_CAP:]
-        return _reply("invited", to=dst)
+        return _reply("invited", to=dst, name=to_name)
 
     def _friend_accept(self, parsed: dict) -> bytes:
         me = _normalize_friend_id(parsed.get("my_id"))
@@ -459,8 +476,11 @@ class SalaMeio:
     def _room_invite(self, parsed: dict) -> bytes:
         src = _normalize_friend_id(parsed.get("from_id"))
         dst = _normalize_friend_id(parsed.get("to_id"))
+        to_name = _sanitize_nick(parsed.get("to_name"))
         name = _sanitize_nick(parsed.get("from_name"))
         code = _normalize_code(parsed.get("code"))
+        if not dst and to_name:
+            dst = self._id_for_name(to_name)
         if not src or not dst or src == dst:
             return _reply("error", reason="id")
         if not code:
@@ -830,6 +850,19 @@ def _self_test() -> int:
         ok_kinds = [str(i.get("kind")) for i in (ok.get("invites") or [])]
         if "friend_ok" not in ok_kinds:
             print("FAIL quem convidou não viu aceite: %s" % ok, file=sys.stderr)
+            return 1
+        svc._presence({"name": "Muichiro", "friend_id": "JKLM2345"}, "127.0.0.1")
+        by_name = json.loads(svc._friend_invite({
+            "from_id": host_id, "from_name": "HostSmoke", "to_name": "Muichiro",
+        }).decode("utf-8"))
+        if by_name.get("op") != "invited" or by_name.get("to") != "JKLM2345":
+            print("FAIL friend_invite por nome=%s" % by_name, file=sys.stderr)
+            return 1
+        ghost_name = json.loads(svc._friend_invite({
+            "from_id": host_id, "from_name": "HostSmoke", "to_name": "Ninguem",
+        }).decode("utf-8"))
+        if ghost_name.get("op") != "offline":
+            print("FAIL friend_invite nome offline=%s" % ghost_name, file=sys.stderr)
             return 1
         svc._presence({"name": "SobrinhoQA", "friend_id": kid_id}, "127.0.0.1")
         room_inv = json.loads(svc._room_invite({

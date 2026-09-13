@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-13 (casa↔casa: ponte no VPS + convite de amigo)
+**Atualizado:** 2026-09-13 (release 0.0.10: lobby + convite pelo nome)
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -78,7 +78,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
 | Créditos fan game | ✅ engrenagem do hub |
 | Pause na fase | ✅ Continuar / Mapa / Hub |
 | SceneRouter (shop/credits/mapa) | ✅ (hotfix 2026-08-07) |
-| Amigos + sala | ✅ Convite/aceite + **+** na sala; Wi-Fi ou outra casa (ponte no VPS); sem campo de IP; modos 2/4 vs oni + portas; sem Firebase |
+| Amigos + sala | ✅ Convite pelo nome + aceite + **+** na sala; lobby tela cheia com escolha de caçador; Wi-Fi ou outra casa (ponte no VPS); sem campo de IP; modos 2/4 vs oni + portas; sem Firebase |
 
 ---
 
@@ -106,7 +106,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
 | UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
 | PERSONAGENS no hub | ✅ tela select real (15; portrait nos 15; locked recusa; save do id) |
-| Amigos / sala | ✅ Código de amigo (8) + aceite; **+** chama pra sala; outra casa via ponte no VPS; sem IP na gaveta; 2 ou 4 vs oni; mapa/1v1 = 2P; clube/notícias/eventos ainda fora |
+| Amigos / sala | ✅ Convite pelo nome do perfil + aceite; **+** chama pra sala; lobby tela cheia com escolha de caçador; outra casa via ponte no VPS; sem IP na gaveta; 2 ou 4 vs oni; mapa/1v1 = 2P; clube/notícias/eventos ainda fora |
 | Missões / XP / clube no hub | GDD: fase 2+ / fora |
 
 ### 3) Conteúdo em escala (Fase F)

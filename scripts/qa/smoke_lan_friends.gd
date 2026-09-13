@@ -51,6 +51,8 @@ func _run() -> void:
 	_test_max_clients(lan)
 	_test_game_mode_contract()
 	await _test_mode_options()
+	_test_pick_character_api(lan)
+	await _test_lobby_character_pick()
 	_test_mode_doors(lan)
 	await _test_four_hunters(lan)
 	_test_meio_parse()
@@ -146,6 +148,9 @@ func _test_friends_save() -> void:
 	friends = _game.get("friends")
 	if friends.size() != 1 or str(friends[0].get("friend_id", "")) != "ABCD2345":
 		_fail("friend_id não grudou: %s" % friends)
+		return
+	if not bool(_game.call("has_friend_named", "Sobrinho")):
+		_fail("has_friend_named Sobrinho")
 		return
 	var my_code: String = str(_game.call("ensure_friend_code"))
 	if not FriendCode.is_valid(my_code):
@@ -318,17 +323,41 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	if _find_button(fp, "Adicionar amigo") == null:
+	var add_btn: Button = _find_button(fp, "Adicionar amigo")
+	if add_btn == null:
 		_fail("sem botão Adicionar amigo")
 		inst.queue_free()
 		await process_frame
 		return
-	if _find_label(fp, "Seu código") == null:
-		_fail("gaveta sem Seu código")
+	add_btn.pressed.emit()
+	for i in range(4):
+		await process_frame
+	if _find_label(fp, "Nome do amigo") == null:
+		_fail("adicionar sem Nome do amigo")
 		inst.queue_free()
 		await process_frame
 		return
-	if _find_label(fp, "Manda seu código. Ele aceita.\nDepois o + chama pra sala.") == null:
+	if _find_line_placeholder(fp, "como no perfil") == null:
+		_fail("adicionar sem campo de nome")
+		inst.queue_free()
+		await process_frame
+		return
+	if _find_label(fp, "Código de amigo") != null:
+		_fail("adicionar ainda pede código")
+		inst.queue_free()
+		await process_frame
+		return
+	var voltar_add: Button = _find_button(fp, "VOLTAR")
+	if voltar_add != null:
+		voltar_add.pressed.emit()
+		for i in range(4):
+			await process_frame
+	if _find_label(fp, "Seu código") != null:
+		_fail("gaveta ainda mostra código de amigo")
+		inst.queue_free()
+		await process_frame
+		return
+	if _find_label(fp, "Escreve o nome dele.\nEle aceita. Depois o + chama pra sala.") == null:
 		_fail("dica de convite sumiu ou quebrou")
 		inst.queue_free()
 		await process_frame
@@ -363,7 +392,7 @@ func _test_hub_panel() -> void:
 			inst.queue_free()
 			await process_frame
 			return
-	var hint_lan: Label = _find_label(fp, "Manda seu código. Ele aceita.\nDepois o + chama pra sala.")
+	var hint_lan: Label = _find_label(fp, "Escreve o nome dele.\nEle aceita. Depois o + chama pra sala.")
 	if hint_lan != null and play.visible:
 		var h_over: Rect2 = hint_lan.get_global_rect().intersection(play.get_global_rect())
 		if h_over.size.x > 4.0 and h_over.size.y > 4.0:
@@ -769,6 +798,113 @@ func _test_mode_options() -> void:
 	inst.queue_free()
 	await process_frame
 	_pass("sala mostra 4 opções legíveis; JOGAR intacto")
+
+
+func _test_pick_character_api(lan: Node) -> void:
+	var prev: String = str(_game.get("current_character_id"))
+	var code: String = str(lan.call("host_room"))
+	if code.is_empty():
+		_fail("pick: host_room falhou")
+		return
+	if not lan.has_method("pick_character"):
+		_fail("LanSession sem pick_character")
+		lan.call("close_session")
+		return
+	if not bool(_game.call("is_character_unlocked", "nezuko")):
+		_fail("pick: nezuko deveria estar liberada")
+		lan.call("close_session")
+		return
+	if not bool(lan.call("pick_character", "nezuko")):
+		_fail("pick_character nezuko recusou")
+		lan.call("close_session")
+		return
+	if str(_game.get("current_character_id")) != "nezuko":
+		_fail("pick não gravou current_character_id")
+		lan.call("close_session")
+		return
+	var roster: Array = lan.call("get_roster")
+	if roster.is_empty() or str((roster[0] as Dictionary).get("char_id", "")) != "nezuko":
+		_fail("roster host não é nezuko: %s" % roster)
+		lan.call("close_session")
+		return
+	lan.call("close_session")
+	_game.call("select_character", prev if prev != "" else "tanjiro")
+	_pass("pick_character na sala troca o caçador do host")
+
+
+func _test_lobby_character_pick() -> void:
+	var prev: String = str(_game.get("current_character_id"))
+	var packed: PackedScene = load(HUB) as PackedScene
+	if packed == null:
+		_fail("lobby: hub.tscn não carrega")
+		return
+	var inst: Node = packed.instantiate()
+	root.add_child(inst)
+	for i in range(8):
+		await process_frame
+	var fp: Node = inst.get_node_or_null("%FriendsPanel")
+	if fp == null:
+		_fail("lobby: sem FriendsPanel")
+		inst.queue_free()
+		await process_frame
+		return
+	_open_drawer(fp)
+	for i in range(4):
+		await process_frame
+	var criar: Button = _find_button(fp, "Criar sala")
+	if criar == null:
+		_fail("lobby: sem Criar sala")
+		inst.queue_free()
+		await process_frame
+		return
+	criar.pressed.emit()
+	for i in range(8):
+		await process_frame
+	var lobby: Control = fp.find_child("MpLobby", true, false) as Control
+	if lobby == null or not lobby.visible:
+		_fail("Criar sala não abriu lobby tela cheia")
+		inst.queue_free()
+		await process_frame
+		return
+	var vp: Vector2 = inst.get_viewport_rect().size
+	if lobby.size.x < vp.x - 16.0 or lobby.size.y < vp.y - 16.0:
+		_fail("lobby não é tela cheia: %s vp=%s" % [lobby.size, vp])
+		inst.queue_free()
+		await process_frame
+		return
+	if _find_button(fp, "2 vs oni") == null or _find_button(fp, "Começar") == null:
+		_fail("lobby sem modos/Começar")
+		inst.queue_free()
+		await process_frame
+		return
+	var pick: Button = lobby.find_child("PickChar_nezuko", true, false) as Button
+	if pick == null:
+		pick = _find_button(lobby, "Nezuko")
+	if pick == null:
+		_fail("lobby sem PickChar_nezuko")
+		inst.queue_free()
+		await process_frame
+		return
+	if pick.size.y < 44.0:
+		_fail("retrato Nezuko toque baixo: %.0f" % pick.size.y)
+		inst.queue_free()
+		await process_frame
+		return
+	pick.pressed.emit()
+	for i in range(4):
+		await process_frame
+	if str(_game.get("current_character_id")) != "nezuko":
+		_fail("toque no retrato não escolheu Nezuko")
+		inst.queue_free()
+		await process_frame
+		return
+	var lan: Node = root.get_node_or_null("LanSession")
+	if lan != null:
+		lan.call("close_session")
+	inst.queue_free()
+	await process_frame
+	_game.call("select_character", prev if prev != "" else "tanjiro")
+	_pass("lobby tela cheia + escolha de caçador")
 
 
 func _test_mode_doors(lan: Node) -> void:

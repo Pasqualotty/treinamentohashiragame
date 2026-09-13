@@ -33,6 +33,7 @@ var _slide: Tween
 var _mode_btns: Dictionary = {}
 var _mode_label: Label
 var _start_btn: Button
+var _lobby: Control
 
 
 func _ready() -> void:
@@ -63,22 +64,43 @@ func open_drawer(instant: bool = false) -> void:
 
 
 func close_drawer(instant: bool = false) -> void:
+	if _is_lobby_on():
+		return
 	_set_drawer_open(false, instant)
 
 
 func get_drawer_global_rect() -> Rect2:
+	if _is_lobby_on():
+		return get_global_rect()
 	if _drawer == null or not is_instance_valid(_drawer):
 		return Rect2()
 	return _drawer.get_global_rect()
 
 
+func is_lobby_open() -> bool:
+	return _is_lobby_on()
+
+
 func toggle_drawer() -> void:
+	if _is_lobby_on():
+		return
 	_set_drawer_open(not _drawer_open, false)
+
+
+func _is_lobby_on() -> bool:
+	return _lobby != null and is_instance_valid(_lobby) and _lobby.visible
 
 
 func _set_drawer_open(want: bool, instant: bool) -> void:
 	_drawer_open = want
 	if _backdrop == null or _drawer == null:
+		return
+	if _is_lobby_on():
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_backdrop.visible = false
+		_drawer.visible = false
+		_set_play_visible(false)
 		return
 	if want:
 		mouse_filter = Control.MOUSE_FILTER_STOP
@@ -98,7 +120,7 @@ func _set_drawer_open(want: bool, instant: bool) -> void:
 
 
 func _apply_closed_filters() -> void:
-	if _drawer_open:
+	if _drawer_open or _is_lobby_on():
 		return
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _backdrop != null:
@@ -141,6 +163,8 @@ func _layout_drawer(p_open: bool, instant: bool) -> void:
 
 
 func _on_backdrop_gui(event: InputEvent) -> void:
+	if _is_lobby_on():
+		return
 	if not _drawer_open:
 		return
 	if event is InputEventMouseButton:
@@ -152,9 +176,13 @@ func _on_backdrop_gui(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _drawer_open:
-		return
 	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
+		if _is_lobby_on():
+			_on_close_room()
+			get_viewport().set_input_as_handled()
+			return
+		if not _drawer_open:
+			return
 		close_drawer()
 		get_viewport().set_input_as_handled()
 
@@ -238,82 +266,21 @@ func _build() -> void:
 	_scroll.add_child(rows)
 	_list_box.set_meta("rows", rows)
 	_scroll.resized.connect(_sync_rows_width)
-	var my_l := Label.new()
-	my_l.text = "Seu código"
-	my_l.add_theme_font_size_override("font_size", 14)
-	my_l.add_theme_color_override("font_color", Palette.CREAM)
-	_fit_label(my_l, false)
-	_list_box.add_child(my_l)
-	_my_code_label = Label.new()
-	_my_code_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_my_code_label.add_theme_font_size_override("font_size", 26)
-	_my_code_label.add_theme_color_override("font_color", Palette.GOLD_BRIGHT)
-	_my_code_label.add_theme_color_override("font_shadow_color", Palette.SHADOW)
-	_my_code_label.mouse_filter = Control.MOUSE_FILTER_STOP
-	_my_code_label.gui_input.connect(_on_my_code_gui)
-	_fit_label(_my_code_label, false)
-	_list_box.add_child(_my_code_label)
 	_refresh_my_code()
 	_list_box.add_child(_plate_btn("Adicionar amigo", _on_add_open_pressed))
 	_list_box.add_child(_plate_btn("Criar sala", _on_create_pressed))
 	_list_box.add_child(_plate_btn("Entrar", _on_join_open_pressed))
 	var hint := Label.new()
-	hint.text = "Manda seu código. Ele aceita.\nDepois o + chama pra sala."
+	hint.text = "Escreve o nome dele.\nEle aceita. Depois o + chama pra sala."
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
 	_fit_label(hint, true)
 	_list_box.add_child(hint)
 
 	_host_box = VBoxContainer.new()
+	_host_box.visible = false
 	_host_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_host_box.add_theme_constant_override("separation", 10)
 	root.add_child(_host_box)
-	var sala := Label.new()
-	sala.text = "Sala"
-	sala.add_theme_font_size_override("font_size", 14)
-	sala.add_theme_color_override("font_color", Palette.CREAM)
-	_fit_label(sala, false)
-	_host_box.add_child(sala)
-	_code_label = Label.new()
-	_code_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_code_label.add_theme_font_size_override("font_size", 36)
-	_code_label.add_theme_color_override("font_color", Palette.GOLD_BRIGHT)
-	_code_label.add_theme_color_override("font_shadow_color", Palette.SHADOW)
-	_code_label.mouse_filter = Control.MOUSE_FILTER_STOP
-	_code_label.gui_input.connect(_on_code_gui)
-	_fit_label(_code_label, false)
-	_host_box.add_child(_code_label)
-	_status_label = Label.new()
-	_status_label.text = "Esperando amigo…"
-	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_status_label.add_theme_color_override("font_color", Palette.CREAM)
-	_fit_label(_status_label, true)
-	_host_box.add_child(_status_label)
-	_mode_label = Label.new()
-	_mode_label.text = "Modo"
-	_mode_label.add_theme_font_size_override("font_size", 14)
-	_mode_label.add_theme_color_override("font_color", Palette.CREAM)
-	_fit_label(_mode_label, false)
-	_host_box.add_child(_mode_label)
-	for mid in GameMode.all_ids():
-		var mb := _plate_btn(GameMode.label_of(mid), _make_mode_handler(mid))
-		mb.set_meta("mode_id", mid)
-		_mode_btns[mid] = mb
-		_host_box.add_child(mb)
-	_start_btn = _plate_btn("Começar", _on_start_pressed)
-	_start_btn.visible = false
-	_host_box.add_child(_start_btn)
-	var invite_l := Label.new()
-	invite_l.text = "Chamar amigo"
-	invite_l.add_theme_font_size_override("font_size", 14)
-	invite_l.add_theme_color_override("font_color", Palette.CREAM)
-	_fit_label(invite_l, false)
-	_host_box.add_child(invite_l)
-	_host_invite_box = VBoxContainer.new()
-	_host_invite_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_host_invite_box.add_theme_constant_override("separation", 6)
-	_host_box.add_child(_host_invite_box)
-	_host_box.add_child(_plate_btn("Fechar sala", _on_close_room))
 
 	_join_box = VBoxContainer.new()
 	_join_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -340,17 +307,17 @@ func _build() -> void:
 	_add_box.add_theme_constant_override("separation", 8)
 	root.add_child(_add_box)
 	var add_l := Label.new()
-	add_l.text = "Código de amigo"
+	add_l.text = "Nome do amigo"
 	add_l.add_theme_color_override("font_color", Palette.CREAM)
 	_fit_label(add_l, false)
 	_add_box.add_child(add_l)
 	_friend_input = LineEdit.new()
-	_friend_input.max_length = 8
-	_friend_input.placeholder_text = "ABCD2345"
+	_friend_input.max_length = Game.MAX_PLAYER_NAME_LEN
+	_friend_input.placeholder_text = "como no perfil"
 	_friend_input.custom_minimum_size = Vector2(0, TOUCH_MIN)
 	_friend_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_friend_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_DEFAULT
-	_friend_input.text_changed.connect(_on_friend_code_typed)
+	_friend_input.text_changed.connect(_on_friend_name_typed)
 	_add_box.add_child(_friend_input)
 	_add_box.add_child(_plate_btn("Enviar convite", _on_friend_invite_confirm))
 	_add_box.add_child(_plate_btn("VOLTAR", _on_add_back))
@@ -368,13 +335,37 @@ func _build() -> void:
 	_wait_box.add_child(wait_l)
 	_wait_box.add_child(_plate_btn("Sair da sala", _on_close_room))
 
+	_lobby = preload("res://scripts/ui/mp_lobby.gd").new()
+	_lobby.name = "MpLobby"
+	_lobby.visible = false
+	if _lobby.has_signal("leave_pressed"):
+		_lobby.leave_pressed.connect(_on_close_room)
+	if _lobby.has_signal("start_pressed"):
+		_lobby.start_pressed.connect(_on_start_pressed)
+	if _lobby.has_signal("mode_pressed"):
+		_lobby.mode_pressed.connect(_on_mode_pressed)
+	if _lobby.has_signal("invite_pressed"):
+		_lobby.invite_pressed.connect(_on_call_friend)
+	if _lobby.has_signal("copy_code_pressed"):
+		_lobby.copy_code_pressed.connect(_on_copy_room_code)
+	if _lobby.has_signal("toast_requested"):
+		_lobby.toast_requested.connect(show_toast)
+	add_child(_lobby)
+
 	_toast = Label.new()
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_toast.anchor_left = 0.1
+	_toast.anchor_right = 0.9
+	_toast.anchor_top = 1.0
+	_toast.anchor_bottom = 1.0
+	_toast.offset_top = -72.0
+	_toast.offset_bottom = -24.0
 	_toast.add_theme_color_override("font_color", Palette.GOLD_BRIGHT)
-	_toast.add_theme_font_size_override("font_size", 14)
+	_toast.add_theme_font_size_override("font_size", 16)
 	_toast.modulate.a = 0.0
+	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_fit_label(_toast, true)
-	root.add_child(_toast)
+	add_child(_toast)
 
 
 func _fit_label(l: Label, wrap: bool) -> void:
@@ -456,6 +447,8 @@ func _bind_session() -> void:
 		Game.friend_invites_changed.connect(_refresh_list)
 	if LanSession.has_signal("room_invite_received") and not LanSession.room_invite_received.is_connected(_on_room_invite):
 		LanSession.room_invite_received.connect(_on_room_invite)
+	if LanSession.has_signal("roster_changed") and not LanSession.roster_changed.is_connected(_on_roster_changed):
+		LanSession.roster_changed.connect(_on_roster_changed)
 
 
 func _process(_delta: float) -> void:
@@ -469,23 +462,29 @@ func _process(_delta: float) -> void:
 
 func _show(v: int) -> void:
 	_view = v
+	var room := v == View.HOST or v == View.GUEST_WAIT
 	_list_box.visible = v == View.LIST
-	_host_box.visible = v == View.HOST
+	_host_box.visible = false
 	_join_box.visible = v == View.JOIN
-	_wait_box.visible = v == View.GUEST_WAIT
+	_wait_box.visible = false
 	if _add_box != null:
 		_add_box.visible = v == View.ADD_FRIEND
-	if v == View.HOST:
-		_refresh_host_invites()
+	if _lobby != null:
+		_lobby.visible = room
+		if room and _lobby.has_method("refresh"):
+			_lobby.call("refresh")
+	if room:
+		_set_drawer_open(true, true)
+	elif _drawer_open:
+		_set_drawer_open(true, true)
 	if v == View.LIST:
 		_refresh_my_code()
 		_refresh_list()
 
 
 func _refresh_my_code() -> void:
-	if _my_code_label == null or not is_instance_valid(Game):
-		return
-	_my_code_label.text = Game.ensure_friend_code()
+	if is_instance_valid(Game) and Game.has_method("ensure_friend_code"):
+		Game.ensure_friend_code()
 
 
 func _refresh_list() -> void:
@@ -586,20 +585,8 @@ func _friend_row(friend_name: String, with_remove: bool) -> HBoxContainer:
 
 
 func _refresh_host_invites() -> void:
-	if _host_invite_box == null:
-		return
-	for c: Node in _host_invite_box.get_children():
-		c.queue_free()
-	if Game.friends.is_empty():
-		var empty := Label.new()
-		empty.text = "Ninguém na lista ainda"
-		empty.add_theme_font_size_override("font_size", 14)
-		empty.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
-		_fit_label(empty, true)
-		_host_invite_box.add_child(empty)
-		return
-	for d in Game.friends:
-		_host_invite_box.add_child(_friend_row(str(d.get("name", "")), false))
+	if _lobby != null and _lobby.visible and _lobby.has_method("refresh"):
+		_lobby.call("refresh")
 
 
 func _make_remove_handler(friend_name: String) -> Callable:
@@ -627,8 +614,10 @@ func _on_add_back() -> void:
 	_show(View.LIST)
 
 
-func _on_friend_code_typed(t: String) -> void:
-	var n := FriendCode.normalize(t)
+func _on_friend_name_typed(t: String) -> void:
+	var n := Game.sanitize_player_name(t)
+	if _friend_input == null:
+		return
 	if _friend_input.text != n:
 		_friend_input.text = n
 		_friend_input.caret_column = n.length()
@@ -672,9 +661,6 @@ func _on_create_pressed() -> void:
 	var code := LanSession.host_room()
 	if code.is_empty():
 		return
-	_code_label.text = code
-	_sync_mode_buttons()
-	_refresh_host_status()
 	_show(View.HOST)
 
 
@@ -686,19 +672,35 @@ func _make_mode_handler(mode_id: int) -> Callable:
 func _on_mode_pressed(mode_id: int) -> void:
 	if not is_instance_valid(LanSession) or not LanSession.is_host():
 		return
-	if not LanSession.set_game_mode(mode_id):
-		_sync_mode_buttons()
-		_sync_start_btn()
-		return
-	_sync_mode_buttons()
-	_sync_start_btn()
-	_refresh_host_status()
+	LanSession.set_game_mode(mode_id)
+	_refresh_lobby()
 
 
 func _on_mode_changed(_mode_id: int) -> void:
-	_sync_mode_buttons()
-	_sync_start_btn()
-	_refresh_host_status()
+	_refresh_lobby()
+
+
+func _on_roster_changed() -> void:
+	_refresh_lobby()
+
+
+func _refresh_lobby() -> void:
+	if _lobby == null or not _lobby.visible:
+		return
+	if _lobby.has_method("queue_refresh"):
+		_lobby.call("queue_refresh")
+	elif _lobby.has_method("refresh"):
+		_lobby.call_deferred("refresh")
+
+
+func _on_copy_room_code() -> void:
+	if not is_instance_valid(LanSession):
+		return
+	var code := str(LanSession.room_code)
+	if code.is_empty():
+		return
+	DisplayServer.clipboard_set(code)
+	show_toast("Código copiado")
 
 
 func _on_start_pressed() -> void:
@@ -710,50 +712,15 @@ func _on_start_pressed() -> void:
 
 
 func _sync_start_btn() -> void:
-	if _start_btn == null:
-		return
-	var mid: int = GameMode.Id.VS_ONI_2
-	if is_instance_valid(LanSession):
-		mid = int(LanSession.game_mode)
-	var path := GameMode.scene_path(mid)
-	_start_btn.visible = not path.is_empty() and ResourceLoader.exists(path)
+	_refresh_lobby()
 
 
 func _sync_mode_buttons() -> void:
-	var current: int = GameMode.Id.VS_ONI_2
-	if is_instance_valid(LanSession):
-		current = int(LanSession.game_mode)
-	for mid in _mode_btns.keys():
-		var btn: Button = _mode_btns[mid] as Button
-		if btn == null:
-			continue
-		var selected: bool = int(mid) == current
-		var bg: Color = Palette.with_alpha(Palette.GOLD, 0.95) if selected else Palette.with_alpha(Palette.GOLD_DIM, 0.85)
-		var border: Color = Palette.GOLD_BRIGHT if selected else Palette.GOLD
-		btn.add_theme_stylebox_override("normal", _gold_sb(bg, border))
-		btn.add_theme_font_size_override("font_size", 17 if selected else 16)
-	_sync_start_btn()
+	_refresh_lobby()
 
 
 func _refresh_host_status() -> void:
-	if _status_label == null or not is_instance_valid(LanSession):
-		return
-	if not LanSession.is_host():
-		return
-	var mode_id: int = int(LanSession.game_mode)
-	if GameMode.max_clients_for(mode_id) > 1:
-		var n: int = LanSession.hunter_count() if LanSession.has_peer() else 1
-		var cap: int = GameMode.hunter_cap(mode_id)
-		if GameMode.scene_path(mode_id).is_empty():
-			_status_label.text = "Caçadores %d/%d" % [n, cap]
-		else:
-			_status_label.text = "Caçadores %d/%d · Começar quando quiser" % [n, cap]
-	elif not GameMode.scene_path(mode_id).is_empty():
-		_status_label.text = "Começar quando quiser"
-	elif LanSession.has_peer():
-		_status_label.text = "Amigo entrou"
-	else:
-		_status_label.text = "Esperando amigo…"
+	_refresh_lobby()
 
 
 func _on_join_open_pressed() -> void:
@@ -784,22 +751,19 @@ func _on_close_room() -> void:
 	_show(View.LIST)
 
 
-func _on_room_ready(code: String) -> void:
-	_code_label.text = code
-	_sync_mode_buttons()
-	_refresh_host_status()
+func _on_room_ready(_code: String) -> void:
 	_show(View.HOST)
 
 
 func _on_peer_joined(_nick: String) -> void:
-	_refresh_host_status()
+	_refresh_lobby()
 	if is_instance_valid(LanSession) and LanSession.is_guest():
 		_show(View.GUEST_WAIT)
 	_refresh_list()
 
 
 func _on_peer_left() -> void:
-	_refresh_host_status()
+	_refresh_lobby()
 
 
 func _on_join_failed(reason: String) -> void:
@@ -813,6 +777,8 @@ func _on_session_closed() -> void:
 
 
 func _on_code_gui(event: InputEvent) -> void:
+	if _code_label == null:
+		return
 	if event is InputEventMouseButton and event.pressed:
 		if not _code_label.text.is_empty():
 			DisplayServer.clipboard_set(_code_label.text)
