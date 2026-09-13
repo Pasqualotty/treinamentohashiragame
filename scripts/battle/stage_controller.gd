@@ -191,6 +191,18 @@ func _setup_coop_if_needed() -> void:
 		_local_pawn = _player if LanSession.is_host() else _player2
 	if _local_pawn != null:
 		_local_pawn.set("is_local_pawn", true)
+	_apply_coop_nametags()
+
+
+func _apply_coop_nametags() -> void:
+	if not _coop or not is_instance_valid(LanSession):
+		return
+	for n: Node in _hunters:
+		if n == null or not n.has_method("set_player_nametag"):
+			continue
+		var nick: String = str(LanSession.nick_for_slot(int(n.get("coop_slot")))) if LanSession.has_method("nick_for_slot") else ""
+		if not nick.is_empty():
+			n.call("set_player_nametag", nick)
 
 
 func _spawn_hunter(slot: int, char_id: String, local_slot: int) -> Node2D:

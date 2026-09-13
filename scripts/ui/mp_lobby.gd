@@ -28,6 +28,7 @@ var _mode_box: VBoxContainer
 var _mode_btns: Dictionary = {}
 var _start_btn: Button
 var _leave_btn: Button
+var _trophy_label: Label
 var _invite_layer: Control
 var _invite_rows: VBoxContainer
 var _idle_tex: Texture2D
@@ -73,6 +74,7 @@ func refresh() -> void:
 	_refresh_strip()
 	_refresh_showcase()
 	_refresh_invite_rows()
+	_refresh_trophies()
 	if _leave_btn != null:
 		_leave_btn.text = "Sair da sala" if _is_guest() else "Fechar sala"
 	if _mode_box != null:
@@ -98,6 +100,8 @@ func _bind() -> void:
 			Game.character_changed.connect(_on_char)
 		if Game.has_signal("friends_changed") and not Game.friends_changed.is_connected(queue_refresh):
 			Game.friends_changed.connect(queue_refresh)
+		if Game.has_signal("trophies_changed") and not Game.trophies_changed.is_connected(_on_trophies):
+			Game.trophies_changed.connect(_on_trophies)
 
 
 func _on_peer(_nick: String) -> void:
@@ -110,6 +114,22 @@ func _on_mode(_mode_id: int) -> void:
 
 func _on_char(_id: String) -> void:
 	queue_refresh()
+
+
+func _on_trophies(_total: int) -> void:
+	_refresh_trophies()
+
+
+func _refresh_trophies() -> void:
+	if _trophy_label == null:
+		return
+	var n: int = 0
+	if is_instance_valid(Game) and Game.has_method("get_mp_trophies"):
+		n = int(Game.call("get_mp_trophies"))
+	if n <= 0:
+		_trophy_label.text = "Troféus · 0"
+	else:
+		_trophy_label.text = "Troféus · %d" % n
 
 
 func _is_host() -> bool:
@@ -188,6 +208,15 @@ func _build_top() -> Control:
 	_status_label.add_theme_color_override("font_color", Palette.CREAM)
 	_fit(_status_label, true)
 	bar.add_child(_status_label)
+
+	_trophy_label = Label.new()
+	_trophy_label.name = "TrophyLabel"
+	_trophy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_trophy_label.add_theme_font_size_override("font_size", 16)
+	_trophy_label.add_theme_color_override("font_color", Palette.GOLD_BRIGHT)
+	_trophy_label.add_theme_color_override("font_shadow_color", Palette.SHADOW)
+	_fit(_trophy_label, false)
+	bar.add_child(_trophy_label)
 
 	_leave_btn = _plate("Fechar sala", func() -> void:
 		leave_pressed.emit()

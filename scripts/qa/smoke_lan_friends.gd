@@ -46,6 +46,9 @@ func _run() -> void:
 	_test_host_close(lan)
 	await _test_join_voltar(lan)
 	_test_host_leave_keeps_room(lan)
+	_test_trophies_save()
+	_test_keep_room_after_stage(lan)
+	await _test_hub_reopens_lobby(lan)
 	await _test_guest_clears_packed(lan)
 	_test_boot_never_conectando()
 	_test_max_clients(lan)
@@ -75,6 +78,7 @@ func _use_temp_save() -> void:
 	_game.set("friends", [])
 	_game.set("coins_banked", 10)
 	_game.set("player_name", "HostSmoke")
+	_game.set("mp_trophies", 0)
 	_game.call("save_game")
 
 
@@ -580,6 +584,81 @@ func _test_host_leave_keeps_room(lan: Node) -> void:
 	_pass("host sai ao mapa: in_stage=false e sala permanece")
 
 
+func _test_trophies_save() -> void:
+	if _game == null or not _game.has_method("add_mp_trophy"):
+		_fail("Game sem add_mp_trophy")
+		return
+	_game.set("mp_trophies", 0)
+	_game.call("add_mp_trophy")
+	if int(_game.get("mp_trophies")) != 1:
+		_fail("add_mp_trophy não somou")
+		return
+	_game.call("save_game")
+	_game.set("mp_trophies", 0)
+	_game.call("load_game")
+	if int(_game.get("mp_trophies")) != 1:
+		_fail("mp_trophies não persistiu no save")
+		return
+	_pass("troféus no save")
+
+
+func _test_keep_room_after_stage(lan: Node) -> void:
+	var code: String = str(lan.call("host_room"))
+	if code.is_empty():
+		_fail("keep_room: host_room falhou")
+		return
+	lan.set("in_stage", true)
+	if not lan.has_method("keep_room_after_stage") or not lan.has_method("vote_rematch"):
+		_fail("LanSession sem keep_room/vote_rematch")
+		lan.call("close_session")
+		return
+	lan.call("keep_room_after_stage")
+	if bool(lan.get("in_stage")):
+		_fail("keep_room_after_stage não zerou in_stage")
+		lan.call("close_session")
+		return
+	if not bool(lan.call("in_session")):
+		_fail("keep_room_after_stage fechou a sala")
+		lan.call("close_session")
+		return
+	lan.call("close_session")
+	_pass("keep_room + vote_rematch API")
+
+
+func _test_hub_reopens_lobby(lan: Node) -> void:
+	var code: String = str(lan.call("host_room"))
+	if code.is_empty():
+		_fail("reopen lobby: host_room falhou")
+		return
+	var packed: PackedScene = load(HUB) as PackedScene
+	if packed == null:
+		_fail("reopen lobby: hub.tscn")
+		lan.call("close_session")
+		return
+	var inst: Node = packed.instantiate()
+	root.add_child(inst)
+	for i in range(10):
+		await process_frame
+	var fp: Node = inst.get_node_or_null("%FriendsPanel")
+	if fp == null or not fp.has_method("is_lobby_open") or not bool(fp.call("is_lobby_open")):
+		_fail("hub com sala aberta não reabriu a lobby")
+		lan.call("close_session")
+		inst.queue_free()
+		await process_frame
+		return
+	var left_col: CanvasItem = inst.get_node_or_null("LeftColumn") as CanvasItem
+	if left_col != null and left_col.visible:
+		_fail("reopen lobby ainda mostra LeftColumn")
+		lan.call("close_session")
+		inst.queue_free()
+		await process_frame
+		return
+	lan.call("close_session")
+	inst.queue_free()
+	await process_frame
+	_pass("volta à lobby com a sala e sem botões do hub")
+
+
 func _test_guest_clears_packed(lan: Node) -> void:
 	lan.call("join_room", "K7H4MP")
 	if not bool(lan.call("is_guest")):
@@ -869,6 +948,18 @@ func _test_lobby_character_pick() -> void:
 	var vp: Vector2 = inst.get_viewport_rect().size
 	if lobby.size.x < vp.x - 16.0 or lobby.size.y < vp.y - 16.0:
 		_fail("lobby não é tela cheia: %s vp=%s" % [lobby.size, vp])
+		inst.queue_free()
+		await process_frame
+		return
+	var left_col: CanvasItem = inst.get_node_or_null("LeftColumn") as CanvasItem
+	if left_col != null and left_col.visible:
+		_fail("lobby ainda mostra LOJA/PERSONAGENS por cima")
+		inst.queue_free()
+		await process_frame
+		return
+	var trophies: Label = lobby.find_child("TrophyLabel", true, false) as Label
+	if trophies == null or not str(trophies.text).contains("Troféus"):
+		_fail("lobby sem Troféus")
 		inst.queue_free()
 		await process_frame
 		return

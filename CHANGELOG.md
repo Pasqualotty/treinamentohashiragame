@@ -1,5 +1,13 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.11 — troféus, nametag, 1v1 e revanche (2026-09-13)
+
+- Troféus no multiplayer: vitória soma no save; a lobby mostra o número
+- Nome da pessoa em cima do corpo na sala
+- 1v1: fundo do pátio, pés no chão, corpos maiores, barra de respiração
+- Fim: “Fulano · Caçador ganhou”; **De novo** ou **Lobby** (mesma sala, sem convidar de novo)
+- Ataques do amigo no slot certo; lobby sem LOJA/PERSONAGENS por cima
+
 ## 0.0.10 — lobby + convite pelo nome (2026-09-13)
 
 - Depois de Criar sala: lobby em tela cheia (equipe, caçador, modos, faixa de retratos)

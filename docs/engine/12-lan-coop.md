@@ -51,6 +51,8 @@ Toque no **+** (não o **x**): se a sala já existe e o amigo está no hub, ele 
 
 Na lobby (tela cheia depois de Criar / entrar), cada celular escolhe o caçador na faixa de retratos. `LanSession.pick_character` atualiza o roster. 1v1 / mapa de batalha com sessão usam o roster — Inosuke/Nezuko default só no F6 sem sala.
 
+Fim do 1v1 / mapa com sala: **De novo** (os dois aceitam) ou **Lobby** (volta à mesma sala, sem fechar nem convidar de novo). `keep_room_after_stage` / `vote_rematch` — não chama `close_session`. Nome do jogador fica em cima do corpo. Vitória soma troféu no save local.
+
 ## Save
 
 `friends` = `{name, friend_id, added_unix}` + `friend_code` (8). **Sem IP**. O endereço da sala vive no ProjectSettings / autoload, não no `user://save.json`.

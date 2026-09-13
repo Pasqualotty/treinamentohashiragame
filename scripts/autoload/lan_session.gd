@@ -34,6 +34,7 @@ signal waves_unlocked
 signal mode_changed(mode_id: int)
 signal room_invite_received(from_nick: String, code: String)
 signal roster_changed
+signal rematch_changed
 
 enum Role { NONE, HOST, GUEST }
 
@@ -71,6 +72,8 @@ var _meio_call_t: float = 0.0
 var _meio_lookup_tried: bool = false
 var _meio_next_lookup_ms: int = 0
 var _meio_pc_off_told: bool = false
+## slot -> quer revanche
+var _rematch_votes: Dictionary = {}
 
 
 func _ready() -> void:
@@ -444,8 +447,136 @@ func host_leave_stage_to_map() -> void:
 	in_stage = false
 	_oni_t = 0.0
 	_next_oni_id = 1
+	_clear_rematch_votes()
 	if _handshake_ok:
 		_rpc_host_picking_stage.rpc()
+
+
+func nick_for_slot(slot: int) -> String:
+	for item: Variant in get_roster():
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var rec := item as Dictionary
+		if int(rec.get("slot", -1)) != slot:
+			continue
+		var n := Game.sanitize_player_name(str(rec.get("nick", "")))
+		if not n.is_empty():
+			return n
+	if slot == 0:
+		return _nick()
+	return "Amigo"
+
+
+func keep_room_after_stage() -> void:
+	in_stage = false
+	_pending_just = 0
+	_input_t = 0.0
+	_oni_t = 0.0
+	_clear_rematch_votes()
+	if is_host() and _handshake_ok:
+		_rpc_host_picking_stage.rpc()
+
+
+func return_to_room_lobby() -> void:
+	if is_guest() and _handshake_ok:
+		_rpc_submit_rematch.rpc_id(1, false)
+		return
+	keep_room_after_stage()
+	var tree := get_tree()
+	if tree != null:
+		tree.paused = false
+	Engine.time_scale = 1.0
+	if is_inside_tree():
+		call_deferred("_go_hub_keep_room")
+
+
+func vote_rematch(want: bool) -> void:
+	if not in_session():
+		return
+	var slot: int = 0 if is_host() else (local_coop_slot if local_coop_slot > 0 else 1)
+	if is_host():
+		_set_rematch_vote(slot, want)
+		return
+	_rematch_votes[slot] = want
+	rematch_changed.emit()
+	if _handshake_ok:
+		_rpc_submit_rematch.rpc_id(1, want)
+
+
+func rematch_wait_text() -> String:
+	var slot: int = 0 if is_host() else (local_coop_slot if local_coop_slot > 0 else 1)
+	if not _rematch_votes.has(slot):
+		return ""
+	if bool(_rematch_votes[slot]):
+		return "Esperando o amigo…"
+	return "Voltando pra sala…"
+
+
+func _go_hub_keep_room() -> void:
+	if not is_inside_tree():
+		return
+	SceneRouter.to_hub()
+
+
+func _clear_rematch_votes() -> void:
+	_rematch_votes.clear()
+
+
+func _set_rematch_vote(slot: int, want: bool) -> void:
+	_rematch_votes[slot] = want
+	rematch_changed.emit()
+	if _handshake_ok:
+		_rpc_rematch_state.rpc(_rematch_votes_payload())
+	_try_resolve_rematch()
+
+
+func _rematch_votes_payload() -> Array:
+	var out: Array = []
+	for k: Variant in _rematch_votes.keys():
+		out.append({"slot": int(k), "want": bool(_rematch_votes[k])})
+	return out
+
+
+func _try_resolve_rematch() -> void:
+	if not is_host() or _rematch_votes.is_empty():
+		return
+	for v: Variant in _rematch_votes.values():
+		if not bool(v):
+			keep_room_after_stage()
+			var tree := get_tree()
+			if tree != null:
+				tree.paused = false
+			Engine.time_scale = 1.0
+			if is_inside_tree():
+				call_deferred("_go_hub_keep_room")
+			return
+	if not _handshake_ok:
+		return
+	if _rematch_votes.size() < maxi(hunter_count(), 2):
+		return
+	_clear_rematch_votes()
+	start_selected_mode()
+
+
+@rpc("any_peer", "reliable")
+func _rpc_submit_rematch(want: bool) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	_set_rematch_vote(_slot_of_peer(sender), want)
+
+
+@rpc("authority", "reliable")
+func _rpc_rematch_state(votes: Array) -> void:
+	if role != Role.GUEST:
+		return
+	_rematch_votes.clear()
+	for item: Variant in votes:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var rec := item as Dictionary
+		_rematch_votes[int(rec.get("slot", -1))] = bool(rec.get("want", false))
+	rematch_changed.emit()
 
 
 func close_session() -> void:
@@ -464,6 +595,7 @@ func close_session() -> void:
 	_guests.clear()
 	_roster.clear()
 	in_stage = false
+	_clear_rematch_votes()
 	remote_nick = ""
 	remote_character_id = "tanjiro"
 	guest_peer_id = 0

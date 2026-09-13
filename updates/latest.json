@@ -1,8 +1,8 @@
 {
-	"version_code": 10,
-	"version_name": "0.0.10",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.10/TreinamentoHashira.apk",
-	"changelog": "Lobby tela cheia. Escolhe o caçador na sala. Convite de amigo pelo nome.",
-	"size_bytes": 147953840,
-	"sha256": "b86a4d6c1966e6f813fe42964ee439cee608429143497543ac6d4c1171374f34"
+	"version_code": 11,
+	"version_name": "0.0.11",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.11/TreinamentoHashira.apk",
+	"changelog": "Troféus na sala, nome em cima do corpo, 1v1 com fundo e respiração, De novo ou Lobby.",
+	"size_bytes": 148568449,
+	"sha256": "be9acdaa36aed8359a9b2da84d89ed39c25a7bbc9d6ab9a74a775b1bc86a1cfc"
 }

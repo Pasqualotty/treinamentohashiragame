@@ -338,10 +338,13 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 ### Amigos / sala (2026-09-10, casa↔casa 2026-09-10, modos 2026-09-10)
 
 - Direita do hub = **Amigos** (lista + sala). Clube / notícias / eventos continuam fora.
-- Depois de **Criar sala**, a sala abre **lobby em tela cheia**: equipe à esquerda, caçador no centro, modos à direita, faixa de retratos embaixo. Cada celular escolhe o próprio caçador ali (não cai em Inosuke). Lista de amigos continua na gaveta.
+- Depois de **Criar sala**, a sala abre **lobby em tela cheia**: equipe à esquerda, caçador no centro, modos à direita, faixa de retratos embaixo. Cada celular escolhe o próprio caçador ali (não cai em Inosuke). Lista de amigos continua na gaveta. Botões do hub (LOJA / PERSONAGENS / AMIGOS) **somem** enquanto a lobby está aberta.
+- Troféus: cada vitória em sala (1v1 / mapa) soma 1 no save local. A lobby mostra **Troféus · N**.
+- Nome do jogador fica **em cima do corpo** no multiplayer.
+- Fim em sala: pergunta **De novo** (revanche) ou **Lobby**. Lobby = mesma sala e os mesmos players, sem convidar de novo. Sem a palavra “partida”.
 - Depois de **Criar sala**, o anfitrião escolhe: `2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`. JOGAR ouro **não** é esse seletor — continua o mapa do mundo.
 - 2 vs oni: 2 jogadores, `MAX_CLIENTS = 1`. 4 vs oni: 4 celulares (`MAX_CLIENTS = 3`), câmera nos vivos, oni no mais perto. 2P/solo intactos.
-- Mapa de batalha: até 4, Começar na sala, pátio com pads, De novo/Sair. 1v1: 2P. Sala + peer = roster. F6 sem sessão = máquina. Sem a cena: toast PT, sala não quebra.
+- Mapa de batalha: até 4, Começar na sala, pátio com pads, De novo/Lobby com sala. 1v1: 2P, fundo do pátio, corpos maiores, respiração no HUD. Sala + peer = roster. F6 sem sessão = máquina. Sem a cena: toast PT, sala não quebra.
 - Wi-Fi da casa **ou** casa↔casa pela **sala da estrela** (host baked no APK). Sem campo de IP na gaveta. Host escolhe a fase no mapa no coop vs oni.
 - Beacon primeiro; senão a sala da estrela. Sala caiu: o jogo abre; Criar/Entrar avisa em PT. Boot **não** fala “Conectando-se…”.
 - **Adicionar amigo** pelo nome do perfil (os dois no hub). O **x** apaga. Código de 6 da sala continua (Zap).
@@ -376,3 +379,4 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-12 | Mapa de batalha: até 4, pátio grande, pads, barras verde/amarelo/vermelho, skills no plano, De novo/Sair. |
 | 2026-09-13 | Lobby da sala em tela cheia + escolha de caçador (não força Inosuke). |
 | 2026-09-13 | Convite de amigo pelo nome do perfil (sem código de 8 na tela). |
+| 2026-09-13 | Troféus MP, nametag, 1v1 com fundo/chão/corpo maior + respiração, revanche ou volta à lobby. |

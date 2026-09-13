@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/modes/duel/duel_controller.gd" id="1_duel"]
 [ext_resource type="PackedScene" path="res://scenes/characters/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scenes/world/ground_band.tscn" id="3_gband"]
 [ext_resource type="FontFile" path="res://assets/fonts/Cinzel-Bold.ttf" id="4_cinzel"]
 [ext_resource type="FontFile" path="res://assets/fonts/NotoSans-Bold.ttf" id="5_noto"]
+[ext_resource type="Texture2D" path="res://assets/modes/duel/arena_bg.png" id="6_arena"]
 
 [sub_resource type="RectangleShape2D" id="Rect_ground"]
 size = Vector2(1600, 48)
@@ -19,7 +20,13 @@ spacing_space = 6
 [node name="Duel" type="Node2D"]
 script = ExtResource("1_duel")
 
+[node name="ArenaBg" type="Sprite2D" parent="."]
+z_index = -20
+position = Vector2(640, 360)
+texture = ExtResource("6_arena")
+
 [node name="Background" type="ColorRect" parent="."]
+visible = false
 offset_left = -80.0
 offset_top = -80.0
 offset_right = 1360.0
@@ -28,6 +35,7 @@ color = Color(0.058824, 0.070588, 0.094118, 1)
 mouse_filter = 2
 
 [node name="SkyBand" type="ColorRect" parent="."]
+visible = false
 offset_left = -80.0
 offset_top = -80.0
 offset_right = 1360.0
@@ -36,6 +44,7 @@ color = Color(0.109804, 0.137255, 0.188235, 1)
 mouse_filter = 2
 
 [node name="RingGlow" type="ColorRect" parent="."]
+visible = false
 offset_left = 220.0
 offset_top = 430.0
 offset_right = 1060.0
@@ -46,13 +55,14 @@ mouse_filter = 2
 [node name="Camera2D" type="Camera2D" parent="."]
 unique_name_in_owner = true
 position = Vector2(640, 360)
+zoom = Vector2(1.22, 1.22)
 limit_left = 0
 limit_top = 0
 limit_right = 1280
 limit_bottom = 720
 
 [node name="Ground" type="StaticBody2D" parent="."]
-position = Vector2(640, 560)
+position = Vector2(640, 590)
 collision_layer = 1
 collision_mask = 0
 
@@ -60,6 +70,7 @@ collision_mask = 0
 shape = SubResource("Rect_ground")
 
 [node name="Visual" parent="Ground" instance=ExtResource("3_gband")]
+visible = false
 band_width = 1600.0
 surface_y = -24.0
 depth = 264.0
@@ -82,11 +93,11 @@ shape = SubResource("Rect_wall")
 
 [node name="FighterLeft" parent="." instance=ExtResource("2_player")]
 unique_name_in_owner = true
-position = Vector2(400, 500)
+position = Vector2(360, 538)
 
 [node name="FighterRight" parent="." instance=ExtResource("2_player")]
 unique_name_in_owner = true
-position = Vector2(880, 500)
+position = Vector2(920, 538)
 
 [node name="Overlay" type="CanvasLayer" parent="."]
 layer = 50
@@ -105,7 +116,7 @@ mouse_filter = 2
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 92.0
+offset_bottom = 118.0
 grow_horizontal = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 16
@@ -135,6 +146,7 @@ theme_override_constants/separation = 8
 mouse_filter = 2
 
 [node name="HpLeftTitle" type="Label" parent="Overlay/HudRoot/TopSafe/TopRow/HpLeft/HpLeftInner/HpLeftHeader"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.9, 0.88, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
@@ -163,6 +175,14 @@ max_value = 100.0
 value = 100.0
 show_percentage = false
 
+[node name="BreathLeftBar" type="ProgressBar" parent="Overlay/HudRoot/TopSafe/TopRow/HpLeft/HpLeftInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+max_value = 100.0
+value = 0.0
+show_percentage = false
+
 [node name="HpRight" type="PanelContainer" parent="Overlay/HudRoot/TopSafe/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -180,6 +200,7 @@ theme_override_constants/separation = 8
 mouse_filter = 2
 
 [node name="HpRightTitle" type="Label" parent="Overlay/HudRoot/TopSafe/TopRow/HpRight/HpRightInner/HpRightHeader"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.9, 0.88, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
@@ -206,6 +227,14 @@ custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 max_value = 100.0
 value = 100.0
+show_percentage = false
+
+[node name="BreathRightBar" type="ProgressBar" parent="Overlay/HudRoot/TopSafe/TopRow/HpRight/HpRightInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+max_value = 100.0
+value = 0.0
 show_percentage = false
 
 [node name="RoundLabel" type="Label" parent="Overlay"]
@@ -254,10 +283,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -360.0
-offset_top = -80.0
-offset_right = 360.0
-offset_bottom = 8.0
+offset_left = -420.0
+offset_top = -130.0
+offset_right = 420.0
+offset_bottom = -40.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.964706, 0.917647, 1)
@@ -288,3 +317,61 @@ grow_vertical = 2
 theme_override_fonts/font = ExtResource("5_noto")
 theme_override_font_sizes/font_size = 22
 text = "VOLTAR"
+
+[node name="ResultWait" type="Label" parent="Overlay/ResultRoot"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -28.0
+offset_right = 280.0
+offset_bottom = 12.0
+theme_override_colors/font_color = Color(0.95, 0.9, 0.82, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 20
+text = "Esperando o amigo…"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RematchButton" type="Button" parent="Overlay/ResultRoot"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(240, 52)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = 24.0
+offset_right = 120.0
+offset_bottom = 76.0
+theme_override_fonts/font = ExtResource("5_noto")
+theme_override_font_sizes/font_size = 22
+text = "De novo"
+
+[node name="LobbyButton" type="Button" parent="Overlay/ResultRoot"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(240, 52)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -120.0
+offset_top = 88.0
+offset_right = 120.0
+offset_bottom = 140.0
+theme_override_fonts/font = ExtResource("5_noto")
+theme_override_font_sizes/font_size = 22
+text = "Lobby"

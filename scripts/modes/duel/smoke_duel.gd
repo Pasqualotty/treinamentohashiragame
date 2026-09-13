@@ -194,6 +194,10 @@ func _check_net_host() -> void:
 		_fail("host sessão roster=%s/%s" % [left.get("applied_character_id"), right.get("applied_character_id")])
 	else:
 		_pass("host sessão: Inosuke vs Nezuko")
+	if int(left.get("coop_slot")) != 0 or int(right.get("coop_slot")) != 1:
+		_fail("host sessão coop_slot invertido %s/%s" % [left.get("coop_slot"), right.get("coop_slot")])
+	else:
+		_pass("host sessão: slot 0 esquerda / 1 direita")
 	if bool(left.get("accept_local_input")) or bool(right.get("accept_local_input")):
 		## Intro ainda trava os dois; o que importa é o ramo sem dummy + InputFrame.
 		pass
@@ -235,10 +239,12 @@ func _check_net_guest() -> void:
 		_fail("guest sessão não pode aceitar input local")
 	elif not bool(right.get("is_local_pawn")) or bool(left.get("is_local_pawn")):
 		_fail("guest sessão slot local errado")
+	elif int(left.get("coop_slot")) != 0 or int(right.get("coop_slot")) != 1:
+		_fail("guest sessão coop_slot invertido %s/%s" % [left.get("coop_slot"), right.get("coop_slot")])
 	elif not bool(left.get("follow_host_snap")) or not bool(right.get("follow_host_snap")):
 		_fail("guest sessão sem follow_host_snap")
 	else:
-		_pass("guest sessão: puppet + slot 1 local")
+		_pass("guest sessão: puppet + slot 1 local + slots fixos")
 	duel.queue_free()
 	await process_frame
 
@@ -287,6 +293,17 @@ func _assert_duel_hud(scene: Node) -> void:
 		_fail("HUD de duelo precisa das duas barras de vitalidade")
 	else:
 		_pass("vitalidade dos dois")
+	var breath_l: ProgressBar = scene.get_node_or_null("%BreathLeftBar") as ProgressBar
+	var breath_r: ProgressBar = scene.get_node_or_null("%BreathRightBar") as ProgressBar
+	if breath_l == null or breath_r == null:
+		_fail("HUD de duelo sem barras de respiração")
+	else:
+		_pass("respiração dos dois")
+	var bg: Sprite2D = scene.get_node_or_null("ArenaBg") as Sprite2D
+	if bg == null or bg.texture == null:
+		_fail("duelo sem fundo ArenaBg")
+	else:
+		_pass("fundo do pátio")
 	var chrome: Dictionary = _count_stage_chrome(scene)
 	var onda_vis: int = int(chrome.get("onda", 0))
 	var coins_vis: int = int(chrome.get("coins", 0))

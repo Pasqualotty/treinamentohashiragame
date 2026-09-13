@@ -518,6 +518,14 @@ func _on_settings_pressed() -> void:
 	_navigate(SceneRouter.to_settings)
 
 
+func set_chrome_for_lobby(lobby_on: bool) -> void:
+	var show: bool = not lobby_on
+	for path: String in ["LeftColumn", "TopBar", "BottomBar", "CenterShowcase"]:
+		var n: CanvasItem = get_node_or_null(path) as CanvasItem
+		if n != null:
+			n.visible = show
+
+
 func _on_profile_pressed() -> void:
 	_navigate(func() -> bool: return SceneRouter.to_name_entry(true))
 

@@ -277,7 +277,7 @@ text = "JOGAR"
 
 [node name="FriendsPanel" parent="." instance=ExtResource("6_friends")]
 unique_name_in_owner = true
-z_index = 6
+z_index = 40
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

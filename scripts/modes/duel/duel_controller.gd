@@ -7,11 +7,12 @@ extends Node2D
 ## Facing canônico (GDD): arte de combate olha ESQUERDA.
 ## `flip_h` só quando `_facing > 0`. Não inverter. Não flipar PNG.
 ##
-## HUD próprio: vitalidade dos dois + ROUND. Sem ONDA / moeda de fase.
+## HUD próprio: vitalidade + respiração dos dois + ROUND. Sem ONDA / moeda de fase.
 
 const TOUCH_SCENE := preload("res://scenes/ui/combat_touch_controls.tscn")
 const _UiFont := preload("res://scripts/ui/ui_font.gd")
 const CINZEL := preload("res://assets/fonts/Cinzel-Bold.ttf")
+const ARENA_BG := "res://assets/modes/duel/arena_bg.png"
 
 const TEAM_LEFT := &"duel_left"
 const TEAM_RIGHT := &"duel_right"
@@ -24,6 +25,8 @@ const FACE_LEFT := -1.0
 const INTRO_SEC := 1.55
 const DUMMY_REACH := 108.0
 const DUMMY_ATK_CD := 0.9
+const DUEL_VISUAL_H := 220.0
+const CAM_ZOOM := 1.22
 
 ## Player.State.IDLE / ATTACK_BASIC — não importar player.gd.
 const STATE_IDLE := 0
@@ -48,6 +51,13 @@ enum Phase { INTRO, FIGHT, RESULT }
 @onready var _hp_right_label: Label = %HpRightLabel
 @onready var _hp_left_block: PanelContainer = %HpLeft
 @onready var _hp_right_block: PanelContainer = %HpRight
+@onready var _breath_left: ProgressBar = %BreathLeftBar
+@onready var _breath_right: ProgressBar = %BreathRightBar
+@onready var _hp_left_title: Label = %HpLeftTitle
+@onready var _hp_right_title: Label = %HpRightTitle
+@onready var _rematch: Button = %RematchButton
+@onready var _lobby_btn: Button = %LobbyButton
+@onready var _wait_label: Label = %ResultWait
 
 var _phase: Phase = Phase.INTRO
 var _dummy_frozen: bool = true
@@ -60,11 +70,13 @@ func _ready() -> void:
 	_UiFont.ensure_theme_space()
 	_apply_round_font()
 	if _camera:
+		_camera.zoom = Vector2(CAM_ZOOM, CAM_ZOOM)
 		_camera.make_current()
+	_fit_arena_bg()
 	_result_root.visible = false
 	_round_label.text = TEXT_ROUND
 	_round_label.visible = true
-	_voltar.pressed.connect(_on_voltar)
+	_wire_result_ui()
 	_style_duel_hud()
 	var left_id: String = CHAR_LEFT
 	var right_id: String = CHAR_RIGHT
@@ -75,8 +87,8 @@ func _ready() -> void:
 		if _lan_peers():
 			LanSession.mark_entered_stage()
 	var local_slot: int = _local_slot()
-	_prepare_fighter(_left, left_id, local_slot == 0, TEAM_LEFT, FACE_RIGHT)
-	_prepare_fighter(_right, right_id, local_slot == 1, TEAM_RIGHT, FACE_LEFT)
+	_prepare_fighter(_left, left_id, 0, local_slot == 0, TEAM_LEFT, FACE_RIGHT)
+	_prepare_fighter(_right, right_id, 1, local_slot == 1, TEAM_RIGHT, FACE_LEFT)
 	if _live_session() and _session_is_guest():
 		if _left:
 			_left.set("follow_host_snap", true)
@@ -86,6 +98,9 @@ func _ready() -> void:
 			_right.set("accept_local_input", false)
 	_bind_hp(_left, _hp_left_bar, _hp_left_label, _on_left_hp)
 	_bind_hp(_right, _hp_right_bar, _hp_right_label, _on_right_hp)
+	_bind_breath(_left, _breath_left)
+	_bind_breath(_right, _breath_right)
+	_apply_hud_titles()
 	_set_locked(true)
 	_pose_intro()
 	_spawn_touch()
@@ -133,6 +148,20 @@ func is_dummy_active() -> bool:
 	return not _live_session()
 
 
+func _fit_arena_bg() -> void:
+	var spr: Sprite2D = get_node_or_null("ArenaBg") as Sprite2D
+	if spr == null:
+		return
+	if spr.texture == null and ResourceLoader.exists(ARENA_BG):
+		spr.texture = load(ARENA_BG) as Texture2D
+	if spr.texture == null:
+		return
+	var tex_sz: Vector2 = spr.texture.get_size()
+	if tex_sz.x <= 0.0 or tex_sz.y <= 0.0:
+		return
+	spr.scale = Vector2(1280.0 / tex_sz.x, 720.0 / tex_sz.y)
+
+
 func _apply_round_font() -> void:
 	var fv := FontVariation.new()
 	fv.base_font = CINZEL
@@ -148,6 +177,10 @@ func _style_duel_hud() -> void:
 	_style_hp_panel(_hp_right_block)
 	_style_hp_bar(_hp_left_bar)
 	_style_hp_bar(_hp_right_bar)
+	_style_breath_bar(_breath_left)
+	_style_breath_bar(_breath_right)
+	_style_cta(_rematch, true)
+	_style_cta(_lobby_btn, false)
 
 
 func _style_hp_panel(block: PanelContainer) -> void:
@@ -189,10 +222,74 @@ func _style_hp_bar(bar: ProgressBar) -> void:
 	bar.show_percentage = false
 
 
+func _style_breath_bar(bar: ProgressBar) -> void:
+	if bar == null:
+		return
+	var bg_box := StyleBoxFlat.new()
+	bg_box.bg_color = Palette.with_alpha(Palette.INK, 0.88)
+	bg_box.border_color = Palette.with_alpha(Palette.GOLD, 0.4)
+	bg_box.set_border_width_all(1)
+	bg_box.set_corner_radius_all(6)
+	var fill_box := StyleBoxFlat.new()
+	fill_box.bg_color = Palette.WATER
+	fill_box.set_corner_radius_all(5)
+	bar.add_theme_stylebox_override("background", bg_box)
+	bar.add_theme_stylebox_override("fill", fill_box)
+	bar.show_percentage = false
+
+
+func _style_cta(btn: Button, primary: bool) -> void:
+	if btn == null:
+		return
+	var sb := StyleBoxFlat.new()
+	if primary:
+		sb.bg_color = Palette.with_alpha(Palette.GOLD, 0.95)
+		btn.add_theme_color_override("font_color", Palette.INK)
+	else:
+		sb.bg_color = Palette.with_alpha(Palette.PANEL, 0.92)
+		sb.border_color = Palette.with_alpha(Palette.GOLD, 0.7)
+		sb.set_border_width_all(2)
+		btn.add_theme_color_override("font_color", Palette.CREAM)
+	sb.set_corner_radius_all(10)
+	btn.add_theme_stylebox_override("normal", sb)
+	btn.add_theme_font_size_override("font_size", 22)
+
+
 func _bind_hp(fighter: Node, bar: ProgressBar, label: Label, cb: Callable) -> void:
 	_refresh_hp_widgets(fighter, bar, label)
 	if fighter and fighter.has_signal("hp_changed") and not fighter.is_connected("hp_changed", cb):
 		fighter.connect("hp_changed", cb)
+
+
+func _bind_breath(fighter: Node, bar: ProgressBar) -> void:
+	_set_breath_bar(bar, _breath_of(fighter), _breath_max_of(fighter))
+	if fighter and fighter.has_signal("pawn_breath_changed"):
+		if not fighter.is_connected("pawn_breath_changed", _on_pawn_breath.bind(bar)):
+			fighter.connect("pawn_breath_changed", _on_pawn_breath.bind(bar))
+
+
+func _on_pawn_breath(value: float, max_value: float, bar: ProgressBar) -> void:
+	_set_breath_bar(bar, value, max_value)
+
+
+func _breath_of(fighter: Node) -> float:
+	if fighter and fighter.has_method("get_pawn_breath"):
+		return float(fighter.call("get_pawn_breath"))
+	return 0.0
+
+
+func _breath_max_of(fighter: Node) -> float:
+	if fighter and fighter.has_method("get_pawn_breath_max"):
+		return float(fighter.call("get_pawn_breath_max"))
+	return 100.0
+
+
+func _set_breath_bar(bar: ProgressBar, value: float, max_value: float) -> void:
+	if bar == null:
+		return
+	var mx: float = maxf(max_value, 1.0)
+	bar.max_value = mx
+	bar.value = clampf(value, 0.0, mx)
 
 
 func _on_left_hp(current: int, max_hp: int) -> void:
@@ -216,6 +313,20 @@ func _set_hp_widgets(bar: ProgressBar, label: Label, current: int, max_hp: int) 
 		bar.value = clampf(float(current), 0.0, mx)
 	if label:
 		label.text = "%d / %d" % [current, max_hp]
+
+
+func _apply_hud_titles() -> void:
+	if _hp_left_title:
+		_hp_left_title.text = _hud_title(0, CHAR_LEFT)
+	if _hp_right_title:
+		_hp_right_title.text = _hud_title(1, CHAR_RIGHT)
+
+
+func _hud_title(slot: int, fallback_id: String) -> String:
+	var char_n: String = CharacterCatalog.display_name_of(_char_id_of(slot, fallback_id))
+	if not _live_session():
+		return char_n.to_upper()
+	return "%s · %s" % [_nick_of(slot), char_n]
 
 
 func _live_session() -> bool:
@@ -284,21 +395,44 @@ func _ids_from_session() -> PackedStringArray:
 	return ids
 
 
-func _prepare_fighter(fighter: Node, char_id: String, local_pawn: bool, team: StringName, facing: float) -> void:
+func _char_id_of(slot: int, fallback_id: String) -> String:
+	var ids: PackedStringArray = _ids_from_session() if _live_session() else PackedStringArray([CHAR_LEFT, CHAR_RIGHT])
+	if slot >= 0 and slot < ids.size() and not str(ids[slot]).is_empty():
+		return str(ids[slot])
+	return fallback_id
+
+
+func _nick_of(slot: int) -> String:
+	if has_meta("smoke_lan_roster"):
+		var raw: Variant = get_meta("smoke_lan_roster")
+		if raw is Dictionary:
+			var key := "nick_%d" % slot
+			var n := str((raw as Dictionary).get(key, ""))
+			if not n.is_empty():
+				return n
+	if is_instance_valid(LanSession) and LanSession.has_method("nick_for_slot"):
+		return str(LanSession.nick_for_slot(slot))
+	return "Você" if slot == 0 else "Rival"
+
+
+func _prepare_fighter(fighter: Node, char_id: String, slot: int, local_pawn: bool, team: StringName, facing: float) -> void:
 	if fighter == null:
 		return
 	fighter.set("skip_local_upgrades", true)
 	fighter.set("is_local_pawn", local_pawn)
 	fighter.set("accept_local_input", local_pawn)
-	fighter.set("coop_slot", 0 if local_pawn else 1)
+	fighter.set("coop_slot", slot)
+	fighter.set("visual_height_px", DUEL_VISUAL_H)
 	if fighter.has_method("reload_character_kit"):
 		fighter.call("reload_character_kit", char_id)
 	if fighter.has_method("heal_full"):
 		fighter.call("heal_full")
 	_assign_team(fighter, team)
 	_lock_facing(fighter, facing)
+	if fighter.has_method("set_player_nametag") and _live_session():
+		fighter.call("set_player_nametag", _nick_of(slot))
 	if fighter.has_signal("died"):
-		fighter.connect("died", _on_fighter_died.bind(local_pawn))
+		fighter.connect("died", _on_fighter_died.bind(slot))
 
 
 func _assign_team(fighter: Node, team: StringName) -> void:
@@ -409,15 +543,90 @@ func _tick_dummy() -> void:
 	_right.call("apply_input_frame", axis, 0, just)
 
 
-func _on_fighter_died(local_pawn: bool) -> void:
+func _on_fighter_died(slot: int) -> void:
 	if _settled:
 		return
 	_settled = true
 	_phase = Phase.RESULT
 	_set_locked(true)
 	_round_label.visible = false
-	_result_label.text = TEXT_LOSE if local_pawn else TEXT_WIN
+	var winner: int = 1 if slot == 0 else 0
+	_result_label.text = _winner_text(winner)
 	_result_root.visible = true
+	_show_result_actions()
+	if _lan_peers() and winner == _local_slot() and is_instance_valid(Game) and Game.has_method("add_mp_trophy"):
+		Game.add_mp_trophy()
+
+
+func _winner_text(winner_slot: int) -> String:
+	if not _live_session():
+		return TEXT_WIN if winner_slot == 0 else TEXT_LOSE
+	return "%s · %s ganhou" % [_nick_of(winner_slot), CharacterCatalog.display_name_of(_char_id_of(winner_slot, CHAR_LEFT))]
+
+
+func _wire_result_ui() -> void:
+	if _voltar and not _voltar.pressed.is_connected(_on_voltar):
+		_voltar.pressed.connect(_on_voltar)
+	if _rematch and not _rematch.pressed.is_connected(_on_rematch):
+		_rematch.pressed.connect(_on_rematch)
+	if _lobby_btn and not _lobby_btn.pressed.is_connected(_on_lobby):
+		_lobby_btn.pressed.connect(_on_lobby)
+	if _rematch:
+		_rematch.visible = false
+	if _lobby_btn:
+		_lobby_btn.visible = false
+	if _wait_label:
+		_wait_label.visible = false
+	if is_instance_valid(LanSession) and LanSession.has_signal("rematch_changed"):
+		if not LanSession.rematch_changed.is_connected(_on_rematch_changed):
+			LanSession.rematch_changed.connect(_on_rematch_changed)
+
+
+func _show_result_actions() -> void:
+	var live: bool = _lan_peers()
+	if _voltar:
+		_voltar.visible = not live
+	if _rematch:
+		_rematch.visible = live
+		_rematch.disabled = false
+	if _lobby_btn:
+		_lobby_btn.visible = live
+		_lobby_btn.disabled = false
+	if _wait_label:
+		_wait_label.visible = false
+
+
+func _on_rematch() -> void:
+	if not _lan_peers() or not is_instance_valid(LanSession):
+		return
+	LanSession.vote_rematch(true)
+	_lock_result_vote()
+
+
+func _on_lobby() -> void:
+	if _lan_peers() and is_instance_valid(LanSession):
+		LanSession.vote_rematch(false)
+		_lock_result_vote()
+		return
+	_on_voltar()
+
+
+func _lock_result_vote() -> void:
+	if _rematch:
+		_rematch.disabled = true
+	if _lobby_btn:
+		_lobby_btn.disabled = true
+	_on_rematch_changed()
+
+
+func _on_rematch_changed() -> void:
+	if _wait_label == null or not _lan_peers() or not is_instance_valid(LanSession):
+		return
+	if not LanSession.has_method("rematch_wait_text"):
+		return
+	var t: String = str(LanSession.rematch_wait_text())
+	_wait_label.visible = not t.is_empty()
+	_wait_label.text = t
 
 
 func _spawn_touch() -> void:
@@ -426,6 +635,9 @@ func _spawn_touch() -> void:
 
 
 func _on_voltar() -> void:
+	if _lan_peers() and is_instance_valid(LanSession) and LanSession.has_method("return_to_room_lobby"):
+		LanSession.return_to_room_lobby()
+		return
 	if is_instance_valid(SceneRouter) and SceneRouter.has_method("to_hub"):
 		SceneRouter.to_hub()
 		return

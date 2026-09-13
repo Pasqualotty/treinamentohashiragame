@@ -29,6 +29,8 @@ signal character_changed(character_id: String)
 signal friends_changed
 ## Convites de amigo (entrada / saída) mudaram.
 signal friend_invites_changed
+## Vitórias em sala (1v1 / mapa). Local, no save.
+signal trophies_changed(total: int)
 
 const FRIENDS_CAP := 16
 const PENDING_CAP := 16
@@ -48,6 +50,7 @@ var breath: float = 0.0
 var breath_max: float = 100.0
 
 var audio_volume_master: float = 1.0
+var mp_trophies: int = 0
 var audio_volume_bgm: float = 0.32  # era 0.75 — alto demais no device
 var audio_volume_sfx: float = 0.45  # era 1.0  — alto demais no device
 ## Stage id opcional (mapa / debug) antes de trocar de cena.
@@ -543,6 +546,16 @@ func set_save_path(path: String) -> void:
 	_save_path = SAVE_PATH if path.is_empty() else path
 
 
+func get_mp_trophies() -> int:
+	return mp_trophies
+
+
+func add_mp_trophy() -> void:
+	mp_trophies += 1
+	trophies_changed.emit(mp_trophies)
+	save_game()
+
+
 func save_game() -> void:
 	if not AtomicJson.write_dict(_save_path, _save_payload()):
 		push_error("Save failed: %s" % FileAccess.get_open_error())
@@ -569,6 +582,7 @@ func _save_payload() -> Dictionary:
 		"friend_code": ensure_friend_code(),
 		"friend_pending_in": _pending_payload(pending_in),
 		"friend_pending_out": _pending_payload(pending_out),
+		"mp_trophies": mp_trophies,
 	}
 
 
@@ -632,6 +646,7 @@ func _apply_save_data(data: Dictionary) -> void:
 	_load_friends(data)
 	_load_friend_code(data)
 	_load_pending(data)
+	mp_trophies = maxi(0, int(data.get("mp_trophies", 0)))
 	_sync_character_unlocks()
 
 

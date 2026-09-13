@@ -88,6 +88,9 @@ var _remote_just: int = 0
 ## Altura visual alvo em px (side-scroller legível em 1280×720 / mobile).
 ## ~140px: personagem legível sem “formiga” no meio da tela.
 const TARGET_VISUAL_HEIGHT: float = 140.0
+## 0 = usa TARGET. Duelo 1v1 sobe pra ocupar mais tela.
+var visual_height_px: float = 0.0
+var _nametag: Label
 const ANIM_IDLE: StringName = &"idle"
 const ANIM_RUN: StringName = &"run"
 const ANIM_ATTACK: StringName = &"attack"
@@ -293,6 +296,36 @@ func get_state() -> State:
 
 func get_facing() -> float:
 	return _facing
+
+
+func _visual_height() -> float:
+	return visual_height_px if visual_height_px > 0.0 else TARGET_VISUAL_HEIGHT
+
+
+func set_player_nametag(nick: String) -> void:
+	var clean := nick.strip_edges()
+	if is_instance_valid(Game) and Game.has_method("sanitize_player_name"):
+		clean = Game.sanitize_player_name(nick)
+	if clean.is_empty():
+		if _nametag != null:
+			_nametag.visible = false
+		return
+	if _nametag == null:
+		_nametag = Label.new()
+		_nametag.name = "PlayerNametag"
+		_nametag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_nametag.add_theme_font_size_override("font_size", 16)
+		_nametag.add_theme_color_override("font_color", Color(0.96, 0.91, 0.86, 1.0))
+		_nametag.add_theme_color_override("font_shadow_color", Color(0.02, 0.02, 0.03, 0.9))
+		_nametag.add_theme_constant_override("shadow_offset_x", 1)
+		_nametag.add_theme_constant_override("shadow_offset_y", 1)
+		_nametag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_nametag.z_index = 8
+		add_child(_nametag)
+	_nametag.text = clean
+	_nametag.visible = true
+	_nametag.size = Vector2(220.0, 24.0)
+	_nametag.position = Vector2(-110.0, -_visual_height() - 28.0)
 
 
 func get_pawn_breath() -> float:
@@ -1147,11 +1180,12 @@ func _setup_sprite_frames() -> void:
 	sprite.centered = true
 	# Escala por altura da primeira textura disponível (pés no chão via position.y).
 	var sample: Texture2D = _first_texture(frames)
+	var vis_h: float = _visual_height()
 	if sample != null and sample.get_height() > 0:
-		_base_sprite_scale = TARGET_VISUAL_HEIGHT / float(sample.get_height())
+		_base_sprite_scale = vis_h / float(sample.get_height())
 	else:
 		_base_sprite_scale = 0.18
-	_sprite_base_y = -TARGET_VISUAL_HEIGHT * 0.5
+	_sprite_base_y = -vis_h * 0.5
 	sprite.scale = Vector2(_base_sprite_scale, _base_sprite_scale)
 	sprite.position = Vector2(0.0, _sprite_base_y)
 	sprite.play(ANIM_IDLE)

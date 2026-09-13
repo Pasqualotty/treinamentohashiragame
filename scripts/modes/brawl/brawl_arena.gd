@@ -130,6 +130,9 @@ func restart_match() -> void:
 	_close_pause()
 	get_tree().paused = false
 	Engine.time_scale = 1.0
+	if is_instance_valid(LanSession) and LanSession.in_session() and LanSession.has_peer():
+		LanSession.vote_rematch(true)
+		return
 	get_tree().reload_current_scene()
 
 
@@ -137,8 +140,9 @@ func leave_match() -> void:
 	_close_pause()
 	get_tree().paused = false
 	Engine.time_scale = 1.0
-	if is_instance_valid(LanSession) and LanSession.in_session():
-		LanSession.close_session()
+	if is_instance_valid(LanSession) and LanSession.in_session() and LanSession.has_method("return_to_room_lobby"):
+		LanSession.return_to_room_lobby()
+		return
 	SceneRouter.to_hub()
 
 
@@ -529,13 +533,24 @@ func _check_end() -> void:
 		_finish("Empate")
 		return
 	if alive.size() == 1:
-		_finish("%s venceu" % _display_of(alive[0]))
+		_finish(_label_of(alive[0]), alive[0])
 		return
 	if _time_left <= 0.0:
-		_finish(_winner_by_hp())
+		var best: CharacterBody2D = _winner_pawn_by_hp()
+		if best == null:
+			_finish("Empate")
+		else:
+			_finish(_label_of(best), best)
 
 
 func _winner_by_hp() -> String:
+	var best: CharacterBody2D = _winner_pawn_by_hp()
+	if best == null:
+		return "Empate"
+	return _label_of(best)
+
+
+func _winner_pawn_by_hp() -> CharacterBody2D:
 	var best_hp: int = -1
 	var winners: Array[CharacterBody2D] = []
 	for pawn: CharacterBody2D in _hunters:
@@ -546,15 +561,30 @@ func _winner_by_hp() -> String:
 		elif h == best_hp:
 			winners.append(pawn)
 	if winners.size() != 1:
-		return "Empate"
-	return "%s venceu" % _display_of(winners[0])
+		return null
+	return winners[0]
+
+
+func _label_of(pawn: CharacterBody2D) -> String:
+	var char_n: String = _display_of(pawn)
+	if not _live_session():
+		return "%s ganhou" % char_n
+	var slot: int = int(pawn.get("coop_slot")) if pawn else 0
+	var nick: String = _nick_of_slot(slot)
+	return "%s · %s ganhou" % [nick, char_n]
+
+
+func _nick_of_slot(slot: int) -> String:
+	if is_instance_valid(LanSession) and LanSession.has_method("nick_for_slot"):
+		return str(LanSession.nick_for_slot(slot))
+	return "Caçador"
 
 
 func _on_hunter_died() -> void:
 	_check_end()
 
 
-func _finish(text: String) -> void:
+func _finish(text: String, winner: CharacterBody2D = null) -> void:
 	if _over:
 		return
 	_over = true
@@ -565,6 +595,9 @@ func _finish(text: String) -> void:
 		pawn.set("accept_local_input", false)
 		if pawn.has_method("apply_input_frame"):
 			pawn.call("apply_input_frame", 0.0, 0, 0)
+	if winner != null and _lan_peers() and bool(winner.get("is_local_pawn")):
+		if is_instance_valid(Game) and Game.has_method("add_mp_trophy"):
+			Game.add_mp_trophy()
 	if _hud != null and _hud.has_method("show_winner"):
 		_hud.call("show_winner", text)
 	print("[BrawlArena] fim: %s" % text)
@@ -653,6 +686,10 @@ func _attach_shadow(pawn: CharacterBody2D) -> void:
 
 
 func _attach_nameplate(pawn: CharacterBody2D) -> void:
+	var slot: int = int(pawn.get("coop_slot"))
+	if _live_session() and pawn.has_method("set_player_nametag"):
+		pawn.call("set_player_nametag", _nick_of_slot(slot))
+		return
 	var lab := Label.new()
 	lab.name = "Nameplate"
 	lab.position = Vector2(-70.0, -168.0)

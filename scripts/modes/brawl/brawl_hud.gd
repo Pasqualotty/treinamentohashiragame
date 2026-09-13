@@ -202,7 +202,10 @@ func _build() -> void:
 	_banner.text = "Fim"
 	box.add_child(_banner)
 	box.add_child(_end_btn("De novo", _on_rematch))
-	box.add_child(_end_btn("Sair", _on_leave))
+	var leave_txt := "Sair"
+	if is_instance_valid(LanSession) and LanSession.in_session():
+		leave_txt = "Lobby"
+	box.add_child(_end_btn(leave_txt, _on_leave))
 
 
 func _add_fighter_block(col: VBoxContainer) -> void:

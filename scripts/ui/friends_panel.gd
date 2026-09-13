@@ -49,8 +49,11 @@ func _ready() -> void:
 	_refresh_list()
 	_set_drawer_open(false, true)
 	call_deferred("_sync_rows_width")
-	if is_instance_valid(LanSession) and LanSession.is_guest() and LanSession.has_peer():
-		show_host_picks_stage()
+	if is_instance_valid(LanSession) and LanSession.in_session() and not str(LanSession.room_code).is_empty():
+		if LanSession.is_guest():
+			show_host_picks_stage()
+		else:
+			_show(View.HOST)
 	else:
 		_show(View.LIST)
 
@@ -100,8 +103,9 @@ func _set_drawer_open(want: bool, instant: bool) -> void:
 		_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_backdrop.visible = false
 		_drawer.visible = false
-		_set_play_visible(false)
+		_set_hub_chrome(false)
 		return
+	_set_hub_chrome(true)
 	if want:
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -125,7 +129,7 @@ func _apply_closed_filters() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _backdrop != null:
 		_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_set_play_visible(true)
+	_set_hub_chrome(true)
 
 
 func _hub_play_button() -> Button:
@@ -139,6 +143,13 @@ func _set_play_visible(p_visible: bool) -> void:
 	var btn := _hub_play_button()
 	if btn != null:
 		btn.visible = p_visible
+
+
+func _set_hub_chrome(show_hub: bool) -> void:
+	var hub := get_parent()
+	if hub != null and hub.has_method("set_chrome_for_lobby"):
+		hub.call("set_chrome_for_lobby", not show_hub)
+	_set_play_visible(show_hub)
 
 
 func _layout_drawer(p_open: bool, instant: bool) -> void:

@@ -79,6 +79,15 @@ static func find(character_id: String) -> CharacterDef:
 	return null
 
 
+static func display_name_of(character_id: String) -> String:
+	var def: CharacterDef = find(character_id)
+	if def != null and def.display_name != "":
+		return def.display_name
+	if character_id.is_empty():
+		return "Caçador"
+	return character_id.capitalize()
+
+
 static func starter() -> CharacterDef:
 	var def: CharacterDef = find(STARTER_ID)
 	if def != null:

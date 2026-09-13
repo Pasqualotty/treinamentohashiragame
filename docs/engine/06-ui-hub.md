@@ -11,6 +11,7 @@
 2. `BgDim` — ColorRect semi-transparente  
 3. TopBar / LeftColumn (LOJA, PERSONAGENS, **AMIGOS**) / CenterShowcase / BottomBar  
 4. `%FriendsPanel` é **gaveta** full-rect: começa fechada. Toque em AMIGOS desliza da direita por cima do hub. Sem `change_scene`.  
+5. Lobby da sala (`MpLobby`) é tela cheia: esconde LeftColumn / TopBar / BottomBar / showcase. `z_index` do painel **acima** da coluna esquerda. Troféus no topo da lobby.  
 
 ## Personagem  
 

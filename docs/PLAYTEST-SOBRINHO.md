@@ -121,7 +121,7 @@ Não entra no CI. Quatro APKs (ou 4 instâncias Play).
 2. Até 3 amigos **Entrar** com o código. Cada celular = um caçador.
 3. Host **JOGAR** → mapa → fase. Guest não escolhe fase.
 4. A câmera segue quem está vivo. Oni corre no mais perto.
-5. **Mapa de batalha:** host toca **Começar** (até 4). Sem amigo, as vagas são máquina. Skills e respiração funcionam. Quem vence vê **De novo** / **Sair**. **1v1** na sala: o amigo no outro celular joga.
+5. **Mapa de batalha:** host toca **Começar** (até 4). Sem amigo, as vagas são máquina. Skills e respiração funcionam. Quem vence vê **De novo** / **Lobby** (mesma sala). **1v1** na sala: fundo do pátio, nome em cima, respiração no HUD, corpos maiores. Fim: nome + caçador + **De novo** ou **Lobby**.
 
 ---
 
