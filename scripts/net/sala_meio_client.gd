@@ -128,8 +128,11 @@ func lookup(code: String) -> Dictionary:
 	return request({"op": "lookup", "code": code}, LOOKUP_MS)
 
 
-func presence(nick: String, code: String = "") -> Dictionary:
-	return request({"op": "presence", "name": nick, "code": code}, PING_MS)
+func presence(nick: String, code: String = "", friend_id: String = "") -> Dictionary:
+	var body: Dictionary = {"op": "presence", "name": nick, "code": code}
+	if FriendCode.is_valid(friend_id):
+		body["friend_id"] = FriendCode.normalize(friend_id)
+	return request(body, PING_MS)
 
 
 func call_nick(from_nick: String, to_nick: String) -> Dictionary:
@@ -140,8 +143,47 @@ func call_nick(from_nick: String, to_nick: String) -> Dictionary:
 	}, LOOKUP_MS)
 
 
-func poll_calls(nick: String) -> Dictionary:
-	return request({"op": "poll", "name": nick}, PING_MS)
+func poll_calls(nick: String, friend_id: String = "") -> Dictionary:
+	var body: Dictionary = {"op": "poll", "name": nick}
+	if FriendCode.is_valid(friend_id):
+		body["friend_id"] = FriendCode.normalize(friend_id)
+	return request(body, PING_MS)
+
+
+func friend_invite(from_id: String, from_name: String, to_id: String) -> Dictionary:
+	return request({
+		"op": "friend_invite",
+		"from_id": FriendCode.normalize(from_id),
+		"from_name": from_name,
+		"to_id": FriendCode.normalize(to_id),
+	}, LOOKUP_MS)
+
+
+func friend_accept(my_id: String, my_name: String, their_id: String) -> Dictionary:
+	return request({
+		"op": "friend_accept",
+		"my_id": FriendCode.normalize(my_id),
+		"my_name": my_name,
+		"their_id": FriendCode.normalize(their_id),
+	}, LOOKUP_MS)
+
+
+func friend_decline(my_id: String, their_id: String) -> Dictionary:
+	return request({
+		"op": "friend_decline",
+		"my_id": FriendCode.normalize(my_id),
+		"their_id": FriendCode.normalize(their_id),
+	}, LOOKUP_MS)
+
+
+func room_invite(from_id: String, from_name: String, to_id: String, room_code: String) -> Dictionary:
+	return request({
+		"op": "room_invite",
+		"from_id": FriendCode.normalize(from_id),
+		"from_name": from_name,
+		"to_id": FriendCode.normalize(to_id),
+		"code": RoomCode.normalize(room_code),
+	}, LOOKUP_MS)
 
 
 func send_fire(body: Dictionary) -> bool:

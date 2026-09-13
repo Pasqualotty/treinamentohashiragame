@@ -11,10 +11,14 @@ const BEACON_WAIT_MS := 2500
 const LEASH_X := 720.0
 const MEIO_ANNOUNCE_HZ := 0.4
 const MEIO_CALL_HZ := 1.0
+const MEIO_LOOKUP_RETRY_MS := 1000
+const MEIO_LOOKUP_GIVE_UP_MS := 20000
 const MSG_PC_OFF := "A sala da estrela está desligada"
 const MSG_FRIEND_OFF := "O amigo não está aí agora"
 const MSG_CALL_NEED_PC := "Mande o código da sala"
 const MSG_SALA_MISSING := "Sala não achada na sala da estrela"
+const MSG_CREATE_ROOM_FIRST := "Cria a sala primeiro"
+const MSG_NEED_FRIEND_CODE := "Pede o código de amigo dele"
 
 signal peer_joined(nick: String)
 signal peer_left
@@ -28,6 +32,7 @@ signal stage_cleared_event(stage_id: String, coins: int)
 signal stage_wipe
 signal waves_unlocked
 signal mode_changed(mode_id: int)
+signal room_invite_received(from_nick: String, code: String)
 
 enum Role { NONE, HOST, GUEST }
 
@@ -59,9 +64,11 @@ var _guest_onis: Dictionary = {} # net_id -> Node
 var _handshake_ok: bool = false
 var _connect_signals_hooked: bool = false
 var _meio: SalaMeioClient = SalaMeioClient.new()
+var _relay_bridge: EnetRelayBridge = EnetRelayBridge.new()
 var _meio_announce_t: float = 0.0
 var _meio_call_t: float = 0.0
 var _meio_lookup_tried: bool = false
+var _meio_next_lookup_ms: int = 0
 var _meio_pc_off_told: bool = false
 
 
@@ -205,11 +212,28 @@ func has_sala_meio() -> bool:
 	return _meio.is_configured()
 
 
+func _friend_id() -> String:
+	if is_instance_valid(Game) and Game.has_method("ensure_friend_code"):
+		return str(Game.ensure_friend_code())
+	return ""
+
+
 func call_friend(raw_nick: String) -> void:
+	invite_friend_to_room(raw_nick)
+
+
+func send_friend_invite(raw_code: String) -> void:
 	if _in_boot():
 		return
-	var dest := Game.sanitize_player_name(raw_nick)
-	if dest.is_empty():
+	var dest := FriendCode.normalize(raw_code)
+	if not FriendCode.is_valid(dest):
+		toast_requested.emit("Código de amigo inválido")
+		return
+	if dest == _friend_id():
+		toast_requested.emit("Esse código é o seu")
+		return
+	if is_instance_valid(Game) and Game.has_friend_id(dest):
+		toast_requested.emit("Já é amigo")
 		return
 	if not has_sala_meio():
 		toast_requested.emit(MSG_CALL_NEED_PC)
@@ -217,12 +241,89 @@ func call_friend(raw_nick: String) -> void:
 	if not _meio.ping():
 		toast_requested.emit(MSG_PC_OFF)
 		return
-	_meio.presence(_nick(), room_code if is_host() else "")
-	var reply: Dictionary = _meio.call_nick(_nick(), dest)
-	if str(reply.get("op", "")) != "called":
+	_meio.presence(_nick(), room_code if is_host() else "", _friend_id())
+	var reply: Dictionary = _meio.friend_invite(_friend_id(), _nick(), dest)
+	var op := str(reply.get("op", ""))
+	if op == "already":
+		if is_instance_valid(Game):
+			Game.add_friend("Caçador", dest)
+		toast_requested.emit("Já é amigo")
+		return
+	if op != "invited":
+		toast_requested.emit("Não deu para mandar o convite")
+		return
+	if is_instance_valid(Game):
+		Game.remember_outgoing_invite(dest, "Caçador")
+	toast_requested.emit("Convite enviado")
+
+
+func accept_friend_invite(raw_id: String) -> void:
+	if _in_boot():
+		return
+	var dest := FriendCode.normalize(raw_id)
+	if not FriendCode.is_valid(dest):
+		return
+	var incoming_name := "Amigo"
+	if is_instance_valid(Game):
+		for d in Game.pending_in:
+			if str(d.get("friend_id", "")) == dest:
+				incoming_name = str(d.get("name", incoming_name))
+				break
+	if not has_sala_meio():
+		toast_requested.emit(MSG_CALL_NEED_PC)
+		return
+	if not _meio.ping():
+		toast_requested.emit(MSG_PC_OFF)
+		return
+	var reply: Dictionary = _meio.friend_accept(_friend_id(), _nick(), dest)
+	if str(reply.get("op", "")) != "accepted":
+		toast_requested.emit("Convite não está mais aí")
+		if is_instance_valid(Game):
+			Game.remove_incoming_invite(dest)
+		return
+	if is_instance_valid(Game):
+		Game.add_friend(incoming_name, dest)
+	toast_requested.emit("Amigo adicionado")
+
+
+func decline_friend_invite(raw_id: String) -> void:
+	var dest := FriendCode.normalize(raw_id)
+	if not FriendCode.is_valid(dest):
+		return
+	if has_sala_meio() and _meio.ping():
+		_meio.friend_decline(_friend_id(), dest)
+	if is_instance_valid(Game):
+		Game.remove_incoming_invite(dest)
+	toast_requested.emit("Convite recusado")
+
+
+func invite_friend_to_room(raw_nick: String) -> void:
+	if _in_boot():
+		return
+	var dest_name := Game.sanitize_player_name(raw_nick)
+	if dest_name.is_empty():
+		return
+	if not is_host() or room_code.is_empty():
+		toast_requested.emit(MSG_CREATE_ROOM_FIRST)
+		return
+	var dest_id := ""
+	if is_instance_valid(Game):
+		dest_id = Game.friend_id_of(dest_name)
+	if dest_id.is_empty():
+		toast_requested.emit(MSG_NEED_FRIEND_CODE)
+		return
+	if not has_sala_meio():
+		toast_requested.emit(MSG_CALL_NEED_PC)
+		return
+	if not _meio.ping():
+		toast_requested.emit(MSG_PC_OFF)
+		return
+	_meio.presence(_nick(), room_code, _friend_id())
+	var reply: Dictionary = _meio.room_invite(_friend_id(), _nick(), dest_id, room_code)
+	if str(reply.get("op", "")) != "invited":
 		toast_requested.emit(MSG_FRIEND_OFF)
 		return
-	toast_requested.emit("Chamado enviado")
+	toast_requested.emit("Convite da sala enviado")
 
 
 func _version_code() -> int:
@@ -262,6 +363,7 @@ func host_room() -> String:
 	_meio_announce_t = 0.0
 	_meio_pc_off_told = false
 	_try_meio_announce(true)
+	_start_host_relay_bridge()
 	room_ready.emit(room_code)
 	return room_code
 
@@ -277,6 +379,7 @@ func join_room(code: String) -> void:
 	_listening_for_code = n
 	_listen_since_ms = Time.get_ticks_msec()
 	_meio_lookup_tried = false
+	_meio_next_lookup_ms = 0
 	_meio_pc_off_told = false
 	if not _beacon.start_listen():
 		toast_requested.emit("Não achou na rede. Mesmo Wi-Fi, sem convidado isolado.")
@@ -346,6 +449,8 @@ func close_session() -> void:
 	_listening_for_code = ""
 	_listen_since_ms = 0
 	_meio_lookup_tried = false
+	_meio_next_lookup_ms = 0
+	_relay_bridge.stop()
 	_pending_just = 0
 	_input_t = 0.0
 	_oni_t = 0.0
@@ -374,6 +479,8 @@ func close_session() -> void:
 
 
 func _process(delta: float) -> void:
+	if _relay_bridge.active:
+		_relay_bridge.pump(delta)
 	if role == Role.HOST and not room_code.is_empty():
 		_beacon_t += delta
 		if _beacon_t >= 1.0 / BEACON_HZ:
@@ -396,10 +503,17 @@ func _process(delta: float) -> void:
 			var ip := str(hit.get("ip", ""))
 			_listening_for_code = ""
 			_beacon.stop_listen()
+			_relay_bridge.stop()
 			_connect_enet(ip)
-		elif join_wait_elapsed_ms() >= BEACON_WAIT_MS and not _meio_lookup_tried:
-			_meio_lookup_tried = true
-			call_deferred("_try_meio_lookup")
+		elif join_wait_elapsed_ms() >= BEACON_WAIT_MS:
+			var now_ms: int = Time.get_ticks_msec()
+			if now_ms >= _meio_next_lookup_ms and join_wait_elapsed_ms() <= MEIO_LOOKUP_GIVE_UP_MS + BEACON_WAIT_MS:
+				_meio_lookup_tried = true
+				_meio_next_lookup_ms = now_ms + MEIO_LOOKUP_RETRY_MS
+				call_deferred("_try_meio_lookup")
+			elif join_wait_elapsed_ms() > MEIO_LOOKUP_GIVE_UP_MS + BEACON_WAIT_MS and not _meio_pc_off_told:
+				_meio_pc_off_told = true
+				toast_requested.emit(MSG_SALA_MISSING)
 	if role == Role.GUEST and in_stage and _handshake_ok:
 		_pending_just |= InputFrame.just_mask_now()
 		_input_t += delta
@@ -571,7 +685,6 @@ func _rpc_hello(proto: int, version_code: int, nick: String, char_id: String) ->
 	remote_character_id = cid
 	guest_peer_id = sender
 	_handshake_ok = true
-	Game.add_friend(clean)
 	_rpc_welcome.rpc_id(sender, _nick(), str(Game.current_character_id), slot, game_mode)
 	_broadcast_roster()
 	toast_requested.emit("Amigo entrou")
@@ -591,7 +704,6 @@ func _rpc_welcome(host_nick: String, host_char: String, assigned_slot: int = 1, 
 	local_coop_slot = assigned_slot if assigned_slot > 0 else 1
 	game_mode = mode_id
 	_handshake_ok = true
-	Game.add_friend(remote_nick)
 	toast_requested.emit("Amigo entrou")
 	peer_joined.emit(remote_nick)
 
@@ -974,6 +1086,12 @@ func _in_boot() -> bool:
 	)
 
 
+func _start_host_relay_bridge() -> void:
+	if not has_sala_meio() or not is_host() or room_code.is_empty():
+		return
+	_relay_bridge.start_host(_meio.host, _meio.relay_port(), room_code, ENET_PORT)
+
+
 func _try_meio_announce(tell_if_off: bool) -> void:
 	if _in_boot() or not has_sala_meio() or not is_host() or room_code.is_empty():
 		return
@@ -984,6 +1102,7 @@ func _try_meio_announce(tell_if_off: bool) -> void:
 				toast_requested.emit(MSG_PC_OFF)
 			return
 		_meio.announce(room_code, ENET_PORT, _nick(), _version_code())
+		_start_host_relay_bridge()
 		return
 	_meio.send_fire({
 		"op": "announce",
@@ -1006,30 +1125,38 @@ func _try_meio_lookup() -> void:
 		return
 	var reply: Dictionary = _meio.lookup(_listening_for_code)
 	if str(reply.get("op", "")) != "found":
-		toast_requested.emit(MSG_SALA_MISSING)
 		return
 	var code := RoomCode.normalize(str(reply.get("code", "")))
 	if code != _listening_for_code:
 		return
-	_listening_for_code = ""
-	_beacon.stop_listen()
 	var relay: int = int(reply.get("relay_port", _meio.relay_port()))
 	if relay <= 0:
 		relay = _meio.relay_port()
-	_connect_enet(_meio.host, relay)
+	var local_port: int = _relay_bridge.start_guest(_meio.host, relay, code)
+	if local_port < 1:
+		toast_requested.emit("Não deu para abrir o caminho da sala")
+		return
+	_listening_for_code = ""
+	_beacon.stop_listen()
+	_connect_enet("127.0.0.1", local_port)
 
 
 func _poll_meio_calls() -> void:
 	if _in_boot() or not has_sala_meio():
 		return
-	_meio.send_fire({"op": "presence", "name": _nick(), "code": room_code if is_host() else ""})
-	_meio.send_fire({"op": "poll", "name": _nick()})
+	var fid := _friend_id()
+	_meio.presence(_nick(), room_code if is_host() else "", fid)
+	var inbox: Dictionary = _meio.poll_calls(_nick(), fid)
+	_apply_meio_inbox(inbox)
 	for reply: Dictionary in _meio.drain():
-		if str(reply.get("op", "")) != "inbox":
-			continue
-		var calls: Variant = reply.get("calls", [])
-		if not calls is Array:
-			continue
+		_apply_meio_inbox(reply)
+
+
+func _apply_meio_inbox(reply: Dictionary) -> void:
+	if str(reply.get("op", "")) != "inbox":
+		return
+	var calls: Variant = reply.get("calls", [])
+	if calls is Array:
 		for item in calls:
 			if typeof(item) != TYPE_DICTIONARY:
 				continue
@@ -1038,3 +1165,35 @@ func _poll_meio_calls() -> void:
 			if from_nick.is_empty():
 				continue
 			toast_requested.emit("%s te chamou" % from_nick)
+	var invites: Variant = reply.get("invites", [])
+	if not invites is Array:
+		return
+	for item in invites:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var inv: Dictionary = item
+		var kind := str(inv.get("kind", ""))
+		var from_nick := Game.sanitize_player_name(str(inv.get("from", "")))
+		var from_id := str(inv.get("from_id", ""))
+		if kind == "friend":
+			if from_nick.is_empty():
+				from_nick = "Caçador"
+			var fresh := false
+			if is_instance_valid(Game):
+				fresh = Game.add_incoming_invite(from_id, from_nick)
+			if fresh:
+				toast_requested.emit("%s quer ser amigo" % from_nick)
+		elif kind == "friend_ok":
+			if from_nick.is_empty():
+				from_nick = "Amigo"
+			if is_instance_valid(Game):
+				Game.add_friend(from_nick, from_id)
+			toast_requested.emit("%s aceitou" % from_nick)
+		elif kind == "room":
+			var code := RoomCode.normalize(str(inv.get("code", "")))
+			if not RoomCode.is_valid(code):
+				continue
+			if from_nick.is_empty():
+				from_nick = "Amigo"
+			toast_requested.emit("%s te chamou pra sala" % from_nick)
+			room_invite_received.emit(from_nick, code)

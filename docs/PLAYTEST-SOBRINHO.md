@@ -87,8 +87,8 @@ Data: ________  Dispositivo: ________  Quem jogou: ________
 Não entra no CI. Dois APKs (ou 2 instâncias Play no PC com `127.0.0.1`).
 
 1. Os dois no **mesmo Wi-Fi da casa** (sem rede de convidado isolado). Sem campo de IP — Criar/Entrar basta.
-2. Host: hub → Amigos → **Criar sala** → código de 6 na cara (tap copia). Escolhe **2 vs oni** (já vem marcado).
-3. Guest: **Entrar** → cola o código. Beacon acha no Wi-Fi; se não, a sala da estrela cobre.
+2. Host: hub → Amigos → **Criar sala** → código de 6 na cara (tap copia). Escolhe **2 vs oni** (já vem marcado). Ou **+** no amigo já aceito.
+3. Guest: entra pelo **+** do host, ou **Entrar** + código. Beacon acha no Wi-Fi; se não, a sala da estrela cobre.
 4. Host toca **JOGAR** → mapa → `w1_01`. Guest **não** escolhe fase (“O anfitrião escolhe a fase”).
 5. Os dois aparecem na fase; cada um controla o **próprio** caçador (touch no celular dele).
 6. Os dois batem oni. Um sai da sala → o outro não fica preso (guest cai → hub; host sozinho segue ou volta ao hub se ainda não entrou na fase).
@@ -102,11 +102,11 @@ Não entra no CI. Dois APKs (ou 2 instâncias Play no PC com `127.0.0.1`).
 
 Não entra no CI. O sobrinho **não liga PC**. Cada um na sua casa (ou 4G).
 
-1. Os dois no hub → Amigos. Sem colar IP.
-2. Host: **Criar sala** → código de 6 (Zap ainda vale).
-3. Guest em **outra rede** (ou 4G): **Entrar** + código. Beacon falha; a sala da estrela (já no APK) responde o caminho.
-4. Host **JOGAR** → mapa → fase. Guest não escolhe fase.
-5. Toque no **nome** (não o x): se o amigo estiver no hub, ele vê o chamado. Se não estiver: texto PT, sala não quebra.
+1. Os dois no hub → Amigos. Cada um vê o **código de amigo** (8). Sem colar IP.
+2. Host manda o código no Zap. Sobrinho: **Adicionar amigo** → cola → **Enviar convite**. Host **Aceita**.
+3. Host: **Criar sala**. Na lista, toca **+** no sobrinho (não o x). O celular dele entra sozinho.
+4. Reserva: **Entrar** + código de 6 da sala (Zap ainda vale) se o + não achar.
+5. Host **JOGAR** → mapa → fase. Guest não escolhe fase.
 6. Se a sala da estrela cair: o jogo **ainda abre**. Criar/Entrar avisa “A sala da estrela está desligada”. Loading **não** fala “Conectando-se…”. Wi-Fi da mesma casa continua.
 
 **Reserva de dev (PC):** `tools/ligar_computador_da_sala.ps1` no editor. Não é o caminho do sobrinho.

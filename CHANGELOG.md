@@ -14,12 +14,12 @@
 - Quatro modos na sala: 2 vs oni, 4 vs oni, mapa, 1v1
 - Cada caçador: ataque, skills e botões próprios (andar/pulo/dash iguais)
 
-## Unreleased — sala de outra casa
+## Unreleased — casa↔casa + convite de amigo
 
-- Amigo na casa dele entra na sala (2 vs oni) pelo **computador da sala** no PC do Matheus
-- LAN da onda 2 permanece (beacon Wi-Fi primeiro)
-- Toque no nome chama se o PC vir o nick; código de 6 continua
-- Sem Firebase, Play Games, Hostinger; `max_clients = 1`; JOGAR ainda abre o mapa
+- Entre casas o celular **só sai** pro VPS (ponte UDP). Não depende mais da porta 17777 da casa.
+- Código de amigo (8): manda convite → a pessoa aceita → fica na lista
+- **+** chama pra sala já criada; Entrar + código de 6 continua
+- Sem Firebase, Play Games, Hostinger; JOGAR ainda abre o mapa
 
 ## 0.0.3 — efeitos + próxima fase (2026-09-01)
 

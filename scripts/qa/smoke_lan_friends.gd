@@ -116,6 +116,16 @@ func _test_room_code() -> void:
 	if not RoomCode.is_valid(n):
 		_fail("K7H4MP deveria ser válido")
 		return
+	var fid: String = str(FriendCode.generate())
+	if fid.length() != 8 or not FriendCode.is_valid(fid):
+		_fail("FriendCode inválido: %s" % fid)
+		return
+	if FriendCode.is_valid("K7H4MP"):
+		_fail("FriendCode aceitou código de sala (6)")
+		return
+	if FriendCode.is_valid("O0I1ABCD"):
+		_fail("FriendCode aceitou O/0/I/1")
+		return
 	_pass("RoomCode gera 6 e rejeita O/0/I/1")
 
 
@@ -129,6 +139,17 @@ func _test_friends_save() -> void:
 	var friends: Array = _game.get("friends")
 	if friends.size() != 1:
 		_fail("upsert duplicou: %d" % friends.size())
+		return
+	if not bool(_game.call("add_friend", "Sobrinho", "ABCD2345")):
+		_fail("add_friend com friend_id")
+		return
+	friends = _game.get("friends")
+	if friends.size() != 1 or str(friends[0].get("friend_id", "")) != "ABCD2345":
+		_fail("friend_id não grudou: %s" % friends)
+		return
+	var my_code: String = str(_game.call("ensure_friend_code"))
+	if not FriendCode.is_valid(my_code):
+		_fail("ensure_friend_code=%s" % my_code)
 		return
 	if str(friends[0].get("name", "")).find("ip") >= 0:
 		_fail("nome contém ip")
@@ -297,8 +318,18 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	if _find_label(fp, "Mesmo Wi-Fi ou outra casa.\nSem VPN.") == null:
-		_fail("dica Sem VPN sumiu ou quebrou")
+	if _find_button(fp, "Adicionar amigo") == null:
+		_fail("sem botão Adicionar amigo")
+		inst.queue_free()
+		await process_frame
+		return
+	if _find_label(fp, "Seu código") == null:
+		_fail("gaveta sem Seu código")
+		inst.queue_free()
+		await process_frame
+		return
+	if _find_label(fp, "Manda seu código. Ele aceita.\nDepois o + chama pra sala.") == null:
+		_fail("dica de convite sumiu ou quebrou")
 		inst.queue_free()
 		await process_frame
 		return
@@ -332,7 +363,7 @@ func _test_hub_panel() -> void:
 			inst.queue_free()
 			await process_frame
 			return
-	var hint_lan: Label = _find_label(fp, "Mesmo Wi-Fi ou outra casa.\nSem VPN.")
+	var hint_lan: Label = _find_label(fp, "Manda seu código. Ele aceita.\nDepois o + chama pra sala.")
 	if hint_lan != null and play.visible:
 		var h_over: Rect2 = hint_lan.get_global_rect().intersection(play.get_global_rect())
 		if h_over.size.x > 4.0 and h_over.size.y > 4.0:
@@ -413,23 +444,31 @@ func _find_line_placeholder(n: Node, needle: String) -> LineEdit:
 
 
 func _find_friend_remove_btn(n: Node, friend_name: String) -> Button:
+	return _find_friend_row_btn(n, friend_name, "x")
+
+
+func _find_friend_plus_btn(n: Node, friend_name: String) -> Button:
+	return _find_friend_row_btn(n, friend_name, "+")
+
+
+func _find_friend_row_btn(n: Node, friend_name: String, label: String) -> Button:
 	if n.name == "FriendRows":
 		for row: Node in n.get_children():
 			if row.is_queued_for_deletion():
 				continue
 			var match_name := false
-			var xbtn: Button = null
+			var hit: Button = null
 			for c: Node in row.get_children():
 				if c is Label and str((c as Label).text).contains(friend_name):
 					match_name = true
-				if c is Button and (c as Button).text == "x":
-					xbtn = c as Button
+				if c is Button and (c as Button).text == label:
+					hit = c as Button
 			if match_name:
-				return xbtn
+				return hit
 	for c: Node in n.get_children():
-		var hit: Button = _find_friend_remove_btn(c, friend_name)
-		if hit != null:
-			return hit
+		var nested: Button = _find_friend_row_btn(c, friend_name, label)
+		if nested != null:
+			return nested
 	return null
 
 
@@ -712,6 +751,7 @@ func _test_mode_options() -> void:
 		inst.queue_free()
 		await process_frame
 		return
+	var lan: Node = root.get_node_or_null("LanSession")
 	var hosted: bool = lan != null and bool(lan.call("is_host"))
 	if hosted and not start_btn.visible:
 		_fail("Começar escondido com a sala aberta no mapa")
@@ -724,7 +764,6 @@ func _test_mode_options() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	var lan: Node = root.get_node_or_null("LanSession")
 	if lan != null:
 		lan.call("close_session")
 	inst.queue_free()
@@ -1008,6 +1047,12 @@ func _test_call_name_not_x() -> void:
 		inst.queue_free()
 		await process_frame
 		return
+	var plus: Button = _find_friend_plus_btn(fp, "SobrinhoQA")
+	if plus == null:
+		_fail("chamar: sem botão + do SobrinhoQA")
+		inst.queue_free()
+		await process_frame
+		return
 	var lan: Node = root.get_node_or_null("LanSession")
 	var toasts: Array[String] = []
 	var cb := func(t: String) -> void:
@@ -1016,11 +1061,11 @@ func _test_call_name_not_x() -> void:
 		lan.toast_requested.connect(cb)
 	if lan != null:
 		lan.call("set_sala_meio", "")
-		lan.call("call_friend", "SobrinhoQA")
-	var need_pc := false
+		lan.call("invite_friend_to_room", "SobrinhoQA")
+	var need_room := false
 	for t in toasts:
-		if t.contains("código") or t.contains("computador da sala"):
-			need_pc = true
+		if t.contains("Cria a sala") or t.contains("código"):
+			need_room = true
 			break
 	if lan != null and lan.toast_requested.is_connected(cb):
 		lan.toast_requested.disconnect(cb)
@@ -1046,13 +1091,13 @@ func _test_call_name_not_x() -> void:
 				after += 1
 	inst.queue_free()
 	await process_frame
-	if not need_pc:
-		_fail("toque no nome sem PC não avisou (toasts=%s)" % str(toasts))
+	if not need_room:
+		_fail("+ sem sala não avisou (toasts=%s)" % str(toasts))
 		return
 	if before < 1 or after != 0:
 		_fail("x não apagou o amigo (antes=%d depois=%d)" % [before, after])
 		return
-	_pass("toque no nome chama; x apaga")
+	_pass("+ chama pra sala; x apaga")
 
 
 func _test_meio_two_process(lan: Node) -> void:
@@ -1140,6 +1185,40 @@ func _test_meio_two_process(lan: Node) -> void:
 		OS.kill(pid)
 		lan.call("set_sala_meio", "")
 		_fail("poll devolveu code da sala: %s" % inbox)
+		return
+	var host_id := "ABCD2345"
+	var kid_id := "EFGH6789"
+	client.presence("SobrinhoQA", "", kid_id)
+	var finv: Dictionary = client.friend_invite(host_id, "HostSmoke", kid_id)
+	if str(finv.get("op", "")) != "invited":
+		OS.kill(pid)
+		lan.call("set_sala_meio", "")
+		_fail("friend_invite = %s" % finv)
+		return
+	var finbox: Dictionary = client.poll_calls("SobrinhoQA", kid_id)
+	var saw_friend := false
+	var finvites: Variant = finbox.get("invites", [])
+	if finvites is Array:
+		for item in finvites:
+			if typeof(item) == TYPE_DICTIONARY and str((item as Dictionary).get("kind", "")) == "friend":
+				saw_friend = true
+	if not saw_friend:
+		OS.kill(pid)
+		lan.call("set_sala_meio", "")
+		_fail("poll sem convite de amigo: %s" % finbox)
+		return
+	var facc: Dictionary = client.friend_accept(kid_id, "SobrinhoQA", host_id)
+	if str(facc.get("op", "")) != "accepted":
+		OS.kill(pid)
+		lan.call("set_sala_meio", "")
+		_fail("friend_accept = %s" % facc)
+		return
+	client.presence("SobrinhoQA", "", kid_id)
+	var rinv: Dictionary = client.room_invite(host_id, "HostSmoke", kid_id, "K7H4MP")
+	if str(rinv.get("op", "")) != "invited":
+		OS.kill(pid)
+		lan.call("set_sala_meio", "")
+		_fail("room_invite = %s" % rinv)
 		return
 	lan.call("join_room", "K7H4MP")
 	if not bool(lan.call("is_guest")):

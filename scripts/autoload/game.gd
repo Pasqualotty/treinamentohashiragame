@@ -27,8 +27,11 @@ signal player_name_changed(new_name: String)
 signal character_changed(character_id: String)
 ## Lista local de amigos (LAN). Sem IP.
 signal friends_changed
+## Convites de amigo (entrada / saída) mudaram.
+signal friend_invites_changed
 
 const FRIENDS_CAP := 16
+const PENDING_CAP := 16
 
 var coins_banked: int = 0
 ## Vazio = jogador ainda nao passou pelo onboarding de nome.
@@ -51,8 +54,14 @@ var audio_volume_sfx: float = 0.45  # era 1.0  — alto demais no device
 var pending_stage_id: String = "w1_01"
 ## Mundo visível no mapa. Persistido; o mapa clampa se ainda estiver trancado.
 var current_world_id: String = "w1"
-## Amigos LAN: `{name, added_unix}`. Save legado sem a chave = [].
+## Amigos LAN: `{name, friend_id, added_unix}`. Save legado sem a chave = [].
 var friends: Array[Dictionary] = []
+## Código de amigo persistente (8). Gerado na primeira vez.
+var friend_code: String = ""
+## Convites recebidos: `{friend_id, name}`.
+var pending_in: Array[Dictionary] = []
+## Convites enviados: `{friend_id, name}`.
+var pending_out: Array[Dictionary] = []
 
 var _catalog: Array[UpgradeDef] = []
 var _catalog_loaded: bool = false
@@ -161,21 +170,138 @@ func set_player_name(raw: String) -> bool:
 	return true
 
 
+func ensure_friend_code() -> String:
+	if FriendCode.is_valid(friend_code):
+		return FriendCode.normalize(friend_code)
+	friend_code = FriendCode.generate()
+	return friend_code
+
+
 ## Upsert pelo nome sanitizado. Recusa invisível. Cap 16. Sem IP.
-func add_friend(raw_name: String) -> bool:
+func add_friend(raw_name: String, raw_id: String = "") -> bool:
 	var clean := sanitize_player_name(raw_name)
 	if clean.is_empty():
 		return false
+	var fid := FriendCode.normalize(raw_id) if FriendCode.is_valid(raw_id) else ""
 	for i in friends.size():
-		if str(friends[i].get("name", "")) == clean:
+		var have_id := str(friends[i].get("friend_id", ""))
+		var same_id: bool = not fid.is_empty() and have_id == fid
+		var same_name: bool = str(friends[i].get("name", "")) == clean
+		var attach_id: bool = not fid.is_empty() and same_name and have_id.is_empty()
+		if same_id or attach_id or (fid.is_empty() and same_name):
 			friends[i]["name"] = clean
+			if not fid.is_empty():
+				friends[i]["friend_id"] = fid
 			friends_changed.emit()
 			save_game()
 			return true
 	if friends.size() >= FRIENDS_CAP:
 		return false
-	friends.append({"name": clean, "added_unix": int(Time.get_unix_time_from_system())})
+	var rec: Dictionary = {"name": clean, "added_unix": int(Time.get_unix_time_from_system())}
+	if not fid.is_empty():
+		rec["friend_id"] = fid
+	friends.append(rec)
+	_drop_pending(fid)
 	friends_changed.emit()
+	save_game()
+	return true
+
+
+func friend_id_of(raw_name: String) -> String:
+	var clean := sanitize_player_name(raw_name)
+	if clean.is_empty():
+		return ""
+	for d in friends:
+		if str(d.get("name", "")) == clean:
+			var fid := str(d.get("friend_id", ""))
+			return FriendCode.normalize(fid) if FriendCode.is_valid(fid) else ""
+	return ""
+
+
+func has_friend_id(raw_id: String) -> bool:
+	if not FriendCode.is_valid(raw_id):
+		return false
+	var fid := FriendCode.normalize(raw_id)
+	for d in friends:
+		if str(d.get("friend_id", "")) == fid:
+			return true
+	return false
+
+
+func remember_outgoing_invite(raw_id: String, raw_name: String) -> bool:
+	if not FriendCode.is_valid(raw_id):
+		return false
+	var fid := FriendCode.normalize(raw_id)
+	var clean := sanitize_player_name(raw_name)
+	if clean.is_empty():
+		clean = "Caçador"
+	for i in pending_out.size():
+		if str(pending_out[i].get("friend_id", "")) == fid:
+			pending_out[i]["name"] = clean
+			friend_invites_changed.emit()
+			save_game()
+			return true
+	if pending_out.size() >= PENDING_CAP:
+		return false
+	pending_out.append({"friend_id": fid, "name": clean})
+	friend_invites_changed.emit()
+	save_game()
+	return true
+
+
+func add_incoming_invite(raw_id: String, raw_name: String) -> bool:
+	if not FriendCode.is_valid(raw_id):
+		return false
+	var fid := FriendCode.normalize(raw_id)
+	if has_friend_id(fid) or fid == ensure_friend_code():
+		return false
+	var clean := sanitize_player_name(raw_name)
+	if clean.is_empty():
+		clean = "Caçador"
+	for i in pending_in.size():
+		if str(pending_in[i].get("friend_id", "")) == fid:
+			if str(pending_in[i].get("name", "")) != clean:
+				pending_in[i]["name"] = clean
+				friend_invites_changed.emit()
+				save_game()
+			return false
+	if pending_in.size() >= PENDING_CAP:
+		return false
+	pending_in.append({"friend_id": fid, "name": clean})
+	friend_invites_changed.emit()
+	save_game()
+	return true
+
+
+func _drop_pending(fid: String) -> void:
+	if fid.is_empty():
+		return
+	var pin: Array[Dictionary] = []
+	for d in pending_in:
+		if str(d.get("friend_id", "")) != fid:
+			pin.append(d)
+	var pout: Array[Dictionary] = []
+	for d in pending_out:
+		if str(d.get("friend_id", "")) != fid:
+			pout.append(d)
+	pending_in = pin
+	pending_out = pout
+	friend_invites_changed.emit()
+
+
+func remove_incoming_invite(raw_id: String) -> bool:
+	if not FriendCode.is_valid(raw_id):
+		return false
+	var fid := FriendCode.normalize(raw_id)
+	var before: int = pending_in.size()
+	var kept: Array[Dictionary] = []
+	for d in pending_in:
+		if str(d.get("friend_id", "")) != fid:
+			kept.append(d)
+	pending_in = kept
+	if pending_in.size() == before:
+		return false
+	friend_invites_changed.emit()
 	save_game()
 	return true
 
@@ -423,6 +549,9 @@ func _save_payload() -> Dictionary:
 		"stages_cleared": stages_cleared,
 		"upgrades": upgrades,
 		"friends": _friends_payload(),
+		"friend_code": ensure_friend_code(),
+		"friend_pending_in": _pending_payload(pending_in),
+		"friend_pending_out": _pending_payload(pending_out),
 	}
 
 
@@ -432,10 +561,27 @@ func _friends_payload() -> Array:
 		var name := sanitize_player_name(str(d.get("name", "")))
 		if name.is_empty():
 			continue
-		out.append({
+		var rec: Dictionary = {
 			"name": name,
 			"added_unix": int(d.get("added_unix", 0)),
-		})
+		}
+		var fid := str(d.get("friend_id", ""))
+		if FriendCode.is_valid(fid):
+			rec["friend_id"] = FriendCode.normalize(fid)
+		out.append(rec)
+	return out
+
+
+func _pending_payload(src: Array[Dictionary]) -> Array:
+	var out: Array = []
+	for d in src:
+		var fid := str(d.get("friend_id", ""))
+		if not FriendCode.is_valid(fid):
+			continue
+		var name := sanitize_player_name(str(d.get("name", "")))
+		if name.is_empty():
+			name = "Caçador"
+		out.append({"friend_id": FriendCode.normalize(fid), "name": name})
 	return out
 
 
@@ -466,6 +612,8 @@ func _apply_save_data(data: Dictionary) -> void:
 	if unlocked_characters.is_empty():
 		unlocked_characters.append("tanjiro")
 	_load_friends(data)
+	_load_friend_code(data)
+	_load_pending(data)
 	_sync_character_unlocks()
 
 
@@ -492,10 +640,54 @@ func _load_friends(data: Dictionary) -> void:
 				break
 		if exists:
 			continue
-		friends.append({
+		var rec: Dictionary = {
 			"name": name,
 			"added_unix": int(d.get("added_unix", 0)),
-		})
+		}
+		var fid := str(d.get("friend_id", ""))
+		if FriendCode.is_valid(fid):
+			rec["friend_id"] = FriendCode.normalize(fid)
+		friends.append(rec)
+
+
+func _load_friend_code(data: Dictionary) -> void:
+	var raw := str(data.get("friend_code", ""))
+	if FriendCode.is_valid(raw):
+		friend_code = FriendCode.normalize(raw)
+	else:
+		friend_code = FriendCode.generate()
+
+
+func _load_pending(data: Dictionary) -> void:
+	pending_in = _parse_pending(data.get("friend_pending_in", []))
+	pending_out = _parse_pending(data.get("friend_pending_out", []))
+
+
+func _parse_pending(raw: Variant) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if not raw is Array:
+		return out
+	for item in raw:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var d: Dictionary = item
+		var fid := str(d.get("friend_id", ""))
+		if not FriendCode.is_valid(fid):
+			continue
+		var name := sanitize_player_name(str(d.get("name", "")))
+		if name.is_empty():
+			name = "Caçador"
+		var exists := false
+		for e in out:
+			if str(e.get("friend_id", "")) == FriendCode.normalize(fid):
+				exists = true
+				break
+		if exists:
+			continue
+		if out.size() >= PENDING_CAP:
+			break
+		out.append({"friend_id": FriendCode.normalize(fid), "name": name})
+	return out
 
 
 func _ensure_catalog() -> void:

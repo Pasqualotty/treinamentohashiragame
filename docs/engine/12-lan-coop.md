@@ -20,7 +20,7 @@ O sobrinho joga no **telefone**. PC é reserva de dev, não o caminho dele.
 ## Ordem de join (não inverter)
 
 1. **Beacon Wi-Fi** (~2,5 s). Se achar, conecta no IP do pacote. LAN da onda 2 **não some**.
-2. Se não achar: pergunta à **sala da estrela** (host baked em `hashira/sala_host`). O guest entra no **relay** (`host:porta+1`).
+2. Se não achar: pergunta à **sala da estrela** (host baked em `hashira/sala_host`). Os dois abrem uma **ponte UDP local** e só saem pro relay (`host:porta+1`). O VPS encaminha pelo endereço NAT real — não manda mais em `:17777` da casa.
 3. Se a sala estiver desligada: o jogo **já abriu**; Criar/Entrar avisa em PT (“A sala da estrela está desligada”). Boot **nunca** “Conectando-se…”.
 4. Reserva de dev: `LanSession.join_by_ip` no editor. **Não** aparece na gaveta.
 
@@ -38,7 +38,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/ligar_computador_da_sa
 
 - Acha o código de 6 → IP/porta do host (o IP vem do datagrama, **não** do JSON do celular).
 - 4G: UDP primeiro; senão HTTP 8080 / TCP 17779.
-- Se o NAT da operadora bloquear o caminho direto, o **mesmo** host relaya o UDP do ENet.
+- Se o NAT da operadora bloquear o caminho direto, o **mesmo** host relaya o UDP do ENet **com os dois saindo** (bind/join no 17780). Pacote ENet até 4096.
+- Código de amigo (8) + convite/aceite. **+** na lista manda convite de sala (com code). Poll de `calls` antigo **não** leva code.
 - Nick + “está numa sala / não está”. Sem e-mail, telefone, Google.
 - Sala caiu: casa↔casa para; o Wi-Fi da sala continua.
 
@@ -46,11 +47,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/ligar_computador_da_sa
 
 Charset `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (sem 0/O/I/1). Zap ainda vale.
 
-Toque no **nome** da lista (não o **x**): se a sala vir o nick online, manda o chamado. Offline: “O amigo não está aí agora”. Sem sala no APK: “Mande o código da sala”.
+Toque no **+** (não o **x**): se a sala já existe e o amigo está no hub, ele entra. Sem sala criada: “Cria a sala primeiro”. Offline: “O amigo não está aí agora”. Sem sala no APK: “Mande o código da sala”.
 
 ## Save
 
-`friends` = `{name, added_unix}` só. **Sem IP**. O endereço da sala vive no ProjectSettings / autoload, não no `user://save.json`.
+`friends` = `{name, friend_id, added_unix}` + `friend_code` (8). **Sem IP**. O endereço da sala vive no ProjectSettings / autoload, não no `user://save.json`.
 
 ## Quem simula
 

@@ -2,7 +2,7 @@ extends Control
 ## Gaveta direita do hub: lista de amigos + sala LAN. Começa fechada.
 ## Abre por cima do hub — sem change_scene / go_to.
 
-enum View { LIST, HOST, JOIN, GUEST_WAIT }
+enum View { LIST, HOST, JOIN, GUEST_WAIT, ADD_FRIEND }
 
 const COL_MIN_WIDTH := 320.0
 const DRAWER_W := 360.0
@@ -17,9 +17,13 @@ var _list_box: VBoxContainer
 var _host_box: VBoxContainer
 var _join_box: VBoxContainer
 var _wait_box: VBoxContainer
+var _add_box: VBoxContainer
 var _code_label: Label
 var _status_label: Label
 var _code_input: LineEdit
+var _friend_input: LineEdit
+var _my_code_label: Label
+var _host_invite_box: VBoxContainer
 var _toast: Label
 var _toast_tween: Tween
 var _scroll: ScrollContainer
@@ -234,10 +238,27 @@ func _build() -> void:
 	_scroll.add_child(rows)
 	_list_box.set_meta("rows", rows)
 	_scroll.resized.connect(_sync_rows_width)
+	var my_l := Label.new()
+	my_l.text = "Seu código"
+	my_l.add_theme_font_size_override("font_size", 14)
+	my_l.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(my_l, false)
+	_list_box.add_child(my_l)
+	_my_code_label = Label.new()
+	_my_code_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_my_code_label.add_theme_font_size_override("font_size", 26)
+	_my_code_label.add_theme_color_override("font_color", Palette.GOLD_BRIGHT)
+	_my_code_label.add_theme_color_override("font_shadow_color", Palette.SHADOW)
+	_my_code_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	_my_code_label.gui_input.connect(_on_my_code_gui)
+	_fit_label(_my_code_label, false)
+	_list_box.add_child(_my_code_label)
+	_refresh_my_code()
+	_list_box.add_child(_plate_btn("Adicionar amigo", _on_add_open_pressed))
 	_list_box.add_child(_plate_btn("Criar sala", _on_create_pressed))
 	_list_box.add_child(_plate_btn("Entrar", _on_join_open_pressed))
 	var hint := Label.new()
-	hint.text = "Mesmo Wi-Fi ou outra casa.\nSem VPN."
+	hint.text = "Manda seu código. Ele aceita.\nDepois o + chama pra sala."
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
 	_fit_label(hint, true)
@@ -282,6 +303,16 @@ func _build() -> void:
 	_start_btn = _plate_btn("Começar", _on_start_pressed)
 	_start_btn.visible = false
 	_host_box.add_child(_start_btn)
+	var invite_l := Label.new()
+	invite_l.text = "Chamar amigo"
+	invite_l.add_theme_font_size_override("font_size", 14)
+	invite_l.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(invite_l, false)
+	_host_box.add_child(invite_l)
+	_host_invite_box = VBoxContainer.new()
+	_host_invite_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_host_invite_box.add_theme_constant_override("separation", 6)
+	_host_box.add_child(_host_invite_box)
 	_host_box.add_child(_plate_btn("Fechar sala", _on_close_room))
 
 	_join_box = VBoxContainer.new()
@@ -303,6 +334,26 @@ func _build() -> void:
 	_join_box.add_child(_code_input)
 	_join_box.add_child(_plate_btn("Entrar", _on_join_confirm))
 	_join_box.add_child(_plate_btn("VOLTAR", _on_close_room))
+
+	_add_box = VBoxContainer.new()
+	_add_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_add_box.add_theme_constant_override("separation", 8)
+	root.add_child(_add_box)
+	var add_l := Label.new()
+	add_l.text = "Código de amigo"
+	add_l.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(add_l, false)
+	_add_box.add_child(add_l)
+	_friend_input = LineEdit.new()
+	_friend_input.max_length = 8
+	_friend_input.placeholder_text = "ABCD2345"
+	_friend_input.custom_minimum_size = Vector2(0, TOUCH_MIN)
+	_friend_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_friend_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_DEFAULT
+	_friend_input.text_changed.connect(_on_friend_code_typed)
+	_add_box.add_child(_friend_input)
+	_add_box.add_child(_plate_btn("Enviar convite", _on_friend_invite_confirm))
+	_add_box.add_child(_plate_btn("VOLTAR", _on_add_back))
 
 	_wait_box = VBoxContainer.new()
 	_wait_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -401,6 +452,10 @@ func _bind_session() -> void:
 		LanSession.mode_changed.connect(_on_mode_changed)
 	if not Game.friends_changed.is_connected(_refresh_list):
 		Game.friends_changed.connect(_refresh_list)
+	if Game.has_signal("friend_invites_changed") and not Game.friend_invites_changed.is_connected(_refresh_list):
+		Game.friend_invites_changed.connect(_refresh_list)
+	if LanSession.has_signal("room_invite_received") and not LanSession.room_invite_received.is_connected(_on_room_invite):
+		LanSession.room_invite_received.connect(_on_room_invite)
 
 
 func _process(_delta: float) -> void:
@@ -418,15 +473,49 @@ func _show(v: int) -> void:
 	_host_box.visible = v == View.HOST
 	_join_box.visible = v == View.JOIN
 	_wait_box.visible = v == View.GUEST_WAIT
+	if _add_box != null:
+		_add_box.visible = v == View.ADD_FRIEND
+	if v == View.HOST:
+		_refresh_host_invites()
+	if v == View.LIST:
+		_refresh_my_code()
+		_refresh_list()
+
+
+func _refresh_my_code() -> void:
+	if _my_code_label == null or not is_instance_valid(Game):
+		return
+	_my_code_label.text = Game.ensure_friend_code()
 
 
 func _refresh_list() -> void:
+	if _list_box == null or not _list_box.has_meta("rows"):
+		return
 	var rows: VBoxContainer = _list_box.get_meta("rows") as VBoxContainer
 	if rows == null:
 		return
 	for c: Node in rows.get_children():
 		c.queue_free()
-	if Game.friends.is_empty():
+	_refresh_my_code()
+	var has_pending: bool = not Game.pending_in.is_empty() or not Game.pending_out.is_empty()
+	if not Game.pending_in.is_empty():
+		var pend_l := Label.new()
+		pend_l.text = "Convites"
+		pend_l.add_theme_font_size_override("font_size", 14)
+		pend_l.add_theme_color_override("font_color", Palette.GOLD_BRIGHT)
+		_fit_label(pend_l, false)
+		rows.add_child(pend_l)
+		for d in Game.pending_in:
+			rows.add_child(_pending_row(str(d.get("name", "Caçador")), str(d.get("friend_id", ""))))
+	if not Game.pending_out.is_empty():
+		for d in Game.pending_out:
+			var wait := Label.new()
+			wait.text = "Aguardando %s…" % str(d.get("name", "amigo"))
+			wait.add_theme_font_size_override("font_size", 14)
+			wait.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
+			_fit_label(wait, true)
+			rows.add_child(wait)
+	if Game.friends.is_empty() and not has_pending:
 		var empty := Label.new()
 		empty.text = "Ninguém"
 		empty.add_theme_font_size_override("font_size", 16)
@@ -434,28 +523,83 @@ func _refresh_list() -> void:
 		_fit_label(empty, false)
 		rows.add_child(empty)
 		_sync_rows_width()
+		_refresh_host_invites()
 		return
 	for d in Game.friends:
 		var name := str(d.get("name", ""))
-		var row := HBoxContainer.new()
-		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var lbl := Label.new()
-		lbl.text = "• " + name
-		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		lbl.add_theme_color_override("font_color", Palette.CREAM)
-		lbl.mouse_filter = Control.MOUSE_FILTER_STOP
-		lbl.gui_input.connect(_make_call_handler(name))
-		_fit_label(lbl, false)
-		row.add_child(lbl)
+		rows.add_child(_friend_row(name, true))
+	_sync_rows_width()
+	_refresh_host_invites()
+
+
+func _pending_row(friend_name: String, friend_id: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 6)
+	var lbl := Label.new()
+	lbl.text = friend_name
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	lbl.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(lbl, false)
+	row.add_child(lbl)
+	var ok := _plate_btn("Aceitar", func() -> void:
+		if is_instance_valid(LanSession):
+			LanSession.accept_friend_invite(friend_id)
+	)
+	ok.custom_minimum_size = Vector2(96, TOUCH_MIN)
+	row.add_child(ok)
+	var no := _plate_btn("Não", func() -> void:
+		if is_instance_valid(LanSession):
+			LanSession.decline_friend_invite(friend_id)
+	)
+	no.custom_minimum_size = Vector2(72, TOUCH_MIN)
+	row.add_child(no)
+	return row
+
+
+func _friend_row(friend_name: String, with_remove: bool) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 6)
+	var lbl := Label.new()
+	lbl.text = "• " + friend_name
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	lbl.add_theme_color_override("font_color", Palette.CREAM)
+	_fit_label(lbl, false)
+	row.add_child(lbl)
+	var plus := Button.new()
+	plus.text = "+"
+	plus.custom_minimum_size = Vector2(TOUCH_MIN, TOUCH_MIN)
+	plus.focus_mode = Control.FOCUS_NONE
+	plus.pressed.connect(_make_invite_handler(friend_name))
+	row.add_child(plus)
+	if with_remove:
 		var rm := Button.new()
 		rm.text = "x"
 		rm.custom_minimum_size = Vector2(TOUCH_MIN, TOUCH_MIN)
 		rm.focus_mode = Control.FOCUS_NONE
-		rm.pressed.connect(_make_remove_handler(name))
+		rm.pressed.connect(_make_remove_handler(friend_name))
 		row.add_child(rm)
-		rows.add_child(row)
-	_sync_rows_width()
+	return row
+
+
+func _refresh_host_invites() -> void:
+	if _host_invite_box == null:
+		return
+	for c: Node in _host_invite_box.get_children():
+		c.queue_free()
+	if Game.friends.is_empty():
+		var empty := Label.new()
+		empty.text = "Ninguém na lista ainda"
+		empty.add_theme_font_size_override("font_size", 14)
+		empty.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
+		_fit_label(empty, true)
+		_host_invite_box.add_child(empty)
+		return
+	for d in Game.friends:
+		_host_invite_box.add_child(_friend_row(str(d.get("name", "")), false))
 
 
 func _make_remove_handler(friend_name: String) -> Callable:
@@ -463,21 +607,63 @@ func _make_remove_handler(friend_name: String) -> Callable:
 		Game.remove_friend(friend_name)
 
 
-func _make_call_handler(friend_name: String) -> Callable:
-	return func(event: InputEvent) -> void:
-		if not event.is_pressed():
-			return
-		if event is InputEventMouseButton:
-			if (event as InputEventMouseButton).button_index != MOUSE_BUTTON_LEFT:
-				return
-		elif not (event is InputEventScreenTouch):
-			return
+func _make_invite_handler(friend_name: String) -> Callable:
+	return func() -> void:
 		_on_call_friend(friend_name)
 
 
 func _on_call_friend(friend_name: String) -> void:
 	if is_instance_valid(LanSession):
-		LanSession.call_friend(friend_name)
+		LanSession.invite_friend_to_room(friend_name)
+
+
+func _on_add_open_pressed() -> void:
+	if _friend_input != null:
+		_friend_input.text = ""
+	_show(View.ADD_FRIEND)
+
+
+func _on_add_back() -> void:
+	_show(View.LIST)
+
+
+func _on_friend_code_typed(t: String) -> void:
+	var n := FriendCode.normalize(t)
+	if _friend_input.text != n:
+		_friend_input.text = n
+		_friend_input.caret_column = n.length()
+
+
+func _on_friend_invite_confirm() -> void:
+	if not is_instance_valid(LanSession) or _friend_input == null:
+		return
+	LanSession.send_friend_invite(_friend_input.text)
+
+
+func _on_my_code_gui(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		if _my_code_label != null and not _my_code_label.text.is_empty():
+			DisplayServer.clipboard_set(_my_code_label.text)
+			show_toast("Código copiado")
+	elif event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+		if _my_code_label != null and not _my_code_label.text.is_empty():
+			DisplayServer.clipboard_set(_my_code_label.text)
+			show_toast("Código copiado")
+
+
+func _on_room_invite(from_nick: String, code: String) -> void:
+	open_drawer()
+	if _code_input != null:
+		_code_input.text = RoomCode.normalize(code)
+	if is_instance_valid(LanSession) and LanSession.is_host():
+		show_toast("%s te chamou" % from_nick)
+		return
+	if is_instance_valid(LanSession) and LanSession.is_guest() and LanSession.has_peer():
+		return
+	show_toast("%s te chamou pra sala" % from_nick)
+	if is_instance_valid(LanSession):
+		LanSession.join_room(code)
+	_show(View.JOIN)
 
 
 func _on_create_pressed() -> void:

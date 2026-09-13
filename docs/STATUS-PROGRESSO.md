@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-12 (APK 0.0.7: sala no celular + kits únicos)
+**Atualizado:** 2026-09-13 (casa↔casa: ponte no VPS + convite de amigo)
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -78,7 +78,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_smokes.ps1
 | Créditos fan game | ✅ engrenagem do hub |
 | Pause na fase | ✅ Continuar / Mapa / Hub |
 | SceneRouter (shop/credits/mapa) | ✅ (hotfix 2026-08-07) |
-| Amigos + sala | ✅ Telefone: Wi-Fi ou sala da estrela (baked); sem campo de IP; modos 2/4 vs oni + portas; sem Firebase |
+| Amigos + sala | ✅ Convite/aceite + **+** na sala; Wi-Fi ou outra casa (ponte no VPS); sem campo de IP; modos 2/4 vs oni + portas; sem Firebase |
 
 ---
 
@@ -106,7 +106,7 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 | BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
 | UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
 | PERSONAGENS no hub | ✅ tela select real (15; portrait nos 15; locked recusa; save do id) |
-| Amigos / sala | ✅ Telefone: Wi-Fi ou outra casa via sala da estrela; sem IP na gaveta; 2 ou 4 vs oni; mapa/1v1 = 2P (amigo joga); clube/notícias/eventos ainda fora |
+| Amigos / sala | ✅ Código de amigo (8) + aceite; **+** chama pra sala; outra casa via ponte no VPS; sem IP na gaveta; 2 ou 4 vs oni; mapa/1v1 = 2P; clube/notícias/eventos ainda fora |
 | Missões / XP / clube no hub | GDD: fase 2+ / fora |
 
 ### 3) Conteúdo em escala (Fase F)
@@ -188,5 +188,5 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | 2026-09-10 | **Economia/skills:** loja `[50, 200, 420]`; Dano ripple nas skills/ult; kits com atk/s1/s2/ult/CD explícitos. Números canônicos em `GDD-DECISOES.md` §6/§9. |
 | 2026-09-10 | **Sala de outra casa:** PC do meio (3a) + chamar pelo nome. LAN Wi-Fi da onda 2 permanece. Sem Firebase/Play/Hostinger. |
 | 2026-09-12 | **Sala no celular:** gaveta sem IP; `hashira/sala_host` baked; HTTP/TCP + UDP; PC = reserva de dev. |
-| 2026-09-12 | **APK 0.0.7:** sala da estrela no celular (sem ligar PC); 4 modos com o amigo; ataque/skill/ícone por caçador. |
+| 2026-09-13 | **Casa↔casa + amigos:** ponte UDP no VPS (os dois só saem); convite de amigo com aceite; **+** chama pra sala. |
 | 2026-09-12 | **Mapa de batalha:** pátio grande, até 4, pads, barras de luta, skills/respiração no plano, De novo/Sair. |

@@ -27,11 +27,16 @@ DEFAULT_PORT = 17779
 DEFAULT_HTTP_PORT = 8080
 MAX_BYTES = 512
 HTTP_MAX = 4096
+RELAY_MAX = 4096
 ROOM_TTL = 90.0
 PRESENCE_TTL = 35.0
 CALL_TTL = 45.0
+FRIEND_INVITE_TTL = 86400.0
+ROOM_INVITE_TTL = 90.0
 CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 NICK_MAX = 14
+FRIEND_LEN = 8
+INBOX_CAP = 6
 
 
 def _now() -> float:
@@ -41,6 +46,15 @@ def _now() -> float:
 def _normalize_code(raw: object) -> str:
     s = str(raw or "").strip().replace(" ", "").upper()
     if len(s) != 6:
+        return ""
+    if any(c not in CHARSET for c in s):
+        return ""
+    return s
+
+
+def _normalize_friend_id(raw: object) -> str:
+    s = str(raw or "").strip().replace(" ", "").upper()
+    if len(s) != FRIEND_LEN:
         return ""
     if any(c not in CHARSET for c in s):
         return ""
@@ -116,7 +130,12 @@ class SalaMeio:
             self.http_port = 0
         self.rooms: dict[str, dict] = {}
         self.presence: dict[str, dict] = {}
+        self.presence_ids: dict[str, dict] = {}
         self.calls: dict[str, list[dict]] = {}
+        self.friend_pending: dict[str, list[dict]] = {}
+        self.friendships: dict[str, set[str]] = {}
+        self.invites: dict[str, list[dict]] = {}
+        self.relay_peers: dict[tuple[str, int], dict] = {}
         self.relay_host: tuple[str, int] | None = None
         self.relay_guest: tuple[str, int] | None = None
 
@@ -137,12 +156,34 @@ class SalaMeio:
         dead_nicks = [k for k, v in self.presence.items() if t - float(v["ts"]) > PRESENCE_TTL]
         for k in dead_nicks:
             self.presence.pop(k, None)
+        dead_ids = [k for k, v in self.presence_ids.items() if t - float(v["ts"]) > PRESENCE_TTL]
+        for k in dead_ids:
+            self.presence_ids.pop(k, None)
         for nick, items in list(self.calls.items()):
             kept = [c for c in items if t - float(c["ts"]) <= CALL_TTL]
             if kept:
                 self.calls[nick] = kept
             else:
                 self.calls.pop(nick, None)
+        for fid, items in list(self.friend_pending.items()):
+            kept = [c for c in items if t - float(c["ts"]) <= FRIEND_INVITE_TTL]
+            if kept:
+                self.friend_pending[fid] = kept
+            else:
+                self.friend_pending.pop(fid, None)
+        for fid, items in list(self.invites.items()):
+            kept = [c for c in items if t - float(c["ts"]) <= float(c.get("ttl") or ROOM_INVITE_TTL)]
+            if kept:
+                self.invites[fid] = kept
+            else:
+                self.invites.pop(fid, None)
+        dead_peers = []
+        for addr, rec in self.relay_peers.items():
+            code = str(rec.get("code") or "")
+            if code not in self.rooms:
+                dead_peers.append(addr)
+        for addr in dead_peers:
+            self.relay_peers.pop(addr, None)
 
     def handle_ctrl(self, data: bytes, addr: tuple[str, int]) -> bytes:
         self._expire()
@@ -174,6 +215,18 @@ class SalaMeio:
             return self._call(parsed)
         if op == "poll":
             return self._poll(parsed)
+        if op == "friend_invite":
+            return self._friend_invite(parsed)
+        if op == "friend_accept":
+            return self._friend_accept(parsed)
+        if op == "friend_decline":
+            return self._friend_decline(parsed)
+        if op == "room_invite":
+            return self._room_invite(parsed)
+        if op == "relay_bind":
+            return self._relay_bind(parsed, addr)
+        if op == "relay_join":
+            return self._relay_join(parsed, addr)
         return _reply("error", reason="op")
 
     def handle_http(self, data: bytes, addr: tuple[str, int]) -> bytes:
@@ -221,12 +274,15 @@ class SalaMeio:
             version_code = int(parsed.get("version_code") or 0)
         except (TypeError, ValueError):
             version_code = 0
+        prev = self.rooms.get(code, {})
         self.rooms[code] = {
             "ip": src_ip,
             "port": enet_port,
             "name": nick,
             "version_code": version_code,
             "ts": _now(),
+            "wan_host": prev.get("wan_host"),
+            "wan_guests": prev.get("wan_guests") or {},
         }
         self.presence[nick] = {"ts": _now(), "code": code, "ip": src_ip}
         host_tuple = (src_ip, enet_port)
@@ -262,12 +318,21 @@ class SalaMeio:
         if not nick:
             return _reply("error", reason="name")
         code = _normalize_code(parsed.get("code"))
+        friend_id = _normalize_friend_id(parsed.get("friend_id"))
         prev = self.presence.get(nick, {})
         self.presence[nick] = {
             "ts": _now(),
             "code": code or str(prev.get("code") or ""),
             "ip": src_ip,
+            "friend_id": friend_id or str(prev.get("friend_id") or ""),
         }
+        if friend_id:
+            self.presence_ids[friend_id] = {
+                "ts": _now(),
+                "name": nick,
+                "code": code or str(prev.get("code") or ""),
+                "ip": src_ip,
+            }
         return _reply("ok", name=nick)
 
     def _call(self, parsed: dict) -> bytes:
@@ -292,23 +357,262 @@ class SalaMeio:
         nick = _sanitize_nick(parsed.get("name"))
         if not nick:
             return _reply("error", reason="name")
+        friend_id = _normalize_friend_id(parsed.get("friend_id"))
         items = self.calls.pop(nick, [])
         out = [{"from": str(i.get("from") or "")} for i in items]
-        return _reply("inbox", name=nick, calls=out)
+        invites: list[dict] = []
+        if friend_id:
+            pending = self.friend_pending.get(friend_id, [])
+            for i in pending[:INBOX_CAP]:
+                invites.append({
+                    "kind": "friend",
+                    "from": str(i.get("from_name") or ""),
+                    "from_id": str(i.get("from_id") or ""),
+                })
+            extra = self.invites.pop(friend_id, [])
+            for i in extra:
+                if len(invites) >= INBOX_CAP:
+                    break
+                kind = str(i.get("kind") or "")
+                rec = {
+                    "kind": kind,
+                    "from": str(i.get("from_name") or ""),
+                    "from_id": str(i.get("from_id") or ""),
+                }
+                if kind == "room":
+                    rec["code"] = str(i.get("code") or "")
+                invites.append(rec)
+        return _reply("inbox", name=nick, calls=out, invites=invites)
+
+    def _are_friends(self, a: str, b: str) -> bool:
+        return b in self.friendships.get(a, set())
+
+    def _push_invite(self, dest_id: str, item: dict) -> None:
+        bucket = self.invites.setdefault(dest_id, [])
+        bucket.append(item)
+        if len(bucket) > INBOX_CAP:
+            self.invites[dest_id] = bucket[-INBOX_CAP:]
+
+    def _friend_invite(self, parsed: dict) -> bytes:
+        src = _normalize_friend_id(parsed.get("from_id"))
+        dst = _normalize_friend_id(parsed.get("to_id"))
+        name = _sanitize_nick(parsed.get("from_name"))
+        if not src or not dst or src == dst:
+            return _reply("error", reason="id")
+        if not name:
+            name = "Caçador"
+        if self._are_friends(src, dst):
+            return _reply("already", to=dst)
+        bucket = self.friend_pending.setdefault(dst, [])
+        for item in bucket:
+            if str(item.get("from_id") or "") == src:
+                item["ts"] = _now()
+                item["from_name"] = name
+                return _reply("invited", to=dst)
+        bucket.append({"from_id": src, "from_name": name, "ts": _now()})
+        if len(bucket) > INBOX_CAP:
+            self.friend_pending[dst] = bucket[-INBOX_CAP:]
+        return _reply("invited", to=dst)
+
+    def _friend_accept(self, parsed: dict) -> bytes:
+        me = _normalize_friend_id(parsed.get("my_id"))
+        them = _normalize_friend_id(parsed.get("their_id"))
+        my_name = _sanitize_nick(parsed.get("my_name"))
+        if not me or not them or me == them:
+            return _reply("error", reason="id")
+        if not my_name:
+            my_name = "Caçador"
+        pending = self.friend_pending.get(me, [])
+        kept = [p for p in pending if str(p.get("from_id") or "") != them]
+        hit = next((p for p in pending if str(p.get("from_id") or "") == them), None)
+        if hit is None and not self._are_friends(me, them):
+            return _reply("missing", to=them)
+        if kept:
+            self.friend_pending[me] = kept
+        else:
+            self.friend_pending.pop(me, None)
+        self.friendships.setdefault(me, set()).add(them)
+        self.friendships.setdefault(them, set()).add(me)
+        their_name = str((hit or {}).get("from_name") or "")
+        self._push_invite(them, {
+            "kind": "friend_ok",
+            "from_id": me,
+            "from_name": my_name,
+            "ts": _now(),
+            "ttl": FRIEND_INVITE_TTL,
+        })
+        return _reply("accepted", to=them, name=their_name)
+
+    def _friend_decline(self, parsed: dict) -> bytes:
+        me = _normalize_friend_id(parsed.get("my_id"))
+        them = _normalize_friend_id(parsed.get("their_id"))
+        if not me or not them:
+            return _reply("error", reason="id")
+        pending = self.friend_pending.get(me, [])
+        kept = [p for p in pending if str(p.get("from_id") or "") != them]
+        if kept:
+            self.friend_pending[me] = kept
+        else:
+            self.friend_pending.pop(me, None)
+        return _reply("declined", to=them)
+
+    def _room_invite(self, parsed: dict) -> bytes:
+        src = _normalize_friend_id(parsed.get("from_id"))
+        dst = _normalize_friend_id(parsed.get("to_id"))
+        name = _sanitize_nick(parsed.get("from_name"))
+        code = _normalize_code(parsed.get("code"))
+        if not src or not dst or src == dst:
+            return _reply("error", reason="id")
+        if not code:
+            return _reply("error", reason="code")
+        if not name:
+            name = "Caçador"
+        target = self.presence_ids.get(dst)
+        if target is None:
+            return _reply("offline", to=dst)
+        self._push_invite(dst, {
+            "kind": "room",
+            "from_id": src,
+            "from_name": name,
+            "code": code,
+            "ts": _now(),
+            "ttl": ROOM_INVITE_TTL,
+        })
+        return _reply("invited", to=dst, code=code)
+
+    def _relay_bind(self, parsed: dict, addr: tuple[str, int]) -> bytes:
+        code = _normalize_code(parsed.get("code"))
+        if not code:
+            return _reply("error", reason="code")
+        room = self.rooms.get(code)
+        if room is None:
+            room = {
+                "ip": addr[0],
+                "port": 17777,
+                "name": "Anfitrião",
+                "version_code": 0,
+                "ts": _now(),
+                "wan_host": None,
+                "wan_guests": {},
+            }
+            self.rooms[code] = room
+        prev_host = room.get("wan_host")
+        if prev_host is not None and prev_host != addr:
+            for gaddr in list((room.get("wan_guests") or {}).values()):
+                self.relay_peers.pop(gaddr, None)
+            room["wan_guests"] = {}
+            if prev_host in self.relay_peers:
+                self.relay_peers.pop(prev_host, None)
+        room["wan_host"] = addr
+        room["ts"] = _now()
+        self.relay_peers[addr] = {"code": code, "role": "host", "slot": 0}
+        self.relay_host = addr
+        return _reply("bound", code=code, relay_port=self.relay_port)
+
+    def _relay_join(self, parsed: dict, addr: tuple[str, int]) -> bytes:
+        code = _normalize_code(parsed.get("code"))
+        if not code:
+            return _reply("error", reason="code")
+        room = self.rooms.get(code)
+        if room is None:
+            return _reply("missing", code=code)
+        guests: dict = room.setdefault("wan_guests", {})
+        for slot, gaddr in list(guests.items()):
+            if gaddr == addr:
+                room["ts"] = _now()
+                self.relay_peers[addr] = {"code": code, "role": "guest", "slot": int(slot)}
+                return _reply("joined", code=code, slot=int(slot))
+        if len(guests) >= 3:
+            return _reply("full", code=code)
+        used = {int(s) for s in guests.keys()}
+        slot = 1
+        while slot in used:
+            slot += 1
+        guests[slot] = addr
+        room["ts"] = _now()
+        self.relay_peers[addr] = {"code": code, "role": "guest", "slot": slot}
+        if self.relay_guest is None:
+            self.relay_guest = addr
+        return _reply("joined", code=code, slot=slot)
 
     def handle_relay(self, data: bytes, addr: tuple[str, int]) -> None:
-        if not data or self.relay_host is None:
+        if not data or len(data) > RELAY_MAX:
+            return
+        if data[:1] == b"{":
+            try:
+                parsed = json.loads(data.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                return
+            if not isinstance(parsed, dict):
+                return
+            try:
+                proto = int(parsed.get("proto") or 0)
+            except (TypeError, ValueError):
+                return
+            if parsed.get("magic") != MAGIC or proto != PROTO:
+                return
+            op = str(parsed.get("op") or "")
+            reply = b""
+            if op == "relay_bind":
+                reply = self._relay_bind(parsed, addr)
+            elif op == "relay_join":
+                reply = self._relay_join(parsed, addr)
+            if reply:
+                try:
+                    self.relay.sendto(reply, addr)
+                except OSError:
+                    pass
+            return
+        peer = self.relay_peers.get(addr)
+        if peer is None:
+            self._relay_legacy(data, addr)
+            return
+        room = self.rooms.get(str(peer.get("code") or ""))
+        if room is None:
+            return
+        role = str(peer.get("role") or "")
+        if role == "guest":
+            host = room.get("wan_host")
+            if host is None:
+                return
+            slot = int(peer.get("slot") or 1)
+            try:
+                self.relay.sendto(bytes([slot]) + data, host)
+            except OSError:
+                pass
+            return
+        if role == "host":
+            if len(data) < 2:
+                return
+            slot = int(data[0])
+            payload = data[1:]
+            dest = (room.get("wan_guests") or {}).get(slot)
+            if dest is None:
+                return
+            try:
+                self.relay.sendto(payload, dest)
+            except OSError:
+                pass
+
+    def _relay_legacy(self, data: bytes, addr: tuple[str, int]) -> None:
+        if self.relay_host is None:
             return
         host_ip, host_port = self.relay_host
         if addr[0] == host_ip and addr[1] == host_port:
             if self.relay_guest is not None:
-                self.relay.sendto(data, self.relay_guest)
+                try:
+                    self.relay.sendto(data, self.relay_guest)
+                except OSError:
+                    pass
             return
         if self.relay_guest is None:
             self.relay_guest = addr
         if addr != self.relay_guest:
             return
-        self.relay.sendto(data, (host_ip, host_port))
+        try:
+            self.relay.sendto(data, (host_ip, host_port))
+        except OSError:
+            pass
 
     def _serve_stream(self, listener: socket.socket, kind: str) -> None:
         try:
@@ -386,7 +690,7 @@ class SalaMeio:
                                 pass
                     elif sock is self.relay:
                         try:
-                            data, addr = sock.recvfrom(MAX_BYTES + 64)
+                            data, addr = sock.recvfrom(RELAY_MAX)
                         except OSError:
                             continue
                         self.handle_relay(data, addr)
@@ -440,19 +744,51 @@ def _self_test() -> int:
         sink.bind(("127.0.0.1", 0))
         host_port = int(sink.getsockname()[1])
         svc._announce({"code": "K7H4MP", "name": "HostSmoke", "port": host_port}, "127.0.0.1")
+        host_wan = ("203.0.113.10", 40000)
         g1 = ("192.0.2.10", 50000)
         g2 = ("192.0.2.11", 50001)
-        svc.handle_relay(b"g1", g1)
-        if svc.relay_guest != g1:
+        bind_raw = json.dumps(
+            {"magic": MAGIC, "proto": PROTO, "op": "relay_bind", "code": "K7H4MP"}
+        ).encode("utf-8")
+        join_raw = json.dumps(
+            {"magic": MAGIC, "proto": PROTO, "op": "relay_join", "code": "K7H4MP"}
+        ).encode("utf-8")
+        svc.handle_relay(bind_raw, host_wan)
+        if svc.rooms["K7H4MP"].get("wan_host") != host_wan:
+            print("FAIL relay_bind não gravou wan_host", file=sys.stderr)
+            return 1
+        svc.handle_relay(join_raw, g1)
+        if svc.rooms["K7H4MP"].get("wan_guests", {}).get(1) != g1:
             print("FAIL 1º guest não lockou", file=sys.stderr)
             return 1
-        svc.handle_relay(b"g2", g2)
-        if svc.relay_guest != g1:
-            print("FAIL 2º peer roubou o relay", file=sys.stderr)
+        svc.handle_relay(join_raw, g2)
+        guests = svc.rooms["K7H4MP"].get("wan_guests") or {}
+        if guests.get(1) != g1 or guests.get(2) != g2:
+            print("FAIL 2º guest slot=%s" % guests, file=sys.stderr)
+            return 1
+        class _Sink:
+            def __init__(self) -> None:
+                self.sent: list[tuple[bytes, tuple]] = []
+
+            def sendto(self, data: bytes, addr: tuple) -> int:
+                self.sent.append((data, addr))
+                return len(data)
+
+            def close(self) -> None:
+                return
+
+        svc.relay = _Sink()  # type: ignore[assignment]
+        svc.handle_relay(b"hello", g1)
+        if svc.relay.sent != [(b"\x01hello", host_wan)]:
+            print("FAIL guest→host slot wrap: %s" % svc.relay.sent, file=sys.stderr)
+            return 1
+        svc.handle_relay(b"\x01pong", host_wan)
+        if svc.relay.sent[-1] != (b"pong", g1):
+            print("FAIL host→guest unwrap: %s" % svc.relay.sent, file=sys.stderr)
             return 1
         svc._announce({"code": "K7H4MP", "name": "HostSmoke", "port": host_port}, "127.0.0.1")
-        if svc.relay_guest != g1:
-            print("FAIL announce zerou o guest no meio da partida", file=sys.stderr)
+        if svc.rooms["K7H4MP"].get("wan_guests", {}).get(1) != g1:
+            print("FAIL announce zerou o guest no meio da sala", file=sys.stderr)
             return 1
         sink.close()
 
@@ -467,8 +803,51 @@ def _self_test() -> int:
         if not calls or str(calls[0].get("from") or "") != "HostSmoke":
             print("FAIL inbox=%s" % calls, file=sys.stderr)
             return 1
-        if any("code" in c for c in calls) or b'"code"' in inbox_raw:
-            print("FAIL poll devolveu code da sala", file=sys.stderr)
+        if any("code" in c for c in calls):
+            print("FAIL poll devolveu code da sala em calls", file=sys.stderr)
+            return 1
+
+        host_id = "ABCD2345"
+        kid_id = "EFGH6789"
+        inv = json.loads(svc._friend_invite({
+            "from_id": host_id, "from_name": "HostSmoke", "to_id": kid_id,
+        }).decode("utf-8"))
+        if inv.get("op") != "invited":
+            print("FAIL friend_invite=%s" % inv, file=sys.stderr)
+            return 1
+        pend = json.loads(svc._poll({"name": "SobrinhoQA", "friend_id": kid_id}).decode("utf-8"))
+        kinds = [str(i.get("kind")) for i in (pend.get("invites") or [])]
+        if "friend" not in kinds:
+            print("FAIL inbox sem convite de amigo: %s" % pend, file=sys.stderr)
+            return 1
+        acc = json.loads(svc._friend_accept({
+            "my_id": kid_id, "my_name": "SobrinhoQA", "their_id": host_id,
+        }).decode("utf-8"))
+        if acc.get("op") != "accepted":
+            print("FAIL friend_accept=%s" % acc, file=sys.stderr)
+            return 1
+        ok = json.loads(svc._poll({"name": "HostSmoke", "friend_id": host_id}).decode("utf-8"))
+        ok_kinds = [str(i.get("kind")) for i in (ok.get("invites") or [])]
+        if "friend_ok" not in ok_kinds:
+            print("FAIL quem convidou não viu aceite: %s" % ok, file=sys.stderr)
+            return 1
+        svc._presence({"name": "SobrinhoQA", "friend_id": kid_id}, "127.0.0.1")
+        room_inv = json.loads(svc._room_invite({
+            "from_id": host_id, "from_name": "HostSmoke", "to_id": kid_id, "code": "K7H4MP",
+        }).decode("utf-8"))
+        if room_inv.get("op") != "invited":
+            print("FAIL room_invite=%s" % room_inv, file=sys.stderr)
+            return 1
+        room_box = json.loads(svc._poll({"name": "SobrinhoQA", "friend_id": kid_id}).decode("utf-8"))
+        room_items = [i for i in (room_box.get("invites") or []) if str(i.get("kind")) == "room"]
+        if not room_items or str(room_items[0].get("code") or "") != "K7H4MP":
+            print("FAIL room invite sem code: %s" % room_box, file=sys.stderr)
+            return 1
+        ghost = json.loads(svc._room_invite({
+            "from_id": host_id, "from_name": "HostSmoke", "to_id": "ZZZZ2222", "code": "K7H4MP",
+        }).decode("utf-8"))
+        if ghost.get("op") != "offline":
+            print("FAIL room_invite offline=%s" % ghost, file=sys.stderr)
             return 1
         print("sala_meio self-test PASS", flush=True)
         return 0

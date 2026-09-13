@@ -136,8 +136,9 @@ Toque AMIGOS → gaveta desliza da direita (painel sólido, topo→embaixo; JOGA
                          │ [ Entrar     ]               │
 ```
 
-**Sala (host):** código de 6 caracteres (tap = copiar) + “Esperando amigo…” / “Amigo entrou” + **modo** (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`) + Fechar sala.  
-**Entrar (guest):** código 6, auto-uppercase. Beacon Wi-Fi primeiro (~2,5 s); senão a **sala da estrela** (host baked no APK). Sem campo de IP na gaveta.  
+**Amigos:** cada celular tem **código de amigo** (8, tap = copiar). **Adicionar amigo** manda convite; a outra pessoa **Aceita** ou **Não**. Só então fica na lista. **+** convida pra **sala já criada**. Sem aceite, sem lista.  
+**Sala (host):** código de 6 caracteres (tap = copiar) + “Esperando amigo…” / “Amigo entrou” + **modo** (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`) + lista com **+** + Fechar sala.  
+**Entrar (guest):** convite da sala (entra sozinho) **ou** código 6 na mão. Beacon Wi-Fi primeiro (~2,5 s); senão a **sala da estrela** (host baked no APK) — os dois só **saem** pro VPS (NAT da casa não precisa abrir porta). Sem campo de IP na gaveta.  
 **JOGAR:** sempre abre o **mapa**. Só o **host** escolhe a fase no coop vs oni. Guest no hub: “O anfitrião escolhe a fase”.
 
 **2 vs oni:** 2 jogadores. `MAX_CLIENTS = 1`.  
