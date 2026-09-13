@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-13 (0.0.12: modo na sala, 2 vs oni Começar, skills 1v1, block/recuo, spawn do mapa)
+**Atualizado:** 2026-09-13 (0.0.13: versão no canto do hub)
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  

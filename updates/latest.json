@@ -1,8 +1,8 @@
 {
-	"version_code": 12,
-	"version_name": "0.0.12",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.12/TreinamentoHashira.apk",
-	"changelog": "Sala troca de modo com o amigo dentro. 2 vs oni tem Começar. Skills no 1v1. Dá pra defender e recuar. Mapa desce do canto. Créditos novos.",
+	"version_code": 13,
+	"version_name": "0.0.13",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.13/TreinamentoHashira.apk",
+	"changelog": "A versao aparece no canto inferior esquerdo do painel principal.",
 	"size_bytes": 148576641,
-	"sha256": "f0950d96254eeec6fb1cd692f5a4fdf55bb347c39fd3450f5cd7f7421078a51c"
+	"sha256": "70b2705c9c4e9532b69473cbe2875374cb28502a7857772d221e6af3fd4a982a"
 }

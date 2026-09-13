@@ -97,6 +97,7 @@ func _ready() -> void:
 		bg_a.texture = _bg_frames[0]
 
 	_refresh()
+	_apply_version_label()
 	if not Game.coins_changed.is_connected(_on_coins_changed):
 		Game.coins_changed.connect(_on_coins_changed)
 	if not Game.player_name_changed.is_connected(_on_player_name_changed):
@@ -518,9 +519,22 @@ func _on_settings_pressed() -> void:
 	_navigate(SceneRouter.to_settings)
 
 
+func _apply_version_label() -> void:
+	var lab: Label = get_node_or_null("%VersionLabel") as Label
+	if lab == null:
+		return
+	var name_s := ""
+	if is_instance_valid(AutoUpdater) and AutoUpdater.has_method("get_local_version_name"):
+		name_s = str(AutoUpdater.get_local_version_name()).strip_edges()
+	if name_s.is_empty():
+		name_s = str(ProjectSettings.get_setting("application/config/version", "")).strip_edges()
+	lab.text = name_s
+	lab.visible = not name_s.is_empty()
+
+
 func set_chrome_for_lobby(lobby_on: bool) -> void:
 	var show: bool = not lobby_on
-	for path: String in ["LeftColumn", "TopBar", "BottomBar", "CenterShowcase"]:
+	for path: String in ["LeftColumn", "TopBar", "BottomBar", "CenterShowcase", "VersionLabel"]:
 		var n: CanvasItem = get_node_or_null(path) as CanvasItem
 		if n != null:
 			n.visible = show

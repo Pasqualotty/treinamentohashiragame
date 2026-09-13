@@ -489,9 +489,32 @@ func _test_friends_panel_present() -> bool:
 		inst.queue_free()
 		await process_frame
 		return false
+	var ver: Label = inst.get_node_or_null("%VersionLabel") as Label
+	if ver == null:
+		_fail("hub sem %VersionLabel")
+		inst.queue_free()
+		await process_frame
+		return false
+	var want: String = str(ProjectSettings.get_setting("application/config/version", "")).strip_edges()
+	var updater: Node = root.get_node_or_null("AutoUpdater")
+	if updater != null and updater.has_method("get_local_version_name"):
+		var live: String = str(updater.call("get_local_version_name")).strip_edges()
+		if not live.is_empty():
+			want = live
+	if ver.text.strip_edges() != want or want.is_empty():
+		_fail("versão no hub='%s' esperado '%s'" % [ver.text, want])
+		inst.queue_free()
+		await process_frame
+		return false
+	if ver.position.x > 40.0:
+		_fail("versão não está no canto esquerdo x=%.1f" % ver.position.x)
+		inst.queue_free()
+		await process_frame
+		return false
 	inst.queue_free()
 	await process_frame
 	_pass("hub tem %FriendsPanel")
+	_pass("hub mostra versão %s no canto esquerdo" % want)
 	return true
 
 

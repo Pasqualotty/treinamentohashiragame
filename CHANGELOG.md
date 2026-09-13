@@ -1,5 +1,9 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.13 — versão no hub (2026-09-13)
+
+- No painel principal, a versão aparece no canto inferior esquerdo
+
 ## 0.0.12 — sala, 1v1, combate e mapa (2026-09-13)
 
 - Dá para trocar o modo com o amigo já na sala (a sala não fecha)
