@@ -116,6 +116,8 @@ func _set_drawer_open(want: bool, instant: bool) -> void:
 		_backdrop.visible = true
 		_set_play_visible(false)
 	_layout_drawer(want, instant)
+	if not want:
+		_hide_drawer_when_closed(instant)
 	if want:
 		call_deferred("_sync_rows_width")
 	elif instant:
@@ -128,6 +130,7 @@ func _set_drawer_open(want: bool, instant: bool) -> void:
 func _apply_closed_filters() -> void:
 	if _drawer_open or _is_lobby_on():
 		return
+	_hide_drawer_now()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _backdrop != null:
 		_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -173,6 +176,25 @@ func _layout_drawer(p_open: bool, instant: bool) -> void:
 	_slide.tween_property(_drawer, "offset_right", target_right, SLIDE_SEC) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_slide.tween_property(_backdrop, "color:a", target_a, SLIDE_SEC)
+	if not p_open:
+		_slide.chain().tween_callback(_hide_drawer_now)
+
+
+func _hide_drawer_when_closed(instant: bool) -> void:
+	if _drawer_open or _is_lobby_on():
+		return
+	if instant:
+		_hide_drawer_now()
+
+
+func _hide_drawer_now() -> void:
+	if _drawer_open or _is_lobby_on():
+		return
+	if _drawer != null:
+		_drawer.visible = false
+	if _backdrop != null:
+		_backdrop.visible = false
+		_backdrop.color.a = 0.0
 
 
 func _on_backdrop_gui(event: InputEvent) -> void:

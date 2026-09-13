@@ -325,6 +325,8 @@ func _test_scenes() -> void:
 			return
 	if not await _instantiate(HUB, "hub"):
 		return
+	if not await _test_hub_no_side_bar():
+		return
 	if not await _test_friends_panel_present():
 		return
 	if not await _test_name_keeps_space():
@@ -456,6 +458,54 @@ func _await_navigation_failed(router: Node) -> bool:
 		waited += 0.1
 	router.disconnect("navigation_failed", cb)
 	return fired[0]
+
+
+## Recuo no Control raiz do hub abre faixa preta na lateral (letterbox).
+## Fundo e raiz têm que continuar tela cheia; a gaveta AMIGOS começa fechada.
+func _test_hub_no_side_bar() -> bool:
+	var packed: PackedScene = load(HUB) as PackedScene
+	if packed == null:
+		_fail("hub: load falhou no teste da barra lateral")
+		return false
+	var hub: Control = packed.instantiate() as Control
+	if hub == null:
+		_fail("hub: instantiate falhou no teste da barra lateral")
+		return false
+	root.add_child(hub)
+	for i in range(6):
+		await process_frame
+	if not is_zero_approx(hub.offset_left) or not is_zero_approx(hub.offset_right):
+		_fail("hub raiz encolhido (barra lateral): L=%.1f R=%.1f" % [hub.offset_left, hub.offset_right])
+		hub.queue_free()
+		await process_frame
+		return false
+	var bg: Control = hub.get_node_or_null("BgBase") as Control
+	if bg == null:
+		_fail("hub: BgBase ausente")
+		hub.queue_free()
+		await process_frame
+		return false
+	if not is_zero_approx(bg.offset_left) or not is_zero_approx(bg.offset_right):
+		_fail("fundo do hub encolhido: L=%.1f R=%.1f" % [bg.offset_left, bg.offset_right])
+		hub.queue_free()
+		await process_frame
+		return false
+	var pad: Vector4 = SafeInset.viewport_pad(hub.get_viewport())
+	if pad != Vector4.ZERO:
+		_fail("SafeInset no PC empurrou: %s" % pad)
+		hub.queue_free()
+		await process_frame
+		return false
+	var fp: Node = hub.get_node_or_null("%FriendsPanel")
+	if fp != null and fp.has_method("is_drawer_open") and bool(fp.call("is_drawer_open")):
+		_fail("gaveta AMIGOS abriu sozinha no hub")
+		hub.queue_free()
+		await process_frame
+		return false
+	hub.queue_free()
+	await process_frame
+	_pass("hub sem barra lateral (raiz e fundo tela cheia)")
+	return true
 
 
 func _instantiate(path: String, label: String) -> bool:

@@ -1,5 +1,9 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.15 — sem faixa na lateral do menu (2026-09-13)
+
+- O fundo do menu volta a ir até a borda. Só os botões se afastam do recorte do telefone.
+
 ## 0.0.14 — multiplayer, bordas, dash e stick (2026-09-13)
 
 - Hub: placa **MULTIPLAYER** cria a sala e abre a lobby

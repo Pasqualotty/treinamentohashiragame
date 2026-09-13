@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-13 (0.0.14: MULTIPLAYER, lobby lado a lado, safe area, dash no hit, stick maior)
+**Atualizado:** 2026-09-13 (0.0.15: menu sem faixa preta na lateral)
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  

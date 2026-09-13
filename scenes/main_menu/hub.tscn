@@ -302,7 +302,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 14
-text = "0.0.14"
+text = "0.0.15"
 vertical_alignment = 2
 
 [node name="FriendsPanel" parent="." instance=ExtResource("6_friends")]

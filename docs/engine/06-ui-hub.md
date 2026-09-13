@@ -10,7 +10,7 @@
 1. `BgArt` (TextureRect) — frames + drift  
 2. `BgDim` — ColorRect semi-transparente  
 3. TopBar / LeftColumn (LOJA, PERSONAGENS, **AMIGOS**, **MULTIPLAYER**) / CenterShowcase / BottomBar / `%VersionLabel` (canto inferior esquerdo, some na lobby)  
-   Safe area: `SafeInset.apply` no Control raiz (hub, loja, mapa, créditos, ajustes, nome, elenco) e `apply_canvas_layer` no HUD — `DisplayServer.get_display_safe_area()` vira offset em px do viewport; desktop (safe area = janela) não empurra. Stretch permanece `expand`. `%VersionLabel` fica filho do raiz, então permanece visível dentro da área segura.  
+   Safe area: `SafeInset.apply` no Control raiz empurra **só o chrome** (botões, gaveta). Fundo `Bg*` / dim tela-cheia não encolhe — encolher o raiz abria faixa preta na lateral. PC nunca empurra. Stretch permanece `expand`. `%VersionLabel` continua no canto.  
 4. `%FriendsPanel` é **gaveta** full-rect: começa fechada. Toque em AMIGOS desliza da direita por cima do hub. Sem `change_scene`.  
 5. Lobby da sala (`MpLobby`) é tela cheia: esconde LeftColumn / TopBar / BottomBar / showcase. `z_index` do painel **acima** da coluna esquerda. Troféus no topo da lobby.  
 
