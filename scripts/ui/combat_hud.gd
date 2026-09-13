@@ -53,6 +53,7 @@ var _ult_pulse_tween: Tween
 
 
 func _ready() -> void:
+	SafeInset.apply_canvas_layer(self)
 	_hp_block = find_child("HpBlock", true, false) as Control
 	_breath_block = find_child("BreathBlock", true, false) as Control
 	_coins_block = find_child("CoinsBlock", true, false) as Control

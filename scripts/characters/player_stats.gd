@@ -15,8 +15,8 @@ extends Resource
 @export var move_friction: float = 3800.0
 ## Buffer de input jump/attack/dash (s). Faixa premium ~0.10–0.15.
 @export var input_buffer: float = 0.12
-## Fração final do recovery em que basic pode cancelar em dash/pulo (0–1).
-@export var attack_cancel_ratio: float = 0.45
+## Fração final do recovery em que basic/skills podem cancelar em dash/pulo (0–1).
+@export var attack_cancel_ratio: float = 0.55
 @export var dash_speed: float = 560.0
 @export var dash_duration: float = 0.14
 @export var dash_cooldown: float = 1.0
@@ -27,7 +27,7 @@ extends Resource
 
 # --- Vida ---
 @export var max_hp: int = 100
-@export var hurt_stun: float = 0.22
+@export var hurt_stun: float = 0.14
 @export var hurt_invuln: float = 0.45
 ## Freio no chão durante hurt (px/s²) — recovery legível sem “slide eterno”.
 @export var hurt_friction: float = 1400.0

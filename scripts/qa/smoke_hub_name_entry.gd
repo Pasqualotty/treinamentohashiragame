@@ -121,8 +121,8 @@ func _delete_temp_save() -> void:
 ## vazio e derruba controle/invisíveis (DEL, C1, NBSP, ZWSP, BOM, override bidi).
 func _test_sanitize(game: Node) -> void:
 	var max_len: int = int(game.get("MAX_PLAYER_NAME_LEN"))
-	if max_len <= 0:
-		_fail("MAX_PLAYER_NAME_LEN inválido: %d" % max_len)
+	if max_len != 24:
+		_fail("MAX_PLAYER_NAME_LEN=%d (esperado 24)" % max_len)
 		return
 	var nbsp := char(0x00A0)
 	var zwsp := char(0x200B)
@@ -327,6 +327,8 @@ func _test_scenes() -> void:
 		return
 	if not await _test_friends_panel_present():
 		return
+	if not await _test_name_keeps_space():
+		return
 	_pass("hub + name_entry instanciam e rodam")
 
 
@@ -471,6 +473,37 @@ func _instantiate(path: String, label: String) -> bool:
 		await process_frame
 	inst.queue_free()
 	await process_frame
+	return true
+
+
+func _test_name_keeps_space() -> bool:
+	var router: Node = root.get_node_or_null("SceneRouter")
+	if router != null:
+		router.set("name_entry_edit_mode", false)
+	var packed: PackedScene = load(NAME_ENTRY) as PackedScene
+	if packed == null:
+		_fail("name_entry: load falhou no teste de espaço")
+		return false
+	var inst: Node = packed.instantiate()
+	root.add_child(inst)
+	await process_frame
+	var field: LineEdit = inst.get("name_input") as LineEdit
+	if field == null:
+		_fail("name_entry: name_input ausente no teste de espaço")
+		inst.queue_free()
+		await process_frame
+		return false
+	field.text = "Ana "
+	field.text_changed.emit("Ana ")
+	await process_frame
+	if field.text != "Ana ":
+		_fail("name_entry comeu o espaço do fim: %s" % _dbg(field.text))
+		inst.queue_free()
+		await process_frame
+		return false
+	inst.queue_free()
+	await process_frame
+	_pass("name_entry mantém espaço ao digitar")
 	return true
 
 

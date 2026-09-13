@@ -17,6 +17,7 @@ var _sliders: Array[HSlider] = []
 
 
 func _ready() -> void:
+	SafeInset.apply(self)
 	_sliders = [master_slider, bgm_slider, sfx_slider]
 	_style_panel()
 	_style_sliders()

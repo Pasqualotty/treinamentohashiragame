@@ -19,6 +19,7 @@ extends Control
 @onready var shop_btn: Button = %ShopButton
 @onready var chars_btn: Button = %CharactersButton
 @onready var friends_btn: Button = %FriendsButton
+@onready var multiplayer_btn: Button = %MultiplayerButton
 @onready var play_btn: Button = %PlayButton
 @onready var settings_btn: Button = %SettingsButton
 
@@ -84,6 +85,7 @@ var _navigating: bool = false
 
 
 func _ready() -> void:
+	SafeInset.apply(self)
 	_UiFont.ensure_theme_space()
 	_load_idle_frames()
 	_load_bg_frames()
@@ -320,6 +322,7 @@ func _style_buttons() -> void:
 	_apply_plate(shop_btn, "shop", Palette.CREAM)
 	_apply_plate(chars_btn, "chars", Palette.CREAM)
 	_apply_plate(friends_btn, "chars", Palette.CREAM)
+	_apply_plate(multiplayer_btn, "chars", Palette.CREAM)
 	# CTA: placa dourada, então o rótulo vai em tinta escura para contrastar.
 	_apply_plate(play_btn, "play", Palette.NIGHT_BG)
 	# Placa redonda com engrenagem gravada — o "⚙" do .tscn é só o fallback.
@@ -513,6 +516,12 @@ func _on_friends_pressed() -> void:
 	var fp := get_node_or_null("%FriendsPanel")
 	if fp != null and fp.has_method("toggle_drawer"):
 		fp.call("toggle_drawer")
+
+
+func _on_multiplayer_pressed() -> void:
+	var fp := get_node_or_null("%FriendsPanel")
+	if fp != null and fp.has_method("host_from_hub"):
+		fp.call("host_from_hub")
 
 
 func _on_settings_pressed() -> void:

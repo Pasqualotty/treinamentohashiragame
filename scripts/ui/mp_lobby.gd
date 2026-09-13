@@ -19,9 +19,8 @@ const _UiFont := preload("res://scripts/ui/ui_font.gd")
 
 var _code_label: Label
 var _status_label: Label
-var _name_label: Label
 var _mode_hint: Label
-var _showcase: TextureRect
+var _showcase_row: HBoxContainer
 var _party_box: VBoxContainer
 var _strip: HBoxContainer
 var _mode_box: VBoxContainer
@@ -31,7 +30,6 @@ var _leave_btn: Button
 var _trophy_label: Label
 var _invite_layer: Control
 var _invite_rows: VBoxContainer
-var _idle_tex: Texture2D
 var _refresh_queued: bool = false
 
 
@@ -256,23 +254,15 @@ func _build_center() -> Control:
 	var wrap := VBoxContainer.new()
 	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrap.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	wrap.add_theme_constant_override("separation", 6)
+	wrap.add_theme_constant_override("separation", 8)
 
-	_showcase = TextureRect.new()
-	_showcase.name = "LobbyShowcase"
-	_showcase.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_showcase.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_showcase.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_showcase.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_showcase.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wrap.add_child(_showcase)
-
-	_name_label = Label.new()
-	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_name_label.add_theme_font_size_override("font_size", 22)
-	_name_label.add_theme_color_override("font_color", Palette.CREAM)
-	_fit(_name_label, false)
-	wrap.add_child(_name_label)
+	_showcase_row = HBoxContainer.new()
+	_showcase_row.name = "LobbyShowcaseRow"
+	_showcase_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_showcase_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_showcase_row.add_theme_constant_override("separation", 20)
+	_showcase_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	wrap.add_child(_showcase_row)
 	return wrap
 
 
@@ -657,18 +647,70 @@ func _pick(character_id: String) -> void:
 
 
 func _refresh_showcase() -> void:
-	if _showcase == null or not is_instance_valid(Game):
+	if _showcase_row == null:
 		return
-	var def: CharacterDef = CharacterCatalog.find(str(Game.current_character_id))
+	_clear_box(_showcase_row)
+	var roster: Array = []
+	if is_instance_valid(LanSession):
+		roster = LanSession.get_roster()
+	if roster.is_empty():
+		var nick := "Caçador"
+		var cid := "tanjiro"
+		if is_instance_valid(Game):
+			nick = Game.player_name if Game.has_player_name() else nick
+			cid = str(Game.current_character_id)
+		roster = [{"slot": 0, "nick": nick, "char_id": cid}]
+	for i in roster.size():
+		var item: Variant = roster[i]
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		_showcase_row.add_child(_showcase_slot(i, item as Dictionary))
+
+
+func _showcase_slot(index: int, rec: Dictionary) -> Control:
+	var col := VBoxContainer.new()
+	col.name = "LobbyShowcaseSlot%d" % index
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", 6)
+
+	var art := TextureRect.new()
+	art.name = "LobbyShowcase"
+	art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var slot := int(rec.get("slot", index))
+	var char_id := _slot_char(slot, str(rec.get("char_id", "tanjiro")))
+	var def: CharacterDef = CharacterCatalog.find(char_id)
 	if def == null:
 		def = CharacterCatalog.starter()
-	_name_label.text = def.display_name if def != null else "Caçador"
-	_idle_tex = null
+	var tex: Texture2D = null
 	if def != null and def.hub_frames_dir != "":
-		_idle_tex = _load_tex("%s/%02d.png" % [def.hub_frames_dir.rstrip("/"), IDLE_FRAME])
-	if _idle_tex == null and def != null and def.has_portrait_art():
-		_idle_tex = _load_tex(def.portrait_path)
-	_showcase.texture = _idle_tex
+		tex = _load_tex("%s/%02d.png" % [def.hub_frames_dir.rstrip("/"), IDLE_FRAME])
+	if tex == null and def != null and def.has_portrait_art():
+		tex = _load_tex(def.portrait_path)
+	art.texture = tex
+	col.add_child(art)
+
+	var nick := Label.new()
+	nick.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nick.text = str(rec.get("nick", "Caçador"))
+	nick.add_theme_font_size_override("font_size", 20)
+	nick.add_theme_color_override("font_color", Palette.CREAM)
+	nick.add_theme_color_override("font_shadow_color", Palette.SHADOW)
+	_fit(nick, false)
+	col.add_child(nick)
+
+	var hunter := Label.new()
+	hunter.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hunter.text = def.display_name if def != null else char_id
+	hunter.add_theme_font_size_override("font_size", 15)
+	hunter.add_theme_color_override("font_color", Palette.GOLD_BRIGHT)
+	_fit(hunter, false)
+	col.add_child(hunter)
+	return col
 
 
 func _on_code_gui(event: InputEvent) -> void:

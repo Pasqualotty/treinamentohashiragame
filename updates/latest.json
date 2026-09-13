@@ -1,8 +1,8 @@
 {
-	"version_code": 13,
-	"version_name": "0.0.13",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.13/TreinamentoHashira.apk",
-	"changelog": "A versao aparece no canto inferior esquerdo do painel principal.",
-	"size_bytes": 148576641,
-	"sha256": "70b2705c9c4e9532b69473cbe2875374cb28502a7857772d221e6af3fd4a982a"
+	"version_code": 14,
+	"version_name": "0.0.14",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.14/TreinamentoHashira.apk",
+	"changelog": "MULTIPLAYER no hub, lobby lado a lado, dash no hit, stick maior, telas respeitam a borda do telefone.",
+	"size_bytes": 148584994,
+	"sha256": "f3b4734fb525cd991a3530ea8434570a2b89733c8f9c429590fa43579cefcc03"
 }

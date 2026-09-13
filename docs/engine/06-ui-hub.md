@@ -9,7 +9,8 @@
 
 1. `BgArt` (TextureRect) — frames + drift  
 2. `BgDim` — ColorRect semi-transparente  
-3. TopBar / LeftColumn (LOJA, PERSONAGENS, **AMIGOS**) / CenterShowcase / BottomBar / `%VersionLabel` (canto inferior esquerdo, some na lobby)  
+3. TopBar / LeftColumn (LOJA, PERSONAGENS, **AMIGOS**, **MULTIPLAYER**) / CenterShowcase / BottomBar / `%VersionLabel` (canto inferior esquerdo, some na lobby)  
+   Safe area: `SafeInset.apply` no Control raiz (hub, loja, mapa, créditos, ajustes, nome, elenco) e `apply_canvas_layer` no HUD — `DisplayServer.get_display_safe_area()` vira offset em px do viewport; desktop (safe area = janela) não empurra. Stretch permanece `expand`. `%VersionLabel` fica filho do raiz, então permanece visível dentro da área segura.  
 4. `%FriendsPanel` é **gaveta** full-rect: começa fechada. Toque em AMIGOS desliza da direita por cima do hub. Sem `change_scene`.  
 5. Lobby da sala (`MpLobby`) é tela cheia: esconde LeftColumn / TopBar / BottomBar / showcase. `z_index` do painel **acima** da coluna esquerda. Troféus no topo da lobby.  
 
@@ -26,7 +27,7 @@
 
 `hub.gd` aplica `StyleBoxTexture` em runtime:
 
-- LOJA / PERSONAGENS / AMIGOS → `shop_*` / `chars_*` (AMIGOS reusa a placa de PERSONAGENS)  
+- LOJA / PERSONAGENS / AMIGOS / MULTIPLAYER → `shop_*` / `chars_*` (AMIGOS e MULTIPLAYER reusam a placa de PERSONAGENS)  
 - JOGAR → `btn_play.png` (fonte escura no ouro)  
 - Settings → ícone `settings_gear.png`  
 
@@ -47,14 +48,14 @@ Como `image_to_video` pode falhar (ZDR), usamos:
 
 ## Amigos (botão + gaveta)
 
-- Hub **não** planta a coluna. Placa **AMIGOS** na esquerda, mesmo peso de LOJA/PERSONAGENS (320×76, toque ≥ 44).  
-- Cena filha: `scenes/ui/friends_panel.tscn` (`%FriendsPanel`) — overlay. Clique abre gaveta da **direita** (painel **opaco** do topo até embaixo; JOGAR some enquanto a gaveta está aberta, sem vazar por baixo). Tanjiro / Loja ficam atrás.  
+- Hub **não** planta a coluna. Placas **AMIGOS** e **MULTIPLAYER** na esquerda, mesmo peso de LOJA/PERSONAGENS (320×76, toque ≥ 48).  
+- Cena filha: `scenes/ui/friends_panel.tscn` (`%FriendsPanel`) — overlay. Clique em AMIGOS abre gaveta da **direita** (painel **opaco** do topo até embaixo; JOGAR some enquanto a gaveta está aberta, sem vazar por baixo). Tanjiro / Loja ficam atrás.  
 - Fecha: mesmo botão AMIGOS, toque no fundo, **Fechar** na gaveta, ou `ui_cancel` / pause.  
 - **Não** lotar `hub.gd` — o painel cuida da lista e da sala. Sem `go_to` / troca de tela.  
 - JOGAR continua no mapa; se o toque for de **guest** em sala, abre a gaveta + toast “O anfitrião escolhe a fase”. Host no **2 vs oni** também tem **Começar** na lobby (mesmo mapa).  
 - Placas internas: tema / StyleBoxFlat (sem PNG Imagine novo nesta onda).  
-- Sem campo de IP. **Adicionar amigo** pelo nome do perfil + Aceitar. Criar sala; **+** chama. Entrar + código de 6 ainda vale. A sala da estrela vem no APK (`hashira/sala_host`).  
+- Sem campo de IP. **Adicionar amigo** pelo nome do perfil + Aceitar. **+** chama. **ENTRAR** na linha se o amigo já tem sala. A sala da estrela vem no APK (`hashira/sala_host`).  
 - O **+** chama pra sala. O **x** apaga.  
-- Gaveta largura **360**, mínima **320**. Textos: wrap **por palavra**. Empty = `Ninguém` numa linha.  
-- **Criar sala** / guest na sala → `MpLobby` tela cheia (equipe + showcase + faixa de caçadores + modos). Fechar/Sair volta à gaveta. Sem copiar arte de outro jogo.  
+- Gaveta largura **360**, mínima **320**. Textos: wrap **por palavra**. Empty = `Ninguém` numa linha. Sem botões Criar sala / Entrar na lista. Dica: o MULTIPLAYER do hub abre a sala.  
+- **MULTIPLAYER** / guest na sala → `MpLobby` tela cheia (equipe + caçadores grandes lado a lado + faixa de retratos + modos). Fechar/Sair volta ao hub se veio do MULTIPLAYER. Sem copiar arte de outro jogo.  
 - Fonte do hub: `FontVariation.spacing_space = 6` no tema + `ui_font.gd` se U+0020 ainda tiver advance 0.  

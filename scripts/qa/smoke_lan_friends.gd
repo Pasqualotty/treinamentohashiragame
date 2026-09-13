@@ -58,6 +58,7 @@ func _run() -> void:
 	_test_credits_line()
 	_test_pick_character_api(lan)
 	await _test_lobby_character_pick()
+	await _test_lobby_two_showcase(lan)
 	_test_mode_doors(lan)
 	await _test_four_hunters(lan)
 	_test_meio_parse()
@@ -297,19 +298,29 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	var criar: Button = _find_button(fp, "Criar sala")
-	if criar == null or not criar.text.contains(" "):
-		_fail("sem botão Criar sala com espaço")
+	if _find_visible_button(fp, "Criar sala") != null:
+		_fail("Criar sala ainda na gaveta")
 		inst.queue_free()
 		await process_frame
 		return
-	if criar.size.y < 44.0:
-		_fail("Criar sala toque baixo: %.0f" % criar.size.y)
+	if _find_visible_button(fp, "Entrar") != null:
+		_fail("Entrar ainda na lista da gaveta")
 		inst.queue_free()
 		await process_frame
 		return
-	if _space_px(criar) < 3.0:
-		_fail("Criar sala: U+0020 advance=%.2f" % _space_px(criar))
+	var mp: Button = inst.get_node_or_null("%MultiplayerButton") as Button
+	if mp == null or mp.text != "MULTIPLAYER":
+		_fail("hub sem botão MULTIPLAYER")
+		inst.queue_free()
+		await process_frame
+		return
+	if mp.size.y < 48.0 or mp.size.x < 200.0:
+		_fail("MULTIPLAYER toque baixo: %s" % mp.size)
+		inst.queue_free()
+		await process_frame
+		return
+	if mp.text.contains(" ") and _space_px(mp) < 3.0:
+		_fail("MULTIPLAYER: U+0020 advance=%.2f" % _space_px(mp))
 		inst.queue_free()
 		await process_frame
 		return
@@ -321,11 +332,6 @@ func _test_hub_panel() -> void:
 		return
 	if _space_px(hint) < 3.0:
 		_fail("MapHint: U+0020 advance=%.2f" % _space_px(hint))
-		inst.queue_free()
-		await process_frame
-		return
-	if _find_button(fp, "Entrar") == null:
-		_fail("sem botão Entrar")
 		inst.queue_free()
 		await process_frame
 		return
@@ -343,8 +349,25 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	if _find_line_placeholder(fp, "como no perfil") == null:
+	var friend_field: LineEdit = _find_line_placeholder(fp, "como no perfil")
+	if friend_field == null:
 		_fail("adicionar sem campo de nome")
+		inst.queue_free()
+		await process_frame
+		return
+	friend_field.text = "Ana "
+	friend_field.text_changed.emit("Ana ")
+	await process_frame
+	if friend_field.text != "Ana ":
+		_fail("espaço no fim do nome foi comido: '%s'" % friend_field.text)
+		inst.queue_free()
+		await process_frame
+		return
+	friend_field.text = "Ana Maria"
+	friend_field.text_changed.emit("Ana Maria")
+	await process_frame
+	if friend_field.text != "Ana Maria":
+		_fail("espaço no meio do nome foi comido: '%s'" % friend_field.text)
 		inst.queue_free()
 		await process_frame
 		return
@@ -363,8 +386,8 @@ func _test_hub_panel() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	if _find_label(fp, "Escreve o nome dele.\nEle aceita. Depois o + chama pra sala.") == null:
-		_fail("dica de convite sumiu ou quebrou")
+	if _find_label(fp, "O MULTIPLAYER do hub abre a sala.\nENTRAR no amigo entra na sala dele.") == null:
+		_fail("dica do MULTIPLAYER sumiu ou quebrou")
 		inst.queue_free()
 		await process_frame
 		return
@@ -398,7 +421,7 @@ func _test_hub_panel() -> void:
 			inst.queue_free()
 			await process_frame
 			return
-	var hint_lan: Label = _find_label(fp, "Escreve o nome dele.\nEle aceita. Depois o + chama pra sala.")
+	var hint_lan: Label = _find_label(fp, "O MULTIPLAYER do hub abre a sala.\nENTRAR no amigo entra na sala dele.")
 	if hint_lan != null and play.visible:
 		var h_over: Rect2 = hint_lan.get_global_rect().intersection(play.get_global_rect())
 		if h_over.size.x > 4.0 and h_over.size.y > 4.0:
@@ -512,6 +535,16 @@ func _find_button(n: Node, text: String) -> Button:
 		return n as Button
 	for c: Node in n.get_children():
 		var hit: Button = _find_button(c, text)
+		if hit != null:
+			return hit
+	return null
+
+
+func _find_visible_button(n: Node, text: String) -> Button:
+	if n is Button and (n as Button).is_visible_in_tree() and (n as Button).text == text:
+		return n as Button
+	for c: Node in n.get_children():
+		var hit: Button = _find_visible_button(c, text)
 		if hit != null:
 			return hit
 	return null
@@ -881,16 +914,13 @@ func _test_mode_options() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	_open_drawer(fp)
-	for i in range(4):
-		await process_frame
-	var criar: Button = _find_button(fp, "Criar sala")
-	if criar == null:
-		_fail("modos: sem Criar sala")
+	var mp_modos: Button = inst.get_node_or_null("%MultiplayerButton") as Button
+	if mp_modos == null:
+		_fail("modos: sem MULTIPLAYER")
 		inst.queue_free()
 		await process_frame
 		return
-	criar.pressed.emit()
+	mp_modos.pressed.emit()
 	for i in range(6):
 		await process_frame
 	var want: Array[String] = ["2 vs oni", "4 vs oni", "Mapa de batalha", "1v1"]
@@ -1006,21 +1036,18 @@ func _test_lobby_character_pick() -> void:
 		inst.queue_free()
 		await process_frame
 		return
-	_open_drawer(fp)
-	for i in range(4):
-		await process_frame
-	var criar: Button = _find_button(fp, "Criar sala")
-	if criar == null:
-		_fail("lobby: sem Criar sala")
+	var mp_lobby: Button = inst.get_node_or_null("%MultiplayerButton") as Button
+	if mp_lobby == null:
+		_fail("lobby: sem MULTIPLAYER")
 		inst.queue_free()
 		await process_frame
 		return
-	criar.pressed.emit()
+	mp_lobby.pressed.emit()
 	for i in range(8):
 		await process_frame
 	var lobby: Control = fp.find_child("MpLobby", true, false) as Control
 	if lobby == null or not lobby.visible:
-		_fail("Criar sala não abriu lobby tela cheia")
+		_fail("MULTIPLAYER não abriu lobby tela cheia")
 		inst.queue_free()
 		await process_frame
 		return
@@ -1075,6 +1102,52 @@ func _test_lobby_character_pick() -> void:
 	await process_frame
 	_game.call("select_character", prev if prev != "" else "tanjiro")
 	_pass("lobby tela cheia + escolha de caçador")
+
+
+func _test_lobby_two_showcase(lan: Node) -> void:
+	lan.call("close_session")
+	var code: String = str(lan.call("host_room"))
+	if code.is_empty():
+		_fail("showcase: host_room falhou")
+		return
+	lan.set("_handshake_ok", true)
+	var guests: Dictionary = lan.get("_guests")
+	guests[2] = {"slot": 1, "nick": "AmigoQA", "char_id": "nezuko"}
+	var packed: PackedScene = load(HUB) as PackedScene
+	if packed == null:
+		_fail("showcase: hub.tscn")
+		lan.call("close_session")
+		return
+	var inst: Node = packed.instantiate()
+	root.add_child(inst)
+	for i in range(10):
+		await process_frame
+	var fp: Node = inst.get_node_or_null("%FriendsPanel")
+	if fp == null:
+		_fail("showcase: sem FriendsPanel")
+		lan.call("close_session")
+		inst.queue_free()
+		await process_frame
+		return
+	var lobby: Control = fp.find_child("MpLobby", true, false) as Control
+	if lobby == null or not lobby.visible:
+		_fail("showcase: lobby fechada com roster 2")
+		lan.call("close_session")
+		inst.queue_free()
+		await process_frame
+		return
+	if lobby.has_method("refresh"):
+		lobby.call("refresh")
+		await process_frame
+	var has_s0: bool = lobby.find_child("LobbyShowcaseSlot0", true, false) != null
+	var has_s1: bool = lobby.find_child("LobbyShowcaseSlot1", true, false) != null
+	lan.call("close_session")
+	inst.queue_free()
+	await process_frame
+	if not has_s0 or not has_s1:
+		_fail("lobby sem 2 slots de showcase (s0=%s s1=%s)" % [has_s0, has_s1])
+		return
+	_pass("lobby mostra 2 slots de showcase com roster 2")
 
 
 func _test_mode_doors(lan: Node) -> void:
@@ -1360,6 +1433,35 @@ func _test_call_name_not_x() -> void:
 		await process_frame
 		return
 	var lan: Node = root.get_node_or_null("LanSession")
+	if lan != null:
+		lan.set("_friend_rooms", {"SobrinhoQA": "K7H4MP"})
+		if fp.has_method("_refresh_list"):
+			fp.call("_refresh_list")
+		for i in range(4):
+			await process_frame
+		var entrar: Button = _find_visible_button(fp, "ENTRAR")
+		if entrar == null:
+			_fail("amigo com sala sem ENTRAR")
+			inst.queue_free()
+			await process_frame
+			return
+		if entrar.size.y < 48.0:
+			_fail("ENTRAR toque baixo: %.0f" % entrar.size.y)
+			inst.queue_free()
+			await process_frame
+			return
+		lan.set("_friend_rooms", {})
+		if fp.has_method("_refresh_list"):
+			fp.call("_refresh_list")
+		for i in range(4):
+			await process_frame
+		xbtn = _find_friend_remove_btn(fp, "SobrinhoQA")
+		plus = _find_friend_plus_btn(fp, "SobrinhoQA")
+		if xbtn == null or plus == null:
+			_fail("chamar: x/+ sumiram depois do ENTRAR")
+			inst.queue_free()
+			await process_frame
+			return
 	var toasts: Array[String] = []
 	var cb := func(t: String) -> void:
 		toasts.append(t)
@@ -1518,6 +1620,24 @@ func _test_meio_two_process(lan: Node) -> void:
 		OS.kill(pid)
 		lan.call("set_sala_meio", "")
 		_fail("friend_accept = %s" % facc)
+		return
+	client.presence("HostSmoke", "K7H4MP", host_id)
+	var fst: Dictionary = client.friends_status(kid_id)
+	if str(fst.get("op", "")) != "friends_status":
+		OS.kill(pid)
+		lan.call("set_sala_meio", "")
+		_fail("friends_status = %s" % fst)
+		return
+	var saw_room := false
+	var st_friends: Variant = fst.get("friends", [])
+	if st_friends is Array:
+		for item in st_friends:
+			if typeof(item) == TYPE_DICTIONARY and str((item as Dictionary).get("code", "")) == "K7H4MP":
+				saw_room = true
+	if not saw_room:
+		OS.kill(pid)
+		lan.call("set_sala_meio", "")
+		_fail("friends_status sem code do host: %s" % fst)
 		return
 	client.presence("SobrinhoQA", "", kid_id)
 	var rinv: Dictionary = client.room_invite(host_id, "HostSmoke", kid_id, "K7H4MP")

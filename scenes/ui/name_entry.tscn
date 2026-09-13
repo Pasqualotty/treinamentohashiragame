@@ -95,7 +95,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 26
 placeholder_text = "Ex.: Tanjiro"
 alignment = 1
-max_length = 14
+max_length = 24
 caret_blink = true
 
 [node name="HintLabel" type="Label" parent="Center/Panel/Rows"]
@@ -103,7 +103,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.964706, 0.917647, 0.55)
 theme_override_font_sizes/font_size = 14
-text = "0/14 caracteres"
+text = "0/24 caracteres"
 horizontal_alignment = 1
 
 [node name="Actions" type="HBoxContainer" parent="Center/Panel/Rows"]

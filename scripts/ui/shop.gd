@@ -19,6 +19,7 @@ var _stat_icon_colors: Dictionary = {}
 
 
 func _ready() -> void:
+	SafeInset.apply(self)
 	_stat_icon_colors = {
 		"max_hp": Palette.CRIMSON_BRIGHT,
 		"attack_damage": Palette.GOLD_BRIGHT,

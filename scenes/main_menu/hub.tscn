@@ -156,9 +156,9 @@ anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
 offset_left = 20.0
-offset_top = -134.0
+offset_top = -182.0
 offset_right = 340.0
-offset_bottom = 134.0
+offset_bottom = 182.0
 grow_vertical = 2
 theme_override_constants/separation = 20
 
@@ -188,6 +188,15 @@ layout_mode = 2
 size_flags_horizontal = 0
 theme_override_font_sizes/font_size = 20
 text = "AMIGOS"
+
+[node name="MultiplayerButton" type="Button" parent="LeftColumn"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(320, 76)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_font_sizes/font_size = 20
+text = "MULTIPLAYER"
 
 [node name="CenterShowcase" type="Control" parent="."]
 unique_name_in_owner = true
@@ -293,7 +302,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 14
-text = "0.0.13"
+text = "0.0.14"
 vertical_alignment = 2
 
 [node name="FriendsPanel" parent="." instance=ExtResource("6_friends")]
@@ -312,4 +321,5 @@ mouse_filter = 2
 [connection signal="pressed" from="LeftColumn/ShopButton" to="." method="_on_shop_pressed"]
 [connection signal="pressed" from="LeftColumn/CharactersButton" to="." method="_on_characters_pressed"]
 [connection signal="pressed" from="LeftColumn/FriendsButton" to="." method="_on_friends_pressed"]
+[connection signal="pressed" from="LeftColumn/MultiplayerButton" to="." method="_on_multiplayer_pressed"]
 [connection signal="pressed" from="BottomBar/PlayButton" to="." method="_on_play_pressed"]

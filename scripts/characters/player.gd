@@ -12,11 +12,12 @@ extends CharacterBody2D
 ##   A/D ou setas · Espaco pulo · Shift/F dash · Z/J atk · X/K skill1 · C/L skill2 · V/I ult
 ##
 ## Regras GDD:
-##   - Pulo 1x + coyote + input buffer; dash c/ cooldown **sem** i-frames
+##   - Pulo 1x + coyote + input buffer; dash c/ cooldown
+##   - Dash regular **sem** i-frames; dash saindo de HURT tem i-frames curtos
 ##   - Hits → Game.add_breath_from_hit; ultimate → Game.consume_ultimate + i-frames curtos
 ##   - Skills placeholder: "Corte em Arco" / "Investida"
 ##   - Juice: hit flash / knockback / hitstop / camera shake via CombatFeel
-##   - Feel: accel/friction, attack cancel leve no recovery, hurt recovery firme
+##   - Feel: accel/friction, cancel de recovery em dash, DI + dash no 1º frame do hurt
 ##
 ## Combo básico (3 hits): attack_basic dentro da janela de chain (mid-recovery,
 ## `attack_combo_chain_ratio`) ou da janela de graça pós-golpe (`attack_combo_grace`)
@@ -161,6 +162,8 @@ var _base_sprite_scale: float = 0.18
 var _sprite_base_y: float = -48.0
 const FLASH_HURT: Color = Color(1.5, 0.45, 0.45, 1.0)
 const FLASH_TIME: float = 0.1
+## I-frames do dodge saindo de hurt (Brawlhalla-like). Dash regular nao ganha isso.
+const DASH_FROM_HURT_IFRAMES: float = 0.18
 
 ## Combo básico: 0 = sem combo; 1/2/3 = hit atual (ver signal combo_changed).
 var _combo_index: int = 0
@@ -510,17 +513,21 @@ func try_jump() -> bool:
 
 
 func try_dash() -> bool:
-	## Dash curto na direcao que olha. Cooldown; 1 dash aereo. Sem i-frames.
+	## Dash curto. Cooldown. Side-scroller: 1 dash aereo. Plano: sem air dash e sem chao.
+	## Sai de HURT no primeiro frame (i-frames curtos). Bloqueia DEAD e DASH ativo.
 	if _state == State.DASH or _state == State.DEAD:
-		return false
-	if _state == State.HURT and not _hurt_can_escape():
 		return false
 	if _is_attack_locked() and not _can_cancel_attack_to_mobility():
 		return false
 	if _dash_cooldown_left > 0.0:
 		return false
-	if not is_on_floor() and _air_dash_used:
+	if not plane_locomotion and not is_on_floor() and _air_dash_used:
 		return false
+
+	var from_hurt: bool = _state == State.HURT
+	var axis: float = _move_axis()
+	if not is_zero_approx(axis):
+		_facing = signf(axis)
 
 	if _can_cancel_attack_to_mobility():
 		_disable_hitbox()
@@ -530,11 +537,16 @@ func try_dash() -> bool:
 	_dash_time_left = stats.dash_duration
 	_dash_cooldown_left = stats.dash_cooldown
 	_buf_dash = 0.0
-	if not is_on_floor():
+	if not plane_locomotion and not is_on_floor():
 		_air_dash_used = true
 	velocity.x = _facing * stats.dash_speed
+	# Arranque horizontal (plano tambem); o eixo Y nao fica travado depois.
 	velocity.y = 0.0
 	_disable_hitbox()
+	if from_hurt:
+		_invuln_timer = maxf(_invuln_timer, DASH_FROM_HURT_IFRAMES)
+		if hurtbox:
+			hurtbox.invulnerable = true
 	CombatVfx.dash_start(global_position, _facing, sprite)
 	_afterimage_t = 0.0
 	return true
@@ -572,6 +584,13 @@ func apply_damage(amount: int, knockback: Vector2 = Vector2.ZERO) -> void:
 
 	if hp <= 0:
 		_enter_dead()
+		return
+
+	if _state == State.DASH:
+		# Knockback nao cancela o dash. Invuln de combo permanece (smokes).
+		_invuln_timer = maxf(_invuln_timer, stats.hurt_invuln)
+		if hurtbox:
+			hurtbox.invulnerable = true
 		return
 
 	_reset_combo()
@@ -631,12 +650,13 @@ func _capture_input_buffers() -> void:
 func _try_consume_buffers() -> void:
 	if _state == State.DEAD or _state == State.DASH:
 		return
-	if _state == State.HURT and not _hurt_can_escape():
-		return
-	# Ordem: dash > jump > attack (mobilidade primeiro — feel responsivo).
+	# Dash sai do stun no primeiro frame — sem esperar janela de escape.
 	if _buf_dash > 0.0:
 		if try_dash():
 			return
+	if _state == State.HURT and not _hurt_can_escape():
+		return
+	# Ordem restante: jump > attack (mobilidade primeiro — feel responsivo).
 	if _buf_jump > 0.0:
 		if try_jump():
 			return
@@ -701,7 +721,8 @@ func _process_dash(delta: float) -> void:
 	var p: float = 1.0 - clampf(_dash_time_left / dur, 0.0, 1.0)
 	velocity.x = _facing * stats.dash_speed * (1.0 - p * p)
 	if plane_locomotion:
-		pass
+		# Nao trava Y depois do arranque — stick ainda sobe/desce no plano.
+		_apply_plane_vertical(delta, 1.0)
 	elif is_on_floor():
 		velocity.y = 0.0
 	else:
@@ -731,7 +752,7 @@ func _process_hurt(delta: float) -> void:
 		var air_axis: float = _move_axis()
 		if not is_zero_approx(air_axis):
 			var accel: float = stats.move_accel if stats.move_accel > 0.0 else stats.move_speed * 12.0
-			velocity.x = move_toward(velocity.x, air_axis * get_move_speed() * 0.75, accel * delta)
+			velocity.x = move_toward(velocity.x, air_axis * get_move_speed() * 0.85, accel * delta)
 	else:
 		var walk_axis: float = _move_axis()
 		if not is_zero_approx(walk_axis):
@@ -1174,7 +1195,7 @@ func _tick_timers(delta: float) -> void:
 func _update_hurtbox_invuln() -> void:
 	if hurtbox == null or _state == State.DEAD:
 		return
-	# i-frames de hurt/ultimate; dash NAO da i-frames.
+	# i-frames de hurt/ultimate; dash regular nao. Dash saindo de hurt usa o timer.
 	hurtbox.invulnerable = _invuln_timer > 0.0
 
 
@@ -1216,9 +1237,9 @@ func _can_cancel_attack_to_mobility() -> bool:
 	if _action_timer < recovery_start:
 		return false
 	var into_recovery: float = _action_timer - recovery_start
-	var ratio: float = stats.attack_cancel_ratio if stats else 0.45
+	var ratio: float = stats.attack_cancel_ratio if stats else 0.55
 	ratio = clampf(ratio, 0.0, 1.0)
-	# Cancel só na fração final do recovery (ex.: últimos 45%).
+	# Cancel só na fração final do recovery (ex.: últimos 55%).
 	var cancel_from: float = _action_recovery * (1.0 - ratio)
 	return into_recovery >= cancel_from
 
@@ -1610,7 +1631,7 @@ func _update_attack_juice(base_y: float, s: float) -> void:
 
 func _update_hurt_juice(base_y: float, s: float) -> void:
 	## Recoil/lean ao tomar hit: forte no impacto, relaxa ao longo do hurt_stun.
-	var stun: float = stats.hurt_stun if stats else 0.22
+	var stun: float = stats.hurt_stun if stats else 0.14
 	var p: float = clampf(1.0 - (_hurt_timer / maxf(stun, 0.0001)), 0.0, 1.0)
 	var e: float = pow(1.0 - p, 2.0)
 	var recoil_x: float = -10.0 * e

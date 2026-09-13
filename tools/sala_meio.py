@@ -6,7 +6,7 @@ UDP (17779) + TCP (17779) + HTTP (8080) + relay ENet (17780).
 O APK já aponta pra cá. PC local é só reserva de dev.
 
 Sem Firebase, sem Play Games, sem conta.
-Sala caiu: o jogo ainda abre; Criar/Entrar avisa em português.
+Sala caiu: o jogo ainda abre; MULTIPLAYER / ENTRAR avisam em português.
 
 Uso:
   python tools/sala_meio.py
@@ -26,6 +26,7 @@ PROTO = 1
 DEFAULT_PORT = 17779
 DEFAULT_HTTP_PORT = 8080
 MAX_BYTES = 512
+REPLY_MAX = 2048
 HTTP_MAX = 4096
 RELAY_MAX = 4096
 ROOM_TTL = 90.0
@@ -34,7 +35,7 @@ CALL_TTL = 45.0
 FRIEND_INVITE_TTL = 86400.0
 ROOM_INVITE_TTL = 90.0
 CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-NICK_MAX = 14
+NICK_MAX = 24
 FRIEND_LEN = 8
 INBOX_CAP = 6
 
@@ -79,7 +80,7 @@ def _reply(op: str, **extra) -> bytes:
     body = {"magic": MAGIC, "proto": PROTO, "op": op}
     body.update(extra)
     raw = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    if len(raw) > MAX_BYTES:
+    if len(raw) > REPLY_MAX:
         return b""
     return raw
 
@@ -223,6 +224,8 @@ class SalaMeio:
             return self._friend_decline(parsed)
         if op == "room_invite":
             return self._room_invite(parsed)
+        if op == "friends_status":
+            return self._friends_status(parsed)
         if op == "relay_bind":
             return self._relay_bind(parsed, addr)
         if op == "relay_join":
@@ -284,7 +287,20 @@ class SalaMeio:
             "wan_host": prev.get("wan_host"),
             "wan_guests": prev.get("wan_guests") or {},
         }
-        self.presence[nick] = {"ts": _now(), "code": code, "ip": src_ip}
+        friend_id = _normalize_friend_id(parsed.get("friend_id"))
+        self.presence[nick] = {
+            "ts": _now(),
+            "code": code,
+            "ip": src_ip,
+            "friend_id": friend_id,
+        }
+        if friend_id:
+            self.presence_ids[friend_id] = {
+                "ts": _now(),
+                "name": nick,
+                "code": code,
+                "ip": src_ip,
+            }
         host_tuple = (src_ip, enet_port)
         if self.relay_host != host_tuple:
             self.relay_guest = None
@@ -500,6 +516,37 @@ class SalaMeio:
         })
         return _reply("invited", to=dst, code=code)
 
+    def _friends_status(self, parsed: dict) -> bytes:
+        me = _normalize_friend_id(parsed.get("friend_id"))
+        if not me:
+            return _reply("error", reason="id")
+        with_code: list[dict] = []
+        online: list[dict] = []
+        for them in sorted(self.friendships.get(me, set())):
+            rec = self.presence_ids.get(them) or {}
+            name = _sanitize_nick(rec.get("name"))
+            code = _normalize_code(rec.get("code"))
+            if not name:
+                for nick, p in self.presence.items():
+                    if _normalize_friend_id(p.get("friend_id")) == them:
+                        name = nick
+                        if not code:
+                            code = _normalize_code(p.get("code"))
+                        break
+            if not name:
+                continue
+            item = {"name": name, "friend_id": them, "code": code}
+            if code:
+                with_code.append(item)
+            else:
+                online.append(item)
+        out = with_code + online
+        raw = _reply("friends_status", friends=out)
+        while not raw and out:
+            out.pop()
+            raw = _reply("friends_status", friends=out)
+        return raw if raw else _reply("friends_status", friends=[])
+
     def _relay_bind(self, parsed: dict, addr: tuple[str, int]) -> bytes:
         code = _normalize_code(parsed.get("code"))
         if not code:
@@ -696,7 +743,7 @@ class SalaMeio:
                 for sock in ready:
                     if sock is self.ctrl:
                         try:
-                            data, addr = sock.recvfrom(MAX_BYTES + 64)
+                            data, addr = sock.recvfrom(REPLY_MAX + 64)
                         except OSError:
                             continue
                         try:
@@ -881,6 +928,28 @@ def _self_test() -> int:
         }).decode("utf-8"))
         if ghost.get("op") != "offline":
             print("FAIL room_invite offline=%s" % ghost, file=sys.stderr)
+            return 1
+        svc._presence({"name": "HostSmoke", "friend_id": host_id, "code": "K7H4MP"}, "127.0.0.1")
+        st = json.loads(svc._friends_status({"friend_id": kid_id}).decode("utf-8"))
+        if st.get("op") != "friends_status":
+            print("FAIL friends_status op=%s" % st, file=sys.stderr)
+            return 1
+        found = [f for f in (st.get("friends") or []) if str(f.get("friend_id")) == host_id]
+        if not found or str(found[0].get("code") or "") != "K7H4MP":
+            print("FAIL friends_status sem sala do amigo: %s" % st, file=sys.stderr)
+            return 1
+        bad_id = json.loads(svc._friends_status({}).decode("utf-8"))
+        if bad_id.get("op") != "error":
+            print("FAIL friends_status sem id=%s" % bad_id, file=sys.stderr)
+            return 1
+        empty = json.loads(svc._friends_status({"friend_id": "ZZZZ2222"}).decode("utf-8"))
+        if empty.get("op") != "friends_status" or (empty.get("friends") or []) != []:
+            print("FAIL friends_status vazio=%s" % empty, file=sys.stderr)
+            return 1
+        long_nick = "A" * 24
+        svc._presence({"name": long_nick, "friend_id": "NNNN2222"}, "127.0.0.1")
+        if long_nick not in svc.presence:
+            print("FAIL NICK_MAX 24 não gravou", file=sys.stderr)
             return 1
         print("sala_meio self-test PASS", flush=True)
         return 0

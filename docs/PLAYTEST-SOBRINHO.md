@@ -86,9 +86,9 @@ Data: ________  Dispositivo: ________  Quem jogou: ________
 
 Não entra no CI. Dois APKs (ou 2 instâncias Play no PC com `127.0.0.1`).
 
-1. Os dois no **mesmo Wi-Fi da casa** (sem rede de convidado isolado). Sem campo de IP — Criar/Entrar basta.
-2. Host: hub → Amigos → **Criar sala** → lobby tela cheia. Código de 6 no topo (tap copia). Cada um escolhe o caçador embaixo. Escolhe **2 vs oni** (já vem marcado). **+ Chamar amigo** no amigo já aceito.
-3. Guest: entra pelo **+** do host, ou **Entrar** + código. Beacon acha no Wi-Fi; se não, a sala da estrela cobre.
+1. Os dois no **mesmo Wi-Fi da casa** (sem rede de convidado isolado). Sem campo de IP — MULTIPLAYER / ENTRAR basta.
+2. Host: hub → **MULTIPLAYER** → lobby tela cheia (caçadores grandes no centro). Código de 6 no topo (tap copia). Cada um escolhe o caçador embaixo. Escolhe **2 vs oni** (já vem marcado). **+ Chamar amigo** no amigo já aceito.
+3. Guest: entra pelo **ENTRAR** na linha do host, pelo **+** do host, ou código. Beacon acha no Wi-Fi; se não, a sala da estrela cobre.
 4. Host toca **JOGAR** → mapa → `w1_01`. Guest **não** escolhe fase (“O anfitrião escolhe a fase”).
 5. Os dois aparecem na fase; cada um controla o **próprio** caçador (touch no celular dele).
 6. Os dois batem oni. Um sai da sala → o outro não fica preso (guest cai → hub; host sozinho segue ou volta ao hub se ainda não entrou na fase).
@@ -104,10 +104,10 @@ Não entra no CI. O sobrinho **não liga PC**. Cada um na sua casa (ou 4G).
 
 1. Os dois no hub → Amigos. Sem código de amigo. Sem colar IP.
 2. Host: **Adicionar amigo** → escreve o **nome do perfil** do sobrinho → **Enviar convite**. Sobrinho **Aceita**.
-3. Host: **Criar sala**. Na lista, toca **+** no sobrinho (não o x). O celular dele entra sozinho.
-4. Reserva: **Entrar** + código de 6 da sala (Zap ainda vale) se o + não achar.
+3. Host: **MULTIPLAYER**. Na gaveta AMIGOS, toca **+** no sobrinho (não o x). O celular dele entra sozinho. Se o host já tem sala, o sobrinho vê **ENTRAR**.
+4. Reserva: código de 6 da sala (Zap ainda vale) se o + / ENTRAR não achar.
 5. Host **JOGAR** → mapa → fase. Guest não escolhe fase.
-6. Se a sala da estrela cair: o jogo **ainda abre**. Criar/Entrar avisa “A sala da estrela está desligada”. Loading **não** fala “Conectando-se…”. Wi-Fi da mesma casa continua.
+6. Se a sala da estrela cair: o jogo **ainda abre**. MULTIPLAYER avisa “A sala da estrela está desligada”. A lista de amigos continua, sem ENTRAR. Loading **não** fala “Conectando-se…”. Wi-Fi da mesma casa continua.
 
 **Reserva de dev (PC):** `tools/ligar_computador_da_sala.ps1` no editor. Não é o caminho do sobrinho.
 
@@ -117,8 +117,8 @@ Não entra no CI. O sobrinho **não liga PC**. Cada um na sua casa (ou 4G).
 
 Não entra no CI. Quatro APKs (ou 4 instâncias Play).
 
-1. Host: Amigos → **Criar sala**. Dá para trocar o modo **com o amigo já dentro**.
-2. Até 3 amigos **Entrar** com o código (no **4 vs oni**). Cada celular = um caçador.
+1. Host: **MULTIPLAYER**. Dá para trocar o modo **com o amigo já dentro**.
+2. Até 3 amigos **ENTRAR** (ou código) no **4 vs oni**. Cada celular = um caçador.
 3. **2 vs oni:** host toca **Começar** → mapa → fase. Ou JOGAR. Guest não escolhe fase.
 4. A câmera segue quem está vivo. Oni corre no mais perto. Apanhando: segura para trás para defender; dá para recuar.
 5. **Mapa de batalha:** host toca **Começar** (até 4). Sem amigo, as vagas são máquina. Quem nasce em cima à esquerda **desce**. Skills e respiração funcionam. Quem vence vê **De novo** / **Lobby** (mesma sala). **1v1** na sala: fundo do pátio, skills, nome em cima, respiração no HUD, corpos maiores. Fim: nome + caçador + **De novo** ou **Lobby**.

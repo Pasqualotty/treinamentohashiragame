@@ -24,6 +24,7 @@ var _fitting: bool = false
 
 
 func _ready() -> void:
+	SafeInset.apply(self)
 	_UiFont.ensure_theme_space()
 	_lock_header_wrap()
 	_style_bottom_bar()

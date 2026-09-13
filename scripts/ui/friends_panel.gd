@@ -34,6 +34,8 @@ var _mode_btns: Dictionary = {}
 var _mode_label: Label
 var _start_btn: Button
 var _lobby: Control
+var _rooms_hint: Label
+var _opened_from_hub: bool = false
 
 
 func _ready() -> void:
@@ -279,14 +281,18 @@ func _build() -> void:
 	_scroll.resized.connect(_sync_rows_width)
 	_refresh_my_code()
 	_list_box.add_child(_plate_btn("Adicionar amigo", _on_add_open_pressed))
-	_list_box.add_child(_plate_btn("Criar sala", _on_create_pressed))
-	_list_box.add_child(_plate_btn("Entrar", _on_join_open_pressed))
 	var hint := Label.new()
-	hint.text = "Escreve o nome dele.\nEle aceita. Depois o + chama pra sala."
+	hint.text = "O MULTIPLAYER do hub abre a sala.\nENTRAR no amigo entra na sala dele."
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
 	_fit_label(hint, true)
 	_list_box.add_child(hint)
+	_rooms_hint = Label.new()
+	_rooms_hint.visible = false
+	_rooms_hint.add_theme_font_size_override("font_size", 13)
+	_rooms_hint.add_theme_color_override("font_color", Palette.with_alpha(Palette.GOLD_BRIGHT, 0.9))
+	_fit_label(_rooms_hint, true)
+	_list_box.add_child(_rooms_hint)
 
 	_host_box = VBoxContainer.new()
 	_host_box.visible = false
@@ -460,6 +466,8 @@ func _bind_session() -> void:
 		LanSession.room_invite_received.connect(_on_room_invite)
 	if LanSession.has_signal("roster_changed") and not LanSession.roster_changed.is_connected(_on_roster_changed):
 		LanSession.roster_changed.connect(_on_roster_changed)
+	if LanSession.has_signal("friends_status_changed") and not LanSession.friends_status_changed.is_connected(_refresh_list):
+		LanSession.friends_status_changed.connect(_refresh_list)
 
 
 func _process(_delta: float) -> void:
@@ -525,6 +533,7 @@ func _refresh_list() -> void:
 			wait.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.85))
 			_fit_label(wait, true)
 			rows.add_child(wait)
+	_refresh_rooms_hint()
 	if Game.friends.is_empty() and not has_pending:
 		var empty := Label.new()
 		empty.text = "Ninguém"
@@ -537,9 +546,22 @@ func _refresh_list() -> void:
 		return
 	for d in Game.friends:
 		var name := str(d.get("name", ""))
-		rows.add_child(_friend_row(name, true))
+		var fid := str(d.get("friend_id", ""))
+		rows.add_child(_friend_row(name, fid, true))
 	_sync_rows_width()
 	_refresh_host_invites()
+
+
+func _refresh_rooms_hint() -> void:
+	if _rooms_hint == null:
+		return
+	var failed := is_instance_valid(LanSession) and LanSession.has_method("friends_status_failed") \
+		and bool(LanSession.friends_status_failed())
+	if failed and not Game.friends.is_empty():
+		_rooms_hint.text = "A sala da estrela não trouxe as salas. A lista continua, sem ENTRAR."
+		_rooms_hint.visible = true
+	else:
+		_rooms_hint.visible = false
 
 
 func _pending_row(friend_name: String, friend_id: String) -> HBoxContainer:
@@ -568,7 +590,7 @@ func _pending_row(friend_name: String, friend_id: String) -> HBoxContainer:
 	return row
 
 
-func _friend_row(friend_name: String, with_remove: bool) -> HBoxContainer:
+func _friend_row(friend_name: String, friend_id: String, with_remove: bool) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_theme_constant_override("separation", 6)
@@ -579,6 +601,15 @@ func _friend_row(friend_name: String, with_remove: bool) -> HBoxContainer:
 	lbl.add_theme_color_override("font_color", Palette.CREAM)
 	_fit_label(lbl, false)
 	row.add_child(lbl)
+	var room := ""
+	if is_instance_valid(LanSession) and LanSession.has_method("get_friend_room_code"):
+		room = str(LanSession.call("get_friend_room_code", friend_id, friend_name))
+	var mine := is_instance_valid(LanSession) and RoomCode.is_valid(str(LanSession.room_code)) \
+		and RoomCode.normalize(str(LanSession.room_code)) == RoomCode.normalize(room)
+	if RoomCode.is_valid(room) and not mine:
+		var enter := _plate_btn("ENTRAR", _make_join_handler(room))
+		enter.custom_minimum_size = Vector2(108, TOUCH_MIN)
+		row.add_child(enter)
 	var plus := Button.new()
 	plus.text = "+"
 	plus.custom_minimum_size = Vector2(TOUCH_MIN, TOUCH_MIN)
@@ -625,13 +656,9 @@ func _on_add_back() -> void:
 	_show(View.LIST)
 
 
-func _on_friend_name_typed(t: String) -> void:
-	var n := Game.sanitize_player_name(t)
-	if _friend_input == null:
-		return
-	if _friend_input.text != n:
-		_friend_input.text = n
-		_friend_input.caret_column = n.length()
+func _on_friend_name_typed(_t: String) -> void:
+	# Sanitize só no confirmar. Reescrever a cada tecla come o espaço do fim.
+	pass
 
 
 func _on_friend_invite_confirm() -> void:
@@ -663,7 +690,30 @@ func _on_room_invite(from_nick: String, code: String) -> void:
 	show_toast("%s te chamou pra sala" % from_nick)
 	if is_instance_valid(LanSession):
 		LanSession.join_room(code)
-	_show(View.JOIN)
+	_show(View.GUEST_WAIT)
+
+
+func host_from_hub() -> void:
+	if not is_instance_valid(LanSession):
+		return
+	if LanSession.is_guest() and LanSession.in_session():
+		_opened_from_hub = true
+		_show(View.GUEST_WAIT)
+		return
+	if LanSession.is_host() and not str(LanSession.room_code).is_empty():
+		_opened_from_hub = true
+		_show(View.HOST)
+		return
+	_opened_from_hub = true
+	_on_create_pressed()
+
+
+func _make_join_handler(code: String) -> Callable:
+	return func() -> void:
+		if not is_instance_valid(LanSession):
+			return
+		LanSession.join_room(code)
+		_show(View.GUEST_WAIT)
 
 
 func _on_create_pressed() -> void:
@@ -760,6 +810,9 @@ func _on_close_room() -> void:
 	if is_instance_valid(LanSession):
 		LanSession.close_session()
 	_show(View.LIST)
+	if _opened_from_hub:
+		_opened_from_hub = false
+		close_drawer(true)
 
 
 func _on_room_ready(_code: String) -> void:

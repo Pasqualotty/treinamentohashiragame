@@ -35,6 +35,7 @@ signal mode_changed(mode_id: int)
 signal room_invite_received(from_nick: String, code: String)
 signal roster_changed
 signal rematch_changed
+signal friends_status_changed
 
 enum Role { NONE, HOST, GUEST }
 
@@ -72,6 +73,10 @@ var _meio_call_t: float = 0.0
 var _meio_lookup_tried: bool = false
 var _meio_next_lookup_ms: int = 0
 var _meio_pc_off_told: bool = false
+## friend_id / nome -> código da sala (presence).
+var _friend_rooms: Dictionary = {}
+var _friends_status_known: bool = false
+var _friends_status_ok: bool = false
 ## slot -> quer revanche
 var _rematch_votes: Dictionary = {}
 
@@ -220,6 +225,26 @@ func get_sala_meio() -> String:
 
 func has_sala_meio() -> bool:
 	return _meio.is_configured()
+
+
+func get_friend_room_code(friend_id: String, friend_name: String = "") -> String:
+	if FriendCode.is_valid(friend_id):
+		var by_id := str(_friend_rooms.get(FriendCode.normalize(friend_id), ""))
+		if RoomCode.is_valid(by_id):
+			return RoomCode.normalize(by_id)
+	if not friend_name.is_empty():
+		var by_name := str(_friend_rooms.get(friend_name, ""))
+		if RoomCode.is_valid(by_name):
+			return RoomCode.normalize(by_name)
+	return ""
+
+
+func friends_status_ready() -> bool:
+	return _friends_status_ok
+
+
+func friends_status_failed() -> bool:
+	return _friends_status_known and not _friends_status_ok
 
 
 func _friend_id() -> String:
@@ -1296,16 +1321,20 @@ func _try_meio_announce(tell_if_off: bool) -> void:
 				_meio_pc_off_told = true
 				toast_requested.emit(MSG_PC_OFF)
 			return
-		_meio.announce(room_code, ENET_PORT, _nick(), _version_code())
+		_meio.announce(room_code, ENET_PORT, _nick(), _version_code(), _friend_id())
 		_start_host_relay_bridge()
 		return
-	_meio.send_fire({
+	var fire: Dictionary = {
 		"op": "announce",
 		"code": room_code,
 		"port": ENET_PORT,
 		"name": _nick(),
 		"version_code": _version_code(),
-	})
+	}
+	var fid := _friend_id()
+	if FriendCode.is_valid(fid):
+		fire["friend_id"] = FriendCode.normalize(fid)
+	_meio.send_fire(fire)
 
 
 func _try_meio_lookup() -> void:
@@ -1345,6 +1374,47 @@ func _poll_meio_calls() -> void:
 	_apply_meio_inbox(inbox)
 	for reply: Dictionary in _meio.drain():
 		_apply_meio_inbox(reply)
+	_refresh_friends_status()
+
+
+func _refresh_friends_status() -> void:
+	if _in_boot() or not has_sala_meio():
+		return
+	if not _meio.has_method("friends_status"):
+		return
+	var fid := _friend_id()
+	if not FriendCode.is_valid(fid):
+		return
+	var reply: Dictionary = _meio.friends_status(fid)
+	var was_ok := _friends_status_ok
+	var was_known := _friends_status_known
+	if reply.is_empty() or str(reply.get("op", "")) != "friends_status":
+		_friends_status_known = true
+		_friends_status_ok = false
+		if was_ok or not was_known:
+			friends_status_changed.emit()
+		return
+	_friends_status_known = true
+	_friends_status_ok = true
+	var next: Dictionary = {}
+	var friends: Variant = reply.get("friends", [])
+	if friends is Array:
+		for item in friends:
+			if typeof(item) != TYPE_DICTIONARY:
+				continue
+			var d: Dictionary = item
+			var code := RoomCode.normalize(str(d.get("code", "")))
+			if not RoomCode.is_valid(code):
+				continue
+			var tid := FriendCode.normalize(str(d.get("friend_id", "")))
+			var tname := Game.sanitize_player_name(str(d.get("name", "")))
+			if FriendCode.is_valid(tid):
+				next[tid] = code
+			if not tname.is_empty():
+				next[tname] = code
+	if next != _friend_rooms or not was_ok:
+		_friend_rooms = next
+		friends_status_changed.emit()
 
 
 func _apply_meio_inbox(reply: Dictionary) -> void:

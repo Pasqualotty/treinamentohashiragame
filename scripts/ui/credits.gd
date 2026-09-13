@@ -3,6 +3,7 @@ extends Control
 
 
 func _ready() -> void:
+	SafeInset.apply(self)
 	var back := get_node_or_null("Back") as Button
 	if back and not back.pressed.is_connected(_on_back):
 		back.pressed.connect(_on_back)

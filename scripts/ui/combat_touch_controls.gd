@@ -28,7 +28,7 @@ extends CanvasLayer
 @export var safe_margin: float = 32.0
 ## Faixa superior reservada ao HUD de combate: nenhum controle pode invadi-la.
 @export var hud_band_height: float = 150.0
-@export var stick_size: float = 156.0
+@export var stick_size: float = 236.0
 @export var stick_deadzone: float = 0.12
 
 ## Hierarquia de tamanho em três níveis.
@@ -39,7 +39,7 @@ extends CanvasLayer
 
 ## Raio dos arcos. Constante por cluster — é o que dá a leitura radial.
 @export var arc_radius_right: float = 158.0
-@export var arc_radius_left: float = 152.0
+@export var arc_radius_left: float = 190.0
 
 const ICONS_DIR := "res://assets/ui/touch/icons"
 const LABELED_DIR := "res://assets/ui/touch/labeled"

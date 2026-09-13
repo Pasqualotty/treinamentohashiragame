@@ -8,6 +8,7 @@ const PROTO := 1
 const DEFAULT_PORT := 17779
 const HTTP_PORT := 8080
 const MAX_BYTES := 512
+const MAX_REPLY_BYTES := 2048
 const PING_MS := 500
 const LOOKUP_MS := 800
 const SETTING_HOST := "hashira/sala_host"
@@ -114,14 +115,17 @@ func ping() -> bool:
 	return str(reply.get("op", "")) == "pong"
 
 
-func announce(code: String, enet_port: int, nick: String, version_code: int) -> Dictionary:
-	return request({
+func announce(code: String, enet_port: int, nick: String, version_code: int, friend_id: String = "") -> Dictionary:
+	var body: Dictionary = {
 		"op": "announce",
 		"code": code,
 		"port": enet_port,
 		"name": nick,
 		"version_code": version_code,
-	}, LOOKUP_MS)
+	}
+	if FriendCode.is_valid(friend_id):
+		body["friend_id"] = FriendCode.normalize(friend_id)
+	return request(body, LOOKUP_MS)
 
 
 func lookup(code: String) -> Dictionary:
@@ -141,6 +145,15 @@ func call_nick(from_nick: String, to_nick: String) -> Dictionary:
 		"from": from_nick,
 		"to": to_nick,
 	}, LOOKUP_MS)
+
+
+func friends_status(friend_id: String) -> Dictionary:
+	if not FriendCode.is_valid(friend_id):
+		return {}
+	return request({
+		"op": "friends_status",
+		"friend_id": FriendCode.normalize(friend_id),
+	}, PING_MS)
 
 
 func poll_calls(nick: String, friend_id: String = "") -> Dictionary:
@@ -379,7 +392,7 @@ func _close_sock() -> void:
 
 
 func _parse_reply(pkt: PackedByteArray) -> Dictionary:
-	if pkt.is_empty() or pkt.size() > MAX_BYTES:
+	if pkt.is_empty() or pkt.size() > MAX_REPLY_BYTES:
 		return {}
 	var parsed: Variant = JSON.parse_string(pkt.get_string_from_utf8())
 	if typeof(parsed) != TYPE_DICTIONARY:

@@ -12,7 +12,7 @@ const ATTACK_SKILL_1_RIPPLE := 4
 const ATTACK_SKILL_2_RIPPLE := 3
 const ATTACK_ULTIMATE_RIPPLE := 6
 ## Limite do nome de cacador. Fonte unica: a tela de nome usa isto no LineEdit.
-const MAX_PLAYER_NAME_LEN := 14
+const MAX_PLAYER_NAME_LEN := 24
 
 ## Emite o total banked (hub) OU o valor da run dependendo do caller.
 ## Hub ignora o payload e rel├¬ `coins_banked`. HUD de combate usa `run_coins_changed`.

@@ -44,6 +44,7 @@ var _navigating: bool = false
 
 
 func _ready() -> void:
+	SafeInset.apply(self)
 	_edit_mode = SceneRouter.name_entry_edit_mode
 	if bg_art.texture == null and ResourceLoader.exists(BG_PATH):
 		bg_art.texture = load(BG_PATH) as Texture2D
@@ -97,11 +98,12 @@ func _current_clean_name() -> String:
 func _validate() -> void:
 	var clean := _current_clean_name()
 	confirm_btn.disabled = clean.is_empty()
+	# Não reescreve o LineEdit aqui: sanitize no text_changed comia o espaço do fim.
 	if clean.is_empty():
 		hint_label.text = "Escolha um nome com pelo menos 1 caractere."
 		hint_label.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.6))
 	else:
-		hint_label.text = "%d/%d caracteres" % [clean.length(), Game.MAX_PLAYER_NAME_LEN]
+		hint_label.text = "%d/%d caracteres" % [name_input.text.length(), Game.MAX_PLAYER_NAME_LEN]
 		hint_label.add_theme_color_override("font_color", Palette.with_alpha(Palette.CREAM, 0.55))
 
 

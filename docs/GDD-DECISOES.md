@@ -2,7 +2,7 @@
 
 **Projeto:** Treinamento Hashira (2D · Android · fan / uso pessoal)  
 **Estúdio:** Pasqualotti Studio  
-**Atualizado:** 2026-09-12 (sala no celular — progresso vivo em `STATUS-PROGRESSO.md`)
+**Atualizado:** 2026-09-13 (feel dash no hit — progresso vivo em `STATUS-PROGRESSO.md`)
 
 ---
 
@@ -69,7 +69,7 @@ Ordem **obrigatória** (confirmada com prints):
 
 **Nossas regras de loading:**
 
-- Offline-first no **boot**: texto **“Carregando…”** / “Preparando o dojo…” — **não** “Conectando-se…”. Check da sala da estrela só **depois** do hub (Criar/Entrar).
+- Offline-first no **boot**: texto **“Carregando…”** / “Preparando o dojo…” — **não** “Conectando-se…”. Check da sala da estrela só **depois** do hub (MULTIPLAYER / ENTRAR).
 - Barra reflete progresso real (load de cenas/assets) + mínimo de tempo pra não piscar (ex. 0.8s floor).
 - Arte: key art própria (pixel / paint) — placeholder no começo.
 - **Não** reutilizar assets de Brawl Stars.
@@ -125,20 +125,23 @@ Ordem **obrigatória** (confirmada com prints):
 │ PERSONA│     PERSONAGEM ATUAL (centro)                             │
 │  GENS  │         idle / showcase                                   │
 │ AMIGOS │                                                           │
+│ MULTIP-│                                                           │
+│ LAYER  │                                                           │
 ├────────┴──────────────────────┬────────────────────────────────────┤
 │  Escolha o mundo e a fase…    │            [  JOGAR  ]             │
 └───────────────────────────────┴────────────────────────────────────┘
 
 Toque AMIGOS → gaveta desliza da direita (painel sólido, topo→embaixo; JOGAR não vaza):
                          │ AMIGOS              [Fechar] │
-                         │ Ninguém                      │
-                         │ [ Criar sala ]               │
-                         │ [ Entrar     ]               │
+                         │ Ninguém / lista / convites   │
+                         │ [ Adicionar amigo ]          │
+                         │ ENTRAR na linha se o amigo   │
+                         │ já tem sala                  │
 ```
 
-**Amigos:** **Adicionar amigo** pelo **nome do perfil**. A outra pessoa **Aceita** ou **Não**. Só então fica na lista. **+** convida pra **sala já criada**. Sem aceite, sem lista. Sem código de amigo na tela.  
-**Sala (host):** código de 6 caracteres (tap = copiar) + “Esperando amigo…” / “Amigo entrou” + **modo** (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`) + lista com **+** + Fechar sala.  
-**Entrar (guest):** convite da sala (entra sozinho) **ou** código 6 na mão. Beacon Wi-Fi primeiro (~2,5 s); senão a **sala da estrela** (host baked no APK) — os dois só **saem** pro VPS (NAT da casa não precisa abrir porta). Sem campo de IP na gaveta.  
+**Amigos:** **Adicionar amigo** pelo **nome do perfil**. A outra pessoa **Aceita** ou **Não**. Só então fica na lista. **+** convida pra **sala já criada**. Sem aceite, sem lista. Sem código de amigo na tela. Gaveta **não** cria sala nem pede código.  
+**Sala (host):** placa **MULTIPLAYER** no hub cria a sala na hora e abre a lobby. Código de 6 (tap = copiar) + “Esperando amigo…” / “Amigo entrou” + **modo** (`2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`) + **+ Chamar amigo** + Fechar sala.  
+**Entrar (guest):** **ENTRAR** na linha do amigo (se a sala da estrela trouxe o código), convite da sala, ou código 6. Beacon Wi-Fi primeiro (~2,5 s); senão a **sala da estrela** (host baked no APK) — os dois só **saem** pro VPS. Sem campo de IP na gaveta. Sem `friends_status` no VPS, a lista continua e o ENTRAR some.  
 **JOGAR:** sempre abre o **mapa**. Só o **host** escolhe a fase no coop vs oni. Guest no hub: “O anfitrião escolhe a fase”.
 
 **2 vs oni:** 2 jogadores. Cap de 1 amigo. **Começar** leva o anfitrião ao mapa (escolhe a fase).  
@@ -180,8 +183,10 @@ Combate = `stage_*` com HUD de luta (stick, dash, skills).
 - Input: `advance` / botão Avançar (esquerda do touch)
 - Efeito: impulso rápido no eixo X (curto) com ease-out no fim, depois volta ao controle normal
 - Cooldown: valor em Resource de stats (ex. 0.8–1.2s — balance depois)
-- I-frames no dash: **não** no MVP (pode virar upgrade)
-- No ar: pode dash 1× até pousar? → default **sim, 1 dash aéreo**, reavalia no playtest
+- I-frames no dash **normal:** **não** no MVP (pode virar upgrade)
+- Dash saindo de hurt (1v1 e mapa de batalha): **sim**, i-frames curtos (~0,18 s). Knockback **não** cancela esse dash.
+- No ar (fase side-scroller): **1 dash aéreo** até pousar
+- Mapa de batalha (plano): dash **não** gasta dash aéreo e **não** exige chão. Zera Y no arranque; o stick ainda mexe o eixo depois.
 
 ---
 
@@ -228,7 +233,16 @@ Celular **deitado**. Esquerda = movimento; direita = combate.
 | Habilidade 2 | 2ª skill única |
 | Ultimate | Golpe forte de respiração; **só com barra no máximo** |
 
-**Feel (Street Fighter):** segurar para trás (contra o golpe) **defende** — toma um pouco (chip) e não trava no atordoamento. Apanhando ainda dá para **andar, recuar e dash** depois de um instante. Não fica preso no combo.
+**Feel (combate — dash no hit):**
+
+- Segurar contra o golpe **defende** — chip (~25%) e não trava no atordoamento.
+- Apanhando: **andar / DI** no stun e **dash no primeiro frame** do hurt (1v1 e mapa). Sem esperar janela.
+- Stun curto (~0,14 s). `hurt_invuln` permanece (combo não come a barra inteira).
+- Dash de fuga: i-frames curtos; o knockback não tira do dash.
+- Recovery do golpe cancela em dash um pouco mais cedo (`attack_cancel_ratio`).
+- Skills / ult **não** exigem chão.
+
+Não fica preso no combo.
 
 ---
 
@@ -340,20 +354,20 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 
 ### Amigos / sala (2026-09-10, casa↔casa 2026-09-10, modos 2026-09-10)
 
-- Direita do hub = **Amigos** (lista + sala). Clube / notícias / eventos continuam fora.
-- Depois de **Criar sala**, a sala abre **lobby em tela cheia**: equipe à esquerda, caçador no centro, modos à direita, faixa de retratos embaixo. Cada celular escolhe o próprio caçador ali (não cai em Inosuke). Lista de amigos continua na gaveta. Botões do hub (LOJA / PERSONAGENS / AMIGOS) **somem** enquanto a lobby está aberta.
+- Esquerda do hub: LOJA / PERSONAGENS / AMIGOS / **MULTIPLAYER** (mesma placa 320×76). Clube / notícias / eventos continuam fora.
+- **MULTIPLAYER** cria a sala na hora e abre **lobby em tela cheia**: equipe à esquerda, caçadores **grandes lado a lado** no centro (nome + caçador embaixo), modos à direita, faixa de retratos embaixo. Cada celular escolhe o próprio caçador ali (não cai em Inosuke). Gaveta AMIGOS é só lista / convites / Adicionar amigo. Botões do hub **somem** enquanto a lobby está aberta.
 - Troféus: cada vitória em sala (1v1 / mapa) soma 1 no save local. A lobby mostra **Troféus · N**.
 - Nome do jogador fica **em cima do corpo** no multiplayer.
 - Fim em sala: pergunta **De novo** (revanche) ou **Lobby**. Lobby = mesma sala e os mesmos players, sem convidar de novo. Sem a palavra “partida”.
-- Depois de **Criar sala**, o anfitrião escolhe: `2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`. JOGAR ouro **não** é esse seletor — continua o mapa do mundo.
+- Depois do **MULTIPLAYER**, o anfitrião escolhe: `2 vs oni` · `4 vs oni` · `Mapa de batalha` · `1v1`. JOGAR ouro **não** é esse seletor — continua o mapa do mundo.
 - 2 vs oni: 2 jogadores, cap 1 amigo; **Começar** abre o mapa. 4 vs oni: 4 celulares (cap 3), câmera nos vivos, oni no mais perto. 2P/solo intactos. Sala ENet no teto 3 — troca de modo com gente dentro não recria o peer.
 - Mapa de batalha: até 4, Começar na sala, pátio com pads, spawn no pátio, eixo vertical no InputFrame, De novo/Lobby com sala. 1v1: 2P, fundo do pátio, corpos maiores, respiração no HUD, skills no ar. Sala + peer = roster. F6 sem sessão = máquina. Sem a cena: toast PT, sala não quebra.
-- Combate: block no recuo + recuo/dash no hurt. Créditos: “Incendeie seu coração” depois de feito com carinho.
+- Combate: block no recuo; DI + dash no primeiro frame do hurt (i-frames curtos no dodge); stun curto; cancel de recovery em dash. Créditos: “Incendeie seu coração” depois de feito com carinho.
 - Wi-Fi da casa **ou** casa↔casa pela **sala da estrela** (host baked no APK). Sem campo de IP na gaveta. Host escolhe a fase no mapa no coop vs oni.
-- Beacon primeiro; senão a sala da estrela. Sala caiu: o jogo abre; Criar/Entrar avisa em PT. Boot **não** fala “Conectando-se…”.
-- **Adicionar amigo** pelo nome do perfil (os dois no hub). O **x** apaga. Código de 6 da sala continua (Zap).
+- Beacon primeiro; senão a sala da estrela. Sala caiu: o jogo abre; MULTIPLAYER / ENTRAR avisam em PT. Boot **não** fala “Conectando-se…”.
+- **Adicionar amigo** pelo nome do perfil (os dois no hub). Nome até **24** caracteres; o espaço no meio **não some** ao digitar. O **x** apaga. Código de 6 da sala continua (Zap). **ENTRAR** na linha do amigo se ele já tem sala.
 - Moedas da run = pote do grupo; no clear o grupo banka no save local. 2P: morte de qualquer um = wipe. 4 vs oni: wipe quando ninguém vivo resta.
-- Textos de sala: “Criar sala”, “Entrar”, “Procurando na rede…”, “Procurando o amigo…”, “Amigo entrou”, “A sala da estrela está desligada”.
+- Textos de sala: “MULTIPLAYER”, “ENTRAR”, “Procurando na rede…”, “Procurando o amigo…”, “Amigo entrou”, “A sala da estrela está desligada”. Sem a palavra “partida”.
 - Sem persistir IP. Sem Firebase / Play Games. PC local = reserva de dev.
 
 ### Ainda pos-MVP
@@ -385,3 +399,4 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-13 | Convite de amigo pelo nome do perfil (sem código de 8 na tela). |
 | 2026-09-13 | Troféus MP, nametag, 1v1 com fundo/chão/corpo maior + respiração, revanche ou volta à lobby. |
 | 2026-09-13 | Modo troca com sala ocupada; Começar no 2 vs oni; skills 1v1; block/recuo; spawn do mapa no pátio; créditos “Incendeie seu coração”. |
+| 2026-09-13 | Feel dash no hit: dash no 1º frame do hurt (1v1 + mapa); i-frames curtos no dodge; plano sem gastar air dash; stun 0,14; cancel de recovery mais cedo. |

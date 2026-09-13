@@ -47,6 +47,7 @@ var _travel_progress: float = 0.0
 
 
 func _ready() -> void:
+	SafeInset.apply(self)
 	_load_catalog()
 	map_canvas.set("paint_cb", Callable(self, "_paint_map"))
 	_build_world_tabs()

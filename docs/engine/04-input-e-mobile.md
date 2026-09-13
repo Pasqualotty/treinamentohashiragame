@@ -83,7 +83,7 @@ convenção de tela (0° = direita, 90° = baixo, 180° = esquerda, 270° = topo
 
 | Cluster | Âncora | Satélites (ângulo @ raio) |
 |---|---|---|
-| Esquerdo | stick virtual 156px | `jump` 315° · `advance` 0° @ 152px |
+| Esquerdo | stick virtual 236px | `jump` 315° · `advance` 0° @ 190px |
 | Direito | `attack_basic` 132px | `ultimate` 270° · `skill_1` 225° · `skill_2` 180° @ 158px |
 
 Hierarquia de tamanho em três níveis: primário 132 (`attack_basic`), secundário

@@ -1,5 +1,15 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.14 — multiplayer, bordas, dash e stick (2026-09-13)
+
+- Hub: placa **MULTIPLAYER** cria a sala e abre a lobby
+- Gaveta AMIGOS só lista / convites / Adicionar amigo; **ENTRAR** se o amigo já tem sala
+- Lobby: caçadores grandes lado a lado quando entra gente
+- Nome até 24 caracteres; o espaço no meio não some ao digitar
+- Telas respeitam a área segura do telefone (não come notch/canto)
+- Dash sai no primeiro frame ao levar hit (1v1 e mapa)
+- Stick de movimento maior
+
 ## 0.0.13 — versão no hub (2026-09-13)
 
 - No painel principal, a versão aparece no canto inferior esquerdo
