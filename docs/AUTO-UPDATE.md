@@ -27,7 +27,7 @@ Não é Play Store. O APK e o manifesto JSON ficam num **GitHub Release** públi
 6. Download falhou: “Não deu pra baixar” + tentar de novo + jogar assim mesmo.
 7. No PC / editor: o check **não** bate na rede e **não** abre popup.
 
-Timeout: 8 s no manifesto, 180 s no APK. HTTPS only.
+Timeout: 8 s no manifesto, 600 s no APK. HTTPS only. O `gh` tem que subir o asset com o nome `TreinamentoHashira.apk` (`arquivo.apk#TreinamentoHashira.apk`).
 
 ## Onde sobe o arquivo
 

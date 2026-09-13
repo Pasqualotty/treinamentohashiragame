@@ -177,7 +177,8 @@ if ($VersionName -or $FillFromApk) {
 
 Write-Host ""
 Write-Host "Proximo passo - GitHub Release (APK publico, sem token no jogo):"
-Write-Host "  gh release create `"v$name`" `"$apkAbs`" `"$LatestPath`" --repo $Repo --title `"Treino $name`" --notes `"$Changelog`""
+Write-Host "  Copie o APK para TreinamentoHashira.apk e rode:"
+Write-Host "  gh release create `"v$name`" `"export\TreinamentoHashira.apk`" `"$LatestPath`" --repo $Repo --title `"Treino $name`" --notes `"$Changelog`""
 Write-Host ""
 Write-Host "O sobrinho so precisa abrir o jogo. Manifesto:"
 Write-Host "  $manifestUrl"
@@ -192,7 +193,11 @@ if ($CreateGithubRelease) {
     if ($size -le 0 -or -not $sha) {
         throw "Rode -FillFromApk antes de criar o release (latest.json sem hash)."
     }
-    & gh release create "v$name" $apkAbs $LatestPath --repo $Repo --title "Treino $name" --notes $Changelog
+    $namedApk = Join-Path (Split-Path -Parent $apkAbs) "TreinamentoHashira.apk"
+    if ($apkAbs -ne $namedApk) {
+        Copy-Item -LiteralPath $apkAbs -Destination $namedApk -Force
+    }
+    & gh release create "v$name" $namedApk $LatestPath --repo $Repo --title "Treino $name" --notes $Changelog
     if ($LASTEXITCODE -ne 0) {
         throw "gh release create falhou (exit $LASTEXITCODE)"
     }
