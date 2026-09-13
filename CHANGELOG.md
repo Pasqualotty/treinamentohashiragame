@@ -14,7 +14,7 @@
 - Quatro modos na sala: 2 vs oni, 4 vs oni, mapa, 1v1
 - Cada caçador: ataque, skills e botões próprios (andar/pulo/dash iguais)
 
-## Unreleased — casa↔casa + convite de amigo
+## 0.0.9 — casa↔casa + convite de amigo (2026-09-13)
 
 - Entre casas o celular **só sai** pro VPS (ponte UDP). Não depende mais da porta 17777 da casa.
 - Código de amigo (8): manda convite → a pessoa aceita → fica na lista
