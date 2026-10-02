@@ -12,6 +12,10 @@ const CREDITS := "res://scenes/ui/credits.tscn"
 const SETTINGS := "res://scenes/ui/settings.tscn"
 const NAME_ENTRY := "res://scenes/ui/name_entry.tscn"
 const CHARACTER_SELECT := "res://scenes/ui/character_select.tscn"
+const MISSIONS := "res://scenes/ui/missions.tscn"
+const NEWS := "res://scenes/ui/news.tscn"
+const EVENTS := "res://scenes/ui/events.tscn"
+const CLUB := "res://scenes/ui/club.tscn"
 
 const TransitionScript := preload("res://scripts/ui/transition.gd")
 
@@ -148,3 +152,19 @@ func to_name_entry(edit_mode: bool = false) -> bool:
 
 func to_characters() -> bool:
 	return go_to(CHARACTER_SELECT)
+
+
+func to_missions() -> bool:
+	return go_to(MISSIONS)
+
+
+func to_news() -> bool:
+	return go_to(NEWS)
+
+
+func to_events() -> bool:
+	return go_to(EVENTS)
+
+
+func to_club() -> bool:
+	return go_to(CLUB)

@@ -31,9 +31,14 @@ signal friends_changed
 signal friend_invites_changed
 ## Vitórias em sala (1v1 / mapa). Local, no save.
 signal trophies_changed(total: int)
+## XP de caçador (nível / missões). Não altera stats de combate.
+signal hunter_xp_changed(total: int)
 
 const FRIENDS_CAP := 16
 const PENDING_CAP := 16
+const DEFAULT_CLUB_NAME := "Corpo de Caçadores"
+const SAVE_FAIL_COPY := "Não deu para guardar. Tenta de novo."
+const MISSIONS_DONE_COPY := "Amanhã tem mais."
 
 var coins_banked: int = 0
 ## Vazio = jogador ainda nao passou pelo onboarding de nome.
@@ -65,6 +70,15 @@ var friend_code: String = ""
 var pending_in: Array[Dictionary] = []
 ## Convites enviados: `{friend_id, name}`.
 var pending_out: Array[Dictionary] = []
+## Diário local. Save antigo sem as chaves abre com estes defaults.
+var hunter_xp: int = 0
+var mission_day: String = ""
+var mission_progress: Dictionary = {}
+var mission_claimed: Dictionary = {}
+var event_week: int = 0
+var event_clears: int = 0
+var event_claimed: bool = false
+var club_name: String = DEFAULT_CLUB_NAME
 
 var _catalog: Array[UpgradeDef] = []
 var _catalog_loaded: bool = false
@@ -350,6 +364,7 @@ func add_run_coins(amount: int) -> void:
 	run_coins_changed.emit(coins_run)
 	# Mant├®m API legada; hub rel├¬ banked no handler e n├úo quebra.
 	coins_changed.emit(coins_run)
+	_note_run_coins_mission()
 
 
 func bank_run_coins() -> void:
@@ -384,6 +399,7 @@ func is_ultimate_ready() -> bool:
 func consume_ultimate() -> void:
 	breath = 0.0
 	breath_changed.emit(breath, breath_max)
+	_bump_mission_kind("use_ultimate", 1)
 
 
 func is_stage_cleared(stage_id: String) -> bool:
@@ -394,7 +410,8 @@ func mark_stage_cleared(stage_id: String) -> void:
 	if stage_id not in stages_cleared:
 		stages_cleared.append(stage_id)
 		_sync_character_unlocks()
-		save_game()
+	_apply_stage_clear_meta()
+	save_game()
 
 
 func is_character_unlocked(character_id: String) -> bool:
@@ -556,9 +573,11 @@ func add_mp_trophy() -> void:
 	save_game()
 
 
-func save_game() -> void:
+func save_game() -> bool:
 	if not AtomicJson.write_dict(_save_path, _save_payload()):
 		push_error("Save failed: %s" % FileAccess.get_open_error())
+		return false
+	return true
 
 
 func load_game() -> void:
@@ -583,6 +602,14 @@ func _save_payload() -> Dictionary:
 		"friend_pending_in": _pending_payload(pending_in),
 		"friend_pending_out": _pending_payload(pending_out),
 		"mp_trophies": mp_trophies,
+		"hunter_xp": hunter_xp,
+		"mission_day": mission_day,
+		"mission_progress": mission_progress,
+		"mission_claimed": mission_claimed,
+		"event_week": event_week,
+		"event_clears": event_clears,
+		"event_claimed": event_claimed,
+		"club_name": get_club_name(),
 	}
 
 
@@ -647,6 +674,15 @@ func _apply_save_data(data: Dictionary) -> void:
 	_load_friend_code(data)
 	_load_pending(data)
 	mp_trophies = maxi(0, int(data.get("mp_trophies", 0)))
+	hunter_xp = maxi(0, int(data.get("hunter_xp", 0)))
+	mission_day = str(data.get("mission_day", ""))
+	mission_progress = _load_int_dict(data.get("mission_progress", {}))
+	mission_claimed = _load_bool_dict(data.get("mission_claimed", {}))
+	event_week = int(data.get("event_week", 0))
+	event_clears = maxi(0, int(data.get("event_clears", 0)))
+	event_claimed = bool(data.get("event_claimed", false))
+	var loaded_club := sanitize_player_name(str(data.get("club_name", DEFAULT_CLUB_NAME)))
+	club_name = loaded_club if not loaded_club.is_empty() else DEFAULT_CLUB_NAME
 	_sync_character_unlocks()
 
 
@@ -726,6 +762,166 @@ func _parse_pending(raw: Variant) -> Array[Dictionary]:
 			rec["friend_id"] = FriendCode.normalize(fid)
 		out.append(rec)
 	return out
+
+
+func _load_int_dict(raw: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if typeof(raw) != TYPE_DICTIONARY:
+		return out
+	var src: Dictionary = raw
+	for k in src.keys():
+		out[str(k)] = int(src[k])
+	return out
+
+
+func _load_bool_dict(raw: Variant) -> Dictionary:
+	var out: Dictionary = {}
+	if typeof(raw) != TYPE_DICTIONARY:
+		return out
+	var src: Dictionary = raw
+	for k in src.keys():
+		out[str(k)] = bool(src[k])
+	return out
+
+
+func get_club_name() -> String:
+	var clean := sanitize_player_name(club_name)
+	if clean.is_empty():
+		return DEFAULT_CLUB_NAME
+	return clean
+
+
+func set_club_name(raw: String) -> Dictionary:
+	var clean := sanitize_player_name(raw)
+	if clean.is_empty():
+		return {"ok": false, "reason": "empty"}
+	var prev: String = club_name
+	club_name = clean
+	if not save_game():
+		club_name = prev
+		return {"ok": false, "reason": "save_failed"}
+	return {"ok": true, "reason": ""}
+
+
+## `unix` < 0 usa o relógio do aparelho. Testes passam um instante fixo.
+func sync_diario_calendar(unix: int = -1) -> void:
+	var stamp: int = unix if unix >= 0 else int(Time.get_unix_time_from_system())
+	var day: String = DailyMissions.day_key_from_unix(stamp)
+	if mission_day != day:
+		mission_day = day
+		mission_progress = {}
+		mission_claimed = {}
+	var week: int = WeekEvent.week_id_from_unix(stamp)
+	if event_week != week:
+		event_week = week
+		event_clears = 0
+		event_claimed = false
+
+
+func _apply_stage_clear_meta() -> void:
+	sync_diario_calendar()
+	var next: Dictionary = DiarioHooks.apply_stage_clear(hunter_xp, event_clears)
+	hunter_xp = int(next.get("hunter_xp", hunter_xp))
+	event_clears = int(next.get("event_clears", event_clears))
+	_bump_mission_kind("clear_stage", 1)
+	hunter_xp_changed.emit(hunter_xp)
+
+
+func _note_run_coins_mission() -> void:
+	sync_diario_calendar()
+	var changed := false
+	for spec: Dictionary in DailyMissions.missions_for_day(mission_day):
+		if str(spec.get("kind", "")) != "collect_run_coins":
+			continue
+		var mid: String = str(spec.get("id", ""))
+		var goal: int = int(spec.get("goal", 20))
+		var prev: int = int(mission_progress.get(mid, 0))
+		var nxt: int = mini(goal, maxi(prev, coins_run))
+		if nxt != prev:
+			mission_progress[mid] = nxt
+			changed = true
+	if changed:
+		save_game()
+
+
+func _bump_mission_kind(kind: String, add: int) -> void:
+	sync_diario_calendar()
+	var changed := false
+	for spec: Dictionary in DailyMissions.missions_for_day(mission_day):
+		if str(spec.get("kind", "")) != kind:
+			continue
+		var mid: String = str(spec.get("id", ""))
+		var goal: int = int(spec.get("goal", 1))
+		var prev: int = int(mission_progress.get(mid, 0))
+		var nxt: int = mini(goal, prev + add)
+		if nxt != prev:
+			mission_progress[mid] = nxt
+			changed = true
+	if changed:
+		save_game()
+
+
+func mission_progress_of(mission_id: String) -> int:
+	return int(mission_progress.get(mission_id, 0))
+
+
+func is_mission_claimed(mission_id: String) -> bool:
+	return bool(mission_claimed.get(mission_id, false))
+
+
+func all_daily_missions_claimed() -> bool:
+	sync_diario_calendar()
+	for spec: Dictionary in DailyMissions.missions_for_day(mission_day):
+		if not bool(mission_claimed.get(str(spec.get("id", "")), false)):
+			return false
+	return true
+
+
+func claim_daily_mission(mission_id: String) -> Dictionary:
+	sync_diario_calendar()
+	var spec: Dictionary = DailyMissions.find_mission(mission_day, mission_id)
+	if spec.is_empty():
+		return {"ok": false, "reason": "missing"}
+	if bool(mission_claimed.get(mission_id, false)):
+		return {"ok": false, "reason": "already"}
+	if int(mission_progress.get(mission_id, 0)) < int(spec.get("goal", 1)):
+		return {"ok": false, "reason": "incomplete"}
+	var prev_xp: int = hunter_xp
+	var prev_coins: int = coins_banked
+	var prev_claimed: Dictionary = mission_claimed.duplicate(true)
+	hunter_xp += int(spec.get("xp", 0))
+	coins_banked += int(spec.get("coins", 0))
+	mission_claimed[mission_id] = true
+	coins_changed.emit(coins_banked)
+	hunter_xp_changed.emit(hunter_xp)
+	if not save_game():
+		hunter_xp = prev_xp
+		coins_banked = prev_coins
+		mission_claimed = prev_claimed
+		coins_changed.emit(coins_banked)
+		hunter_xp_changed.emit(hunter_xp)
+		return {"ok": false, "reason": "save_failed"}
+	return {"ok": true, "reason": ""}
+
+
+func claim_week_event() -> Dictionary:
+	sync_diario_calendar()
+	var spec: Dictionary = WeekEvent.event_for_week(event_week)
+	if event_claimed:
+		return {"ok": false, "reason": "already"}
+	if event_clears < int(spec.get("goal", 3)):
+		return {"ok": false, "reason": "incomplete"}
+	var prev_xp: int = hunter_xp
+	var prev_claimed: bool = event_claimed
+	hunter_xp += int(spec.get("xp", 0))
+	event_claimed = true
+	hunter_xp_changed.emit(hunter_xp)
+	if not save_game():
+		hunter_xp = prev_xp
+		event_claimed = prev_claimed
+		hunter_xp_changed.emit(hunter_xp)
+		return {"ok": false, "reason": "save_failed"}
+	return {"ok": true, "reason": ""}
 
 
 func _ensure_catalog() -> void:
