@@ -41,9 +41,13 @@ extends Resource
 @export var attack_hitbox_size: Vector2 = Vector2(40.0, 30.0)
 @export var attack_hitbox_offset_x: float = 28.0
 ## AABB por frame do hit 1 (startup/recovery ignoram; active indexa 0..n-1).
-## Vazio = usa attack_hitbox_size / offset_x em todos os frames.
-@export var attack_hitbox_sizes: PackedVector2Array = PackedVector2Array()
-@export var attack_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array()
+## Vazio + 1 frame = fallback; vazio + N frames = HitboxArc.
+@export var attack_hitbox_sizes: PackedVector2Array = PackedVector2Array([
+	Vector2(28.0, 21.0), Vector2(40.0, 30.0), Vector2(48.0, 32.0)
+])
+@export var attack_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array([
+	16.0, 28.0, 35.0
+])
 
 # --- Combo básico (3 hits): hit 2 e hit 3 encadeiam a partir do attack_basic ---
 ## Fração do recovery do golpe atual (a partir do fim do active) em que um novo
@@ -64,8 +68,12 @@ extends Resource
 @export var attack_hit2_recovery: float = 0.15
 @export var attack_hit2_hitbox_size: Vector2 = Vector2(44.0, 32.0)
 @export var attack_hit2_hitbox_offset_x: float = 30.0
-@export var attack_hit2_hitbox_sizes: PackedVector2Array = PackedVector2Array()
-@export var attack_hit2_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array()
+@export var attack_hit2_hitbox_sizes: PackedVector2Array = PackedVector2Array([
+	Vector2(31.0, 22.0), Vector2(44.0, 32.0), Vector2(53.0, 35.0)
+])
+@export var attack_hit2_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array([
+	17.0, 30.0, 38.0
+])
 
 ## Hit 3: FINALIZADOR — mais dano/knockback/hitbox, juice mais forte (ver player.gd).
 @export var attack_hit3_damage_mult: float = 2.0
@@ -75,8 +83,12 @@ extends Resource
 @export var attack_hit3_recovery: float = 0.24
 @export var attack_hit3_hitbox_size: Vector2 = Vector2(66.0, 40.0)
 @export var attack_hit3_hitbox_offset_x: float = 34.0
-@export var attack_hit3_hitbox_sizes: PackedVector2Array = PackedVector2Array()
-@export var attack_hit3_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array()
+@export var attack_hit3_hitbox_sizes: PackedVector2Array = PackedVector2Array([
+	Vector2(46.0, 28.0), Vector2(66.0, 40.0), Vector2(79.0, 43.0)
+])
+@export var attack_hit3_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array([
+	19.0, 34.0, 43.0
+])
 
 # --- Skill 1: Corte em Arco (placeholder GDD) ---
 @export var skill_1_display_name: String = "Corte em Arco"
@@ -88,8 +100,12 @@ extends Resource
 @export var skill_1_recovery: float = 0.18
 @export var skill_1_hitbox_size: Vector2 = Vector2(56.0, 36.0)
 @export var skill_1_hitbox_offset_x: float = 32.0
-@export var skill_1_hitbox_sizes: PackedVector2Array = PackedVector2Array()
-@export var skill_1_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array()
+@export var skill_1_hitbox_sizes: PackedVector2Array = PackedVector2Array([
+	Vector2(39.0, 25.0), Vector2(56.0, 36.0), Vector2(67.0, 39.0)
+])
+@export var skill_1_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array([
+	18.0, 32.0, 40.0
+])
 @export var skill_1_lunge_speed: float = 0.0
 @export var skill_1_lunge_y: float = 0.0
 @export var skill_1_hit_count: int = 1
@@ -108,8 +124,12 @@ extends Resource
 @export var skill_2_hit_count: int = 1
 @export var skill_2_hitbox_size: Vector2 = Vector2(44.0, 28.0)
 @export var skill_2_hitbox_offset_x: float = 30.0
-@export var skill_2_hitbox_sizes: PackedVector2Array = PackedVector2Array()
-@export var skill_2_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array()
+@export var skill_2_hitbox_sizes: PackedVector2Array = PackedVector2Array([
+	Vector2(31.0, 20.0), Vector2(44.0, 28.0), Vector2(53.0, 30.0)
+])
+@export var skill_2_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array([
+	17.0, 30.0, 38.0
+])
 @export var skill_2_vfx_tint: Color = Color(0.55, 0.35, 0.95, 1.0)
 
 # --- Ultimate (consome barra de respiração) ---
@@ -122,8 +142,12 @@ extends Resource
 @export var ultimate_iframes: float = 0.40
 @export var ultimate_hitbox_size: Vector2 = Vector2(72.0, 48.0)
 @export var ultimate_hitbox_offset_x: float = 36.0
-@export var ultimate_hitbox_sizes: PackedVector2Array = PackedVector2Array()
-@export var ultimate_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array()
+@export var ultimate_hitbox_sizes: PackedVector2Array = PackedVector2Array([
+	Vector2(50.0, 34.0), Vector2(72.0, 48.0), Vector2(86.0, 52.0)
+])
+@export var ultimate_hitbox_offsets_x: PackedFloat32Array = PackedFloat32Array([
+	20.0, 36.0, 45.0
+])
 @export var ultimate_lunge_speed: float = 0.0
 @export var ultimate_vfx_tint: Color = Color(0.91, 0.72, 0.29, 1.0)
 ## Breath ganho por hit que acerta (via Game.add_breath_from_hit).

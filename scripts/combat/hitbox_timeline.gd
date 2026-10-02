@@ -1,7 +1,7 @@
 class_name HitboxTimeline
 extends RefCounted
 ## Timeline puro da hitbox do golpe: fase + AABB por frame.
-## Startup/recovery = off. Active = size/offset da tabela (ou fallback).
+## Startup/recovery = off. Active = tabela por frame, ou HitboxArc se vazia.
 
 const PHASE_STARTUP := 0
 const PHASE_ACTIVE := 1
@@ -75,15 +75,25 @@ static func visual_frame(
 	return active_frame_index(timer, startup, active, n)
 
 
-static func sample_size(sizes: PackedVector2Array, fallback: Vector2, index: int) -> Vector2:
+static func sample_size(
+	sizes: PackedVector2Array,
+	fallback: Vector2,
+	index: int,
+	frame_count: int = 1
+) -> Vector2:
 	if sizes.is_empty():
-		return fallback
+		return HitboxArc.size_at(fallback, index, frame_count)
 	return sizes[clampi(index, 0, sizes.size() - 1)]
 
 
-static func sample_offset(offsets: PackedFloat32Array, fallback: float, index: int) -> float:
+static func sample_offset(
+	offsets: PackedFloat32Array,
+	fallback: float,
+	index: int,
+	frame_count: int = 1
+) -> float:
 	if offsets.is_empty():
-		return fallback
+		return HitboxArc.offset_at(fallback, index, frame_count)
 	return offsets[clampi(index, 0, offsets.size() - 1)]
 
 
@@ -101,8 +111,8 @@ static func resolve(
 	var idx: int = active_frame_index(timer, startup, active, n)
 	return {
 		"active": is_hitbox_on(timer, startup, active),
-		"size": sample_size(sizes, fallback_size, idx),
-		"offset_x": sample_offset(offsets, fallback_offset, idx),
+		"size": sample_size(sizes, fallback_size, idx, n),
+		"offset_x": sample_offset(offsets, fallback_offset, idx, n),
 		"frame_index": idx,
 	}
 

@@ -134,6 +134,30 @@ func _check_helper_fallback() -> void:
 	if not (none["fallback_size"] as Vector2).is_equal_approx(Vector2(40, 30)):
 		_fail("stats null deveria fallback default")
 
+	var arc_start: Dictionary = HitboxTimeline.resolve(
+		0.01, 0.04, 0.12, empty_s, empty_o, Vector2(40, 30), 28.0, 3
+	)
+	if bool(arc_start["active"]):
+		_fail("arco vazio: startup deveria seguir off")
+	var arc_early: Dictionary = HitboxTimeline.resolve(
+		0.041, 0.04, 0.12, empty_s, empty_o, Vector2(40, 30), 28.0, 3
+	)
+	var arc_late: Dictionary = HitboxTimeline.resolve(
+		0.159, 0.04, 0.12, empty_s, empty_o, Vector2(40, 30), 28.0, 3
+	)
+	if not bool(arc_early["active"]) or not bool(arc_late["active"]):
+		_fail("arco vazio: active deveria ligar")
+	var arc_early_size: Vector2 = arc_early["size"]
+	var arc_late_size: Vector2 = arc_late["size"]
+	if arc_early_size.is_equal_approx(arc_late_size) \
+			and is_equal_approx(float(arc_early["offset_x"]), float(arc_late["offset_x"])):
+		_fail("arco vazio: frame ativo inicial e final deveriam diferir")
+	var arc_rec: Dictionary = HitboxTimeline.resolve(
+		0.20, 0.04, 0.12, empty_s, empty_o, Vector2(40, 30), 28.0, 3
+	)
+	if bool(arc_rec["active"]):
+		_fail("arco vazio: recovery deveria seguir off")
+
 
 func _check_stats_tables() -> void:
 	print("-- tabelas PlayerStats --")
