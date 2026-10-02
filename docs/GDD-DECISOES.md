@@ -2,7 +2,7 @@
 
 **Projeto:** Treinamento Hashira (2D · Android · fan / uso pessoal)  
 **Estúdio:** Pasqualotti Studio  
-**Atualizado:** 2026-09-13 (feel dash no hit — progresso vivo em `STATUS-PROGRESSO.md`)
+**Atualizado:** 2026-10-02 (diário local: missões, notícias, clube, eventos, XP)
 
 ---
 
@@ -86,18 +86,20 @@ Ordem **obrigatória** (confirmada com prints):
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│ [perfil/nome]  [rank/troféus?]     [moedas] [gemas?]     [menu ☰] │  TOPO
+│ [perfil]     [Nv. N + XP]          [moedas]              [⚙]      │  TOPO
 ├──────────┬─────────────────────────────────────────┬───────────────┤
-│ LOJA     │                                         │ NOTÍCIAS*     │
-│ PERSONA- │         PERSONAGEM NO CENTRO            │ AMIGOS*       │
-│ GENS     │         (idle / showcase)               │ CLUBE*        │
-│ MISSÕES* │         setas trocar skin/char          │ EVENTOS*      │
-│ XP bar   │                                         │               │
+│ LOJA     │                                         │ NOTÍCIAS      │
+│ PERSONA- │         PERSONAGEM NO CENTRO            │ CLUBE         │
+│ GENS     │         (idle / showcase)               │ EVENTOS       │
+│ AMIGOS   │                                         │               │
+│ MULTIP.  │                                         │               │
+│ MISSÕES  │                                         │               │
 ├──────────┴─────────────────────────────────────────┴───────────────┤
 │  [modo / mapa da fase]              │  [  JOGAR  ]  CTA amarelo    │  BAIXO
 └────────────────────────────────────────────────────────────────────┘
-* = fase 2+ (só placeholder ou escondido no MVP)
 ```
+
+Diário (missões / notícias / clube / eventos / XP) = **só no aparelho**. Sem servidor, Firebase, ranking online ou IP.
 
 #### Slot a slot — o que entra no **MVP** vs depois
 
@@ -109,9 +111,9 @@ Ordem **obrigatória** (confirmada com prints):
 | Topo perfil | Nick + ícone | Nick local / “Caçador” + avatar | ✅ simples |
 | Esquerda LOJA | Shop | **Loja de upgrades** | ✅ |
 | Esquerda lista chars | Brawlers | **Personagens** (15 no catálogo; Tanjiro starter; Nezuko livre) | ✅ tela select |
-| Esquerda missões / XP | Battle pass vibe | Missões / XP | ⏳ fase 2 |
+| Esquerda missões / XP | Battle pass vibe | **MISSÕES** sob Multiplayer + barra **Nv. N** no topo (toque ≥ 44 px → missões) | ✅ local |
 | Direita **Amigos** | Social | Botão **AMIGOS** (esquerda, peso de Loja) + **gaveta** da direita. Sem coluna plantada. | ✅ |
-| Direita Clube / Notícias / Eventos | Social online | Fora | ❌ omitir |
+| Direita Clube / Notícias / Eventos | Social online | Coluna direita com **NOTÍCIAS · CLUBE · EVENTOS** (listas locais, sem feed e sem IP) | ✅ local |
 | Baixo seletor de modo | Combate solitário + mapa | **Mapa / próxima fase** + info do mundo | ✅ |
 | Setas + / skin | Skins | Trocar personagem / skin | ⏳ char select simples OK |
 
@@ -119,14 +121,15 @@ Ordem **obrigatória** (confirmada com prints):
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│ [👤 nick]                         🪙 1234                   [⚙]  │
-├────────┬───────────────────────────────────────────────────────────┤
-│ LOJA   │                                                           │
-│ PERSONA│     PERSONAGEM ATUAL (centro)                             │
-│  GENS  │         idle / showcase                                   │
-│ AMIGOS │                                                           │
-│ MULTIP-│                                                           │
-│ LAYER  │                                                           │
+│ [👤 nick]          [Nv. N ▓▓▓░░]   🪙 1234                  [⚙]  │
+├────────┬─────────────────────────────────────┬─────────────────────┤
+│ LOJA   │                                     │ NOTÍCIAS            │
+│ PERSONA│     PERSONAGEM ATUAL (centro)       │ CLUBE               │
+│  GENS  │         idle / showcase             │ EVENTOS             │
+│ AMIGOS │                                     │                     │
+│ MULTIP-│                                     │                     │
+│ LAYER  │                                     │                     │
+│ MISSÕES│                                     │                     │
 ├────────┴──────────────────────┬────────────────────────────────────┤
 │  Escolha o mundo e a fase…    │            [  JOGAR  ]             │
 └───────────────────────────────┴────────────────────────────────────┘
@@ -151,13 +154,29 @@ A sala **abre no teto ENet (3)**. Trocar de modo com alguém já dentro **não f
 
 Mesmo Wi-Fi **ou** cada um na sua casa (sala da estrela no APK; se o NAT bloquear, o relay carrega o ENet). ENet 17777 + beacon UDP 17778. Código filtra o beacon (não é o IP). Host simula a fase; o amigo manda input. Sem Firebase, Play Games. Save `friends` = nomes, **sem IP**. Cap 16. Handshake `proto=1` + `version_code` — APK diferente recusa em PT. PC local = reserva de dev, não o caminho do sobrinho.
 
-**Não entra:** split-screen, clube, notícias, eventos, ranking, sync de loja. Implementar o mapa Brawl e o duelo = outras frentes.
+**Não entra:** split-screen, ranking online, sync de loja, campo de IP. Clube / notícias / eventos / missões / XP de caçador entram **só no aparelho** (ver §2.3).
 
 **JOGAR (fechado):** opção **A** — abre o **mapa do mundo**; o jogador escolhe a fase (ou boss se desbloqueado).  
 Não entra direto na fase a partir do hub.
 
 **Regra de cena:** splash, loading e hub **não** são combate.  
 Combate = `stage_*` com HUD de luta (stick, dash, skills).
+
+### 2.3 Diário local (missões, notícias, clube, eventos, XP)
+
+Tudo no aparelho. Sem servidor, Firebase, ranking online ou IP. A engrenagem continua abrindo **Ajustes** (volume).
+
+| Superfície | Regra |
+|------------|--------|
+| XP | Nível de caçador + recompensa de missão em moedas já existentes. **Não** mexe em HP / dano / velocidade / dash. |
+| Curva | Nível 1 em 0 XP; para subir do nível L precisa **100 + 25×(L−1)**. |
+| Clear de fase | +15 XP e +1 no evento da semana (`DiarioHooks`). |
+| Missões | 3 do dia, determinísticas pela data: limpar 1 fase, juntar 20 moedas na fase, usar a respiração máxima 1 vez. **Receber** dá XP + poucas moedas; de novo não duplica. As três recebidas → “Amanhã tem mais.” Save falhou → “Não deu para guardar. Tenta de novo.” |
+| Eventos | “Treino da semana”: limpar 3 fases nesta semana (0/3). Receber dá XP uma vez. Semana nova zera. |
+| Notícias | Lista estática no código (fan game, como jogar, versão do `ProjectSettings`). Toque abre o texto. |
+| Clube | Nome local, padrão “Corpo de Caçadores”. Lista os amigos do save. Vazio: “Chama alguém em Amigos.” |
+
+Save (`game.gd`), defaults para save antigo: `hunter_xp`, `mission_day`, `mission_progress`, `mission_claimed`, `event_week`, `event_clears`, `event_claimed`, `club_name`.
 
 **Assets de marca**
 
@@ -289,7 +308,7 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 
 **Loja (4 upgrades globais, 3 níveis, custos iguais nos 4):** `50 / 200 / 420` → 720 por stat, **2880** no máximo. W1 sozinho não esgota a loja.
 
-**Poder por compra:** HP **+15** · Dano **+3** no básico **e** ripple nas skills (s1 **+4** / s2 **+3** / ult **+6** por nível) · velocidade **+20** · dash CD **−0,12 s** (chão 0,35). Sem 5º upgrade, XP, mana ou custo de skill em moeda.
+**Poder por compra:** HP **+15** · Dano **+3** no básico **e** ripple nas skills (s1 **+4** / s2 **+3** / ult **+6** por nível) · velocidade **+20** · dash CD **−0,12 s** (chão 0,35). Sem 5º upgrade, mana ou custo de skill em moeda. **XP de caçador não altera HP, dano, velocidade nem dash** — isso continua só na loja.
 
 ---
 
@@ -354,7 +373,7 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 
 ### Amigos / sala (2026-09-10, casa↔casa 2026-09-10, modos 2026-09-10)
 
-- Esquerda do hub: LOJA / PERSONAGENS / AMIGOS / **MULTIPLAYER** (mesma placa 320×76). Clube / notícias / eventos continuam fora.
+- Esquerda do hub: LOJA / PERSONAGENS / AMIGOS / **MULTIPLAYER** / **MISSÕES** (mesma placa 320×76). Direita: **NOTÍCIAS / CLUBE / EVENTOS**. JOGAR ouro continua o único CTA primário embaixo.
 - **MULTIPLAYER** cria a sala na hora e abre **lobby em tela cheia**: equipe à esquerda, caçadores **grandes lado a lado** no centro (nome + caçador embaixo), modos à direita, faixa de retratos embaixo. Cada celular escolhe o próprio caçador ali (não cai em Inosuke). Gaveta AMIGOS é só lista / convites / Adicionar amigo. Botões do hub **somem** enquanto a lobby está aberta.
 - Troféus: cada vitória em sala (1v1 / mapa) soma 1 no save local. A lobby mostra **Troféus · N**.
 - Nome do jogador fica **em cima do corpo** no multiplayer.
@@ -400,3 +419,4 @@ Se preferirem “tudo que coletou no chão já é eterno mesmo morrendo”, avis
 | 2026-09-13 | Troféus MP, nametag, 1v1 com fundo/chão/corpo maior + respiração, revanche ou volta à lobby. |
 | 2026-09-13 | Modo troca com sala ocupada; Começar no 2 vs oni; skills 1v1; block/recuo; spawn do mapa no pátio; créditos “Incendeie seu coração”. |
 | 2026-09-13 | Feel dash no hit: dash no 1º frame do hurt (1v1 + mapa); i-frames curtos no dodge; plano sem gastar air dash; stun 0,14; cancel de recovery mais cedo. |
+| 2026-10-02 | Diário local no hub: missões / notícias / clube / eventos / XP de caçador. Sem rede. XP não mexe em combate. |

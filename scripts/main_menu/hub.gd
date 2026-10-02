@@ -20,6 +20,13 @@ extends Control
 @onready var chars_btn: Button = %CharactersButton
 @onready var friends_btn: Button = %FriendsButton
 @onready var multiplayer_btn: Button = %MultiplayerButton
+@onready var missions_btn: Button = %MissionsButton
+@onready var news_btn: Button = %NewsButton
+@onready var club_btn: Button = %ClubButton
+@onready var events_btn: Button = %EventsButton
+@onready var xp_btn: Button = %XpButton
+@onready var xp_level_label: Label = %XpLevelLabel
+@onready var xp_fill: ColorRect = %XpFill
 @onready var play_btn: Button = %PlayButton
 @onready var settings_btn: Button = %SettingsButton
 
@@ -106,8 +113,13 @@ func _ready() -> void:
 		Game.player_name_changed.connect(_on_player_name_changed)
 	if not Game.character_changed.is_connected(_on_character_changed):
 		Game.character_changed.connect(_on_character_changed)
+	if not Game.hunter_xp_changed.is_connected(_on_hunter_xp_changed):
+		Game.hunter_xp_changed.connect(_on_hunter_xp_changed)
 	if not showcase.resized.is_connected(_layout_showcase):
 		showcase.resized.connect(_layout_showcase)
+	var xp_track: Control = get_node_or_null("%XpTrack") as Control
+	if xp_track != null and not xp_track.resized.is_connected(_refresh_xp):
+		xp_track.resized.connect(_refresh_xp)
 	if not SceneRouter.navigation_failed.is_connected(_on_navigation_failed):
 		SceneRouter.navigation_failed.connect(_on_navigation_failed)
 
@@ -323,6 +335,10 @@ func _style_buttons() -> void:
 	_apply_plate(chars_btn, "chars", Palette.CREAM)
 	_apply_plate(friends_btn, "chars", Palette.CREAM)
 	_apply_plate(multiplayer_btn, "chars", Palette.CREAM)
+	_apply_plate(missions_btn, "chars", Palette.CREAM)
+	_apply_plate(news_btn, "chars", Palette.CREAM)
+	_apply_plate(club_btn, "chars", Palette.CREAM)
+	_apply_plate(events_btn, "chars", Palette.CREAM)
 	# CTA: placa dourada, então o rótulo vai em tinta escura para contrastar.
 	_apply_plate(play_btn, "play", Palette.NIGHT_BG)
 	# Placa redonda com engrenagem gravada — o "⚙" do .tscn é só o fallback.
@@ -377,6 +393,7 @@ func _plate_style(plate: String, state: String, circular: bool) -> StyleBoxTextu
 func _style_chrome() -> void:
 	_apply_badge_style(coins_badge)
 	_apply_profile_style(profile_btn)
+	_apply_profile_style(xp_btn)
 
 
 func _badge_stylebox(border_alpha: float, bg_alpha: float) -> StyleBoxFlat:
@@ -453,6 +470,7 @@ func _refresh() -> void:
 	character_name.text = def.display_name if def != null else "Tanjiro"
 	_apply_art_modulate(def)
 	profile_btn.text = Game.player_name if Game.has_player_name() else "Caçador"
+	_refresh_xp()
 
 
 func _on_coins_changed(_total: int) -> void:
@@ -461,6 +479,23 @@ func _on_coins_changed(_total: int) -> void:
 
 func _on_player_name_changed(_new_name: String) -> void:
 	_refresh()
+
+
+func _on_hunter_xp_changed(_total: int) -> void:
+	_refresh_xp()
+
+
+func _refresh_xp() -> void:
+	Game.sync_diario_calendar()
+	var lv: int = HunterXp.level_at(Game.hunter_xp)
+	if xp_level_label != null:
+		xp_level_label.text = "Nv. %d" % lv
+	if xp_fill != null:
+		var ratio: float = HunterXp.fill_ratio(Game.hunter_xp)
+		xp_fill.anchor_left = 0.0
+		xp_fill.anchor_right = ratio
+		xp_fill.offset_left = 0.0
+		xp_fill.offset_right = 0.0
 
 
 func _on_character_changed(_character_id: String) -> void:
@@ -524,6 +559,26 @@ func _on_multiplayer_pressed() -> void:
 		fp.call("host_from_hub")
 
 
+func _on_missions_pressed() -> void:
+	_navigate(SceneRouter.to_missions)
+
+
+func _on_news_pressed() -> void:
+	_navigate(SceneRouter.to_news)
+
+
+func _on_club_pressed() -> void:
+	_navigate(SceneRouter.to_club)
+
+
+func _on_events_pressed() -> void:
+	_navigate(SceneRouter.to_events)
+
+
+func _on_xp_pressed() -> void:
+	_navigate(SceneRouter.to_missions)
+
+
 func _on_settings_pressed() -> void:
 	_navigate(SceneRouter.to_settings)
 
@@ -543,7 +598,7 @@ func _apply_version_label() -> void:
 
 func set_chrome_for_lobby(lobby_on: bool) -> void:
 	var show: bool = not lobby_on
-	for path: String in ["LeftColumn", "TopBar", "BottomBar", "CenterShowcase", "VersionLabel"]:
+	for path: String in ["LeftColumn", "RightColumn", "TopBar", "BottomBar", "CenterShowcase", "VersionLabel"]:
 		var n: CanvasItem = get_node_or_null(path) as CanvasItem
 		if n != null:
 			n.visible = show
