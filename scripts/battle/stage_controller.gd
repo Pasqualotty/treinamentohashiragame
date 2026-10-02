@@ -37,6 +37,7 @@ var _hunters: Array[Node2D] = []
 
 
 func _ready() -> void:
+	_apply_world_backdrop()
 	if reset_run_coins_on_start:
 		Game.lose_run_coins()
 	if reset_breath_on_start:
@@ -116,6 +117,20 @@ func _ready() -> void:
 			_goal.body_entered.connect(_on_goal_body_entered)
 
 	print("[StageController] stage_id=%s ready waves=%s" % [stage_id, use_waves])
+
+
+func _apply_world_backdrop() -> void:
+	var path: String = WorldBackdrop.texture_path_for_stage(stage_id)
+	if path.is_empty():
+		return
+	var mid := get_node_or_null("ParallaxBG/MidLayer/MidArt") as Sprite2D
+	if mid == null:
+		return
+	var tex: Texture2D = load(path) as Texture2D
+	if tex == null:
+		return
+	mid.texture = tex
+	mid.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 
 func _setup_player_physics() -> void:
