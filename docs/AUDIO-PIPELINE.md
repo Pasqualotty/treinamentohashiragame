@@ -10,7 +10,9 @@
 | Autoload `Audio` | `scripts/autoload/audio.gd` |
 | Volumes no save | `Game.audio_volume_*` → `user://save.json` |
 | SFX placeholders | `assets/audio/sfx/*.wav` (procedural, original) |
-| BGM real (hub/stage/boss) | `assets/audio/bgm/game_theme.mp3` — loop via `_as_looping` (AudioStreamMP3.duplicate + loop=true) |
+| BGM hub | `assets/audio/bgm/game_theme.mp3` — loop via `_as_looping` |
+| BGM stage por mundo | `w1_loop.wav` … `w5_loop.wav` via `BgmRoute` + `Game.current_world_id` |
+| BGM boss | `assets/audio/bgm/boss_loop.wav` (nunca `game_theme`) |
 | Hooks | splash sting, hub BGM + UI click, mapa UI click, stage/boss BGM, slash/hit, coin/breath_full/ultimate/stage_clear |
 
 **Licença:** só original/procedural/CC0 — **nunca** OST Demon Slayer rip.
@@ -22,14 +24,25 @@
 ```gdscript
 Audio.play_sfx("ui_click")          # silent no-op se arquivo faltar
 Audio.play_sfx("slash", 1.05)       # pitch opcional
-Audio.play_bgm("hub")               # aliases: hub, stage, boss
-Audio.play_bgm("stage", true)       # from_start
-Audio.play_bgm("boss")              # W1 boss (placeholder loop)
+Audio.play_bgm("hub")               # game_theme.mp3 (menu)
+Audio.play_bgm("stage", true)       # w1..w5_loop.wav conforme Game.current_world_id
+Audio.play_bgm("boss")              # boss_loop.wav (nunca game_theme)
 Audio.stop_bgm()
 Audio.set_volume_master(0.8)        # linear 0..1, persiste no save
 Audio.set_volume_bgm(0.6)
 Audio.set_volume_sfx(1.0)
 ```
+
+Rota (`scripts/audio/bgm_route.gd`, `class_name BgmRoute`):
+
+| kind | world | arquivo |
+|------|-------|---------|
+| `hub` | (ignorado) | `res://assets/audio/bgm/game_theme.mp3` |
+| `boss` | (ignorado) | `res://assets/audio/bgm/boss_loop.wav` |
+| `stage` | `w1`…`w5` | `res://assets/audio/bgm/wN_loop.wav` |
+| `stage` | desconhecido | `res://assets/audio/bgm/stage_loop.wav` |
+
+`Audio.play_bgm` só escolhe o path via `BgmRoute.resolve`. No `stage`, lê `Game.current_world_id` se o autoload existir. Hub, cada mundo e boss são caminhos distintos.
 
 IDs SFX: `ui_click`, `slash`, `hit`, `hurt`, `coin`, `breath_full`, `ultimate`, `stage_clear`, `brand_sting`.
 
@@ -52,13 +65,20 @@ assets/audio/
     stage_clear.wav
     brand_sting.wav
   bgm/
-    game_theme.mp3     # música do jogo (hub/stage/boss) — loop via _as_looping
-    hub_loop.wav       # placeholder (não usado por BGM_FILES)
-    stage_loop.wav     # placeholder (não usado por BGM_FILES)
-    boss_loop.wav      # placeholder (não usado por BGM_FILES)
+    game_theme.mp3     # hub / menu
+    hub_loop.wav       # placeholder extra (não é a rota de hub)
+    stage_loop.wav     # fallback se o mundo não for w1..w5
+    w1_loop.wav        # Montanha
+    w2_loop.wav        # Trem
+    w3_loop.wav        # Distrito
+    w4_loop.wav        # Castelo
+    w5_loop.wav        # Céu Vermelho
+    boss_loop.wav      # boss (nunca game_theme)
 resources/default_bus_layout.tres   # Master → BGM, SFX
+scripts/audio/bgm_route.gd
 scripts/autoload/audio.gd
 scripts/tools/generate_audio_placeholders.py
+scripts/qa/smoke_bgm_routes.gd
 ```
 
 Regenerar placeholders:

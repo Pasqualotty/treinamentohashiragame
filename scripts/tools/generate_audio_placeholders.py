@@ -135,6 +135,76 @@ def drum(freq: float, dur: float, amp: float = 0.6) -> list[float]:
     return add(body, body2 + [0.0] * (nn - len(body2)), click + [0.0] * (nn - len(click)))
 
 
+def _crossfade_loop(buf: list[float], fade_s: float) -> None:
+    n = len(buf)
+    cf = int(fade_s * SR)
+    if cf <= 0 or cf * 2 > n:
+        return
+    for i in range(cf):
+        a = i / cf
+        buf[n - cf + i] = buf[n - cf + i] * (1 - a) + buf[i] * a
+
+
+def _world_loop(
+    n: int,
+    *,
+    bpm: float,
+    notes: list[float],
+    bass_hz: float,
+    kick_hz: float,
+    kick_drop: float,
+    kick_window: float,
+    hat_amp: float,
+    lead_amp: float,
+    pad_a: float,
+    pad_b: float,
+    bass_decay: float,
+    triangle_lead: bool,
+    clack: bool,
+    shimmer: float,
+    organ: float,
+) -> list[float]:
+    out = [0.0] * n
+    beat_len = 60.0 / bpm
+    for i in range(n):
+        t = i / SR
+        beat_phase = (t % beat_len) / beat_len
+        bass_env = math.exp(-beat_phase * bass_decay)
+        bass = math.sin(2 * math.pi * bass_hz * t) * 0.18 * bass_env
+        kick = (
+            math.sin(2 * math.pi * (kick_hz - kick_drop * beat_phase) * t) * 0.22 * bass_env
+            if beat_phase < kick_window
+            else 0.0
+        )
+        sub = (t % (beat_len / 2)) / (beat_len / 2)
+        hat = random.uniform(-1, 1) * hat_amp * math.exp(-sub * 40) if sub < 0.08 else 0.0
+        bar = int(t / beat_len) % len(notes)
+        nf = notes[bar]
+        if triangle_lead:
+            tri = 2 * abs(2 * ((t * nf) % 1) - 1) - 1
+            lead = tri * lead_amp * (0.55 + 0.45 * math.sin(2 * math.pi * (1.0 / beat_len) * t))
+        else:
+            lead = math.sin(2 * math.pi * nf * t) * lead_amp * (
+                0.5 + 0.5 * math.sin(2 * math.pi * (1.0 / beat_len) * t)
+            )
+        pad = math.sin(2 * math.pi * pad_a * t) * 0.05 + math.sin(2 * math.pi * pad_b * t) * 0.04
+        extra = 0.0
+        if clack and beat_phase < 0.06:
+            extra += random.uniform(-1, 1) * 0.12 * math.exp(-beat_phase * 70)
+        if shimmer > 0.0:
+            extra += math.sin(2 * math.pi * (pad_b * 2.0) * t) * shimmer * (
+                0.4 + 0.6 * math.sin(2 * math.pi * 0.2 * t)
+            )
+        if organ > 0.0:
+            extra += (
+                math.sin(2 * math.pi * (bass_hz * 0.5) * t)
+                + 0.5 * math.sin(2 * math.pi * (bass_hz * 1.5) * t)
+            ) * organ
+        out[i] = bass + kick + hat + lead + pad + extra
+    _crossfade_loop(out, 0.15)
+    return out
+
+
 def main() -> None:
     random.seed(42)
     SFX.mkdir(parents=True, exist_ok=True)
@@ -229,60 +299,141 @@ def main() -> None:
         hub[n - cf + i] = hub[n - cf + i] * (1 - a) + hub[i] * a
     write_wav(BGM / "hub_loop.wav", hub)
 
-    stage = [0.0] * n
-    beat_len = 60.0 / 120
-    notes_st = [164.81, 196.00, 220.00, 246.94, 261.63, 246.94, 220.00, 196.00]
-    for i in range(n):
-        t = i / SR
-        beat_phase = (t % beat_len) / beat_len
-        bass_env = math.exp(-beat_phase * 8)
-        bass = math.sin(2 * math.pi * 82.41 * t) * 0.18 * bass_env
-        kick = math.sin(2 * math.pi * (80 - 40 * beat_phase) * t) * 0.22 * bass_env if beat_phase < 0.3 else 0.0
-        sub = (t % (beat_len / 2)) / (beat_len / 2)
-        hat = random.uniform(-1, 1) * 0.06 * math.exp(-sub * 40) if sub < 0.08 else 0.0
-        bar = int(t / beat_len) % 8
-        lead = math.sin(2 * math.pi * notes_st[bar] * t) * 0.07 * (0.5 + 0.5 * math.sin(2 * math.pi * (1.0 / beat_len) * t))
-        pad = math.sin(2 * math.pi * 130.81 * t) * 0.05 + math.sin(2 * math.pi * 196 * t) * 0.04
-        stage[i] = bass + kick + hat + lead + pad
-    cf = int(0.15 * SR)
-    for i in range(cf):
-        a = i / cf
-        stage[n - cf + i] = stage[n - cf + i] * (1 - a) + stage[i] * a
-    write_wav(BGM / "stage_loop.wav", stage)
+    # w1 Montanha = stage_loop atual (120 bpm, lead em terças).
+    w1 = _world_loop(
+        n,
+        bpm=120.0,
+        notes=[164.81, 196.00, 220.00, 246.94, 261.63, 246.94, 220.00, 196.00],
+        bass_hz=82.41,
+        kick_hz=80.0,
+        kick_drop=40.0,
+        kick_window=0.3,
+        hat_amp=0.06,
+        lead_amp=0.07,
+        pad_a=130.81,
+        pad_b=196.00,
+        bass_decay=8.0,
+        triangle_lead=False,
+        clack=False,
+        shimmer=0.0,
+        organ=0.0,
+    )
+    write_wav(BGM / "stage_loop.wav", w1)
+    write_wav(BGM / "w1_loop.wav", w1)
 
-    # Boss: darker pulse, lower drones, tense stabs (original, not commercial OST).
+    # w2 Trem — mais rápido, cliques metálicos no tempo.
+    w2 = _world_loop(
+        n,
+        bpm=144.0,
+        notes=[196.00, 233.08, 261.63, 293.66, 311.13, 293.66, 246.94, 220.00],
+        bass_hz=98.00,
+        kick_hz=95.0,
+        kick_drop=50.0,
+        kick_window=0.18,
+        hat_amp=0.10,
+        lead_amp=0.08,
+        pad_a=146.83,
+        pad_b=293.66,
+        bass_decay=11.0,
+        triangle_lead=True,
+        clack=True,
+        shimmer=0.0,
+        organ=0.0,
+    )
+    write_wav(BGM / "w2_loop.wav", w2)
+
+    # w3 Distrito — mid-tempo, pad noturno.
+    w3 = _world_loop(
+        n,
+        bpm=108.0,
+        notes=[174.61, 207.65, 233.08, 261.63, 233.08, 207.65, 196.00, 174.61],
+        bass_hz=87.31,
+        kick_hz=70.0,
+        kick_drop=28.0,
+        kick_window=0.36,
+        hat_amp=0.045,
+        lead_amp=0.065,
+        pad_a=220.00,
+        pad_b=349.23,
+        bass_decay=6.5,
+        triangle_lead=False,
+        clack=False,
+        shimmer=0.02,
+        organ=0.0,
+    )
+    write_wav(BGM / "w3_loop.wav", w3)
+
+    # w4 Castelo — lento, órgão grave.
+    w4 = _world_loop(
+        n,
+        bpm=86.0,
+        notes=[130.81, 155.56, 174.61, 196.00, 174.61, 155.56, 146.83, 130.81],
+        bass_hz=65.41,
+        kick_hz=52.0,
+        kick_drop=18.0,
+        kick_window=0.42,
+        hat_amp=0.02,
+        lead_amp=0.05,
+        pad_a=98.00,
+        pad_b=196.00,
+        bass_decay=5.0,
+        triangle_lead=False,
+        clack=False,
+        shimmer=0.0,
+        organ=0.09,
+    )
+    write_wav(BGM / "w4_loop.wav", w4)
+
+    # w5 Céu Vermelho — pulse largo + shimmer agudo.
+    w5 = _world_loop(
+        n,
+        bpm=72.0,
+        notes=[110.00, 130.81, 146.83, 164.81, 185.00, 164.81, 146.83, 123.47],
+        bass_hz=55.00,
+        kick_hz=48.0,
+        kick_drop=12.0,
+        kick_window=0.5,
+        hat_amp=0.015,
+        lead_amp=0.055,
+        pad_a=329.63,
+        pad_b=493.88,
+        bass_decay=4.0,
+        triangle_lead=False,
+        clack=False,
+        shimmer=0.045,
+        organ=0.0,
+    )
+    write_wav(BGM / "w5_loop.wav", w5)
+
+    # Boss: mais escuro e mais lento que qualquer mundo (original, sem OST).
     boss = [0.0] * n
-    beat_len_b = 60.0 / 100
-    notes_boss = [98.00, 116.54, 130.81, 146.83, 130.81, 116.54, 110.00, 98.00]
+    beat_len_b = 60.0 / 92
+    notes_boss = [73.42, 87.31, 98.00, 110.00, 98.00, 87.31, 82.41, 73.42]
     for i in range(n):
         t = i / SR
         beat_phase = (t % beat_len_b) / beat_len_b
-        bass_env = math.exp(-beat_phase * 6)
+        bass_env = math.exp(-beat_phase * 5)
         drone = (
-            math.sin(2 * math.pi * 55 * t) * 0.16
-            + math.sin(2 * math.pi * 82.41 * t) * 0.10
-            + math.sin(2 * math.pi * 110 * t) * 0.05
+            math.sin(2 * math.pi * 36.71 * t) * 0.18
+            + math.sin(2 * math.pi * 55.00 * t) * 0.12
+            + math.sin(2 * math.pi * 73.42 * t) * 0.06
         )
         kick = (
-            math.sin(2 * math.pi * (60 - 35 * beat_phase) * t) * 0.28 * bass_env
-            if beat_phase < 0.28
+            math.sin(2 * math.pi * (48 - 22 * beat_phase) * t) * 0.30 * bass_env
+            if beat_phase < 0.22
             else 0.0
         )
-        sub = (t % (beat_len_b / 2)) / (beat_len_b / 2)
         snare = (
-            random.uniform(-1, 1) * 0.09 * math.exp(-sub * 28)
-            if 0.48 < beat_phase < 0.58
+            random.uniform(-1, 1) * 0.11 * math.exp(-((beat_phase - 0.5) ** 2) * 180)
+            if 0.46 < beat_phase < 0.62
             else 0.0
         )
         bar = int(t / beat_len_b) % 8
-        stab_env = max(0.0, 1.0 - (beat_phase * 3.5))
-        lead = math.sin(2 * math.pi * notes_boss[bar] * t) * 0.09 * stab_env
-        menace = math.sin(2 * math.pi * 41.2 * t) * 0.06 * (0.6 + 0.4 * math.sin(2 * math.pi * 0.2 * t))
+        stab_env = max(0.0, 1.0 - (beat_phase * 4.2))
+        lead = math.sin(2 * math.pi * notes_boss[bar] * t) * 0.10 * stab_env
+        menace = math.sin(2 * math.pi * 27.5 * t) * 0.07 * (0.55 + 0.45 * math.sin(2 * math.pi * 0.15 * t))
         boss[i] = drone + kick + snare + lead + menace
-    cf = int(0.18 * SR)
-    for i in range(cf):
-        a = i / cf
-        boss[n - cf + i] = boss[n - cf + i] * (1 - a) + boss[i] * a
+    _crossfade_loop(boss, 0.18)
     write_wav(BGM / "boss_loop.wav", boss)
 
     print("OK — placeholders regenerados (original/procedural).")

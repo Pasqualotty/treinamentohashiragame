@@ -44,12 +44,6 @@ const SFX_FILES := {
 	"brand_sting": "brand_sting",
 }
 
-const BGM_FILES := {
-	"hub": "game_theme",
-	"stage": "game_theme",
-	"boss": "game_theme",
-}
-
 var volume_master: float = 1.0
 var volume_bgm: float = 0.32  # era 0.75 — alto demais no device
 var volume_sfx: float = 0.45  # era 1.0  — alto demais no device
@@ -165,15 +159,16 @@ func _play_pooled(stream: AudioStream, tag: String, pitch_scale: float, volume_d
 
 
 func play_bgm(bgm_name: String, from_start: bool = false, fade_time: float = BGM_FADE_TIME) -> void:
-	var key := bgm_name
-	if key in BGM_FILES:
-		key = BGM_FILES[key]
+	var world_id := ""
+	if bgm_name == "stage" and is_instance_valid(Game):
+		world_id = str(Game.current_world_id)
+	var key := BgmRoute.resolve(bgm_name, world_id)
 
 	var current: AudioStreamPlayer = _bgm_players[_bgm_active]
 	if _current_bgm == key and current.playing and not from_start:
 		return
 
-	var stream := _load_stream(BGM_DIR, key)
+	var stream := _load_bgm_path(key)
 	if stream == null:
 		return
 	stream = _as_looping(stream)
@@ -339,6 +334,19 @@ func _persist_volumes() -> void:
 func _load_sfx(sfx_name: String) -> AudioStream:
 	var file_id: String = str(SFX_FILES.get(sfx_name, sfx_name))
 	return _load_stream(SFX_DIR, file_id)
+
+
+func _load_bgm_path(path: String) -> AudioStream:
+	if path.is_empty():
+		return null
+	if _sfx_cache.has(path):
+		return _sfx_cache[path] as AudioStream
+	if ResourceLoader.exists(path):
+		var stream: AudioStream = load(path) as AudioStream
+		if stream:
+			_sfx_cache[path] = stream
+			return stream
+	return null
 
 
 func _load_stream(dir: String, file_id: String) -> AudioStream:
