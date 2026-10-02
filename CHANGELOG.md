@@ -1,5 +1,13 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.16 — diário, música e mundos (2026-10-02)
+
+- Hub: Missões, Notícias, Clube, Eventos e nível de caçador. Tudo no aparelho. O XP não muda o dano da loja.
+- Fase toca a música do mundo. O boss não usa mais o tema do menu.
+- Trem, Distrito, Castelo e Céu Vermelho têm fundo próprio.
+- O golpe acompanha o frame da animação.
+- Corrida, ataque e ultimate com mais frames (6 no quarteto, 4 no resto do elenco).
+
 ## 0.0.15 — sem faixa na lateral do menu (2026-09-13)
 
 - O fundo do menu volta a ir até a borda. Só os botões se afastam do recorte do telefone.

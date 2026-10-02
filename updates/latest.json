@@ -1,8 +1,8 @@
 {
-	"version_code": 15,
-	"version_name": "0.0.15",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.15/TreinamentoHashira.apk",
-	"changelog": "O menu não tem mais aquela faixa na lateral. O fundo vai até a borda.",
-	"size_bytes": 148584994,
-	"sha256": "6162689b00d284512cba78480ef3086655f03a43ed02ef17f51e98f3ac67f424"
+	"version_code": 16,
+	"version_name": "0.0.16",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.16/TreinamentoHashira.apk",
+	"changelog": "Diário no hub, música de cada mundo, fundos novos e golpes que acompanham a animação.",
+	"size_bytes": 169532843,
+	"sha256": "15195887f57caa59432d71a30cc8cd51e6f5d1ee150c3ab65f285b0e67868289"
 }

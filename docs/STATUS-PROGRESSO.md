@@ -1,6 +1,6 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-09-13 (0.0.15: menu sem faixa preta na lateral)
+**Atualizado:** 2026-10-02 (0.0.16: diário, BGM por mundo, fundos e sheets)
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
@@ -101,19 +101,19 @@ Nada disso **bloqueia** o MVP. Ordem sugerida pro próximo foco:
 
 | Item | Notas |
 |------|--------|
-| Hitboxes ajustadas **por frame** de animação | checklist `r9` — hoje hitbox funciona, mas não é fine-tune por sheet |
-| Sheets AAA multi-frame (run/atk/ult mais fluidos) | MVP usa sheets legíveis; upgrade de arte depois |
-| BGM dedicado de boss | há `hub_loop` + `stage_loop`; **sem** `boss_loop` ainda |
-| UI de volume no hub | volumes **persistem no save** via `Audio`; falta tela de settings amigável (⚙ hoje → créditos) |
+| Hitboxes ajustadas **por frame** de animação | ✅ arco no golpe (cedo menor, meio cheio, tarde mais longo) |
+| Sheets de corrida, ataque e ultimate | ✅ quarteto com 6 frames; os outros 11 com 4 |
+| BGM dedicado de boss | ✅ `boss_loop`; fase usa `w1`–`w5_loop`; menu fica no `game_theme` |
+| UI de volume no hub | ✅ engrenagem abre Ajustes (Master / música / efeitos); créditos ficam lá dentro |
 | PERSONAGENS no hub | ✅ tela select real (15; portrait nos 15; locked recusa; save do id) |
-| Amigos / sala | ✅ Convite pelo nome do perfil + aceite; **+** chama pra sala; lobby tela cheia com escolha de caçador; outra casa via ponte no VPS; sem IP na gaveta; 2 ou 4 vs oni; mapa/1v1 = 2P; clube/notícias/eventos ainda fora |
-| Missões / XP / clube no hub | GDD: fase 2+ / fora |
+| Amigos / sala | ✅ Convite pelo nome do perfil + aceite; **+** chama pra sala; lobby tela cheia com escolha de caçador; outra casa via ponte no VPS; sem IP na gaveta; 2 ou 4 vs oni; mapa/1v1 = 2P |
+| Missões, notícias, clube, eventos e XP | ✅ só no aparelho. XP não mexe no dano da loja. Limpar fase dá 15 XP |
 
 ### 3) Conteúdo em escala (Fase F)
 
 - ✅ Elenco 15 (Tanjiro + Nezuko + trio + Hashiras + Yoriichi + Muzan) — um player, 15 `CharacterDef`
 - ✅ Mundos W2–W5 no mapa
-- Arte final / BGM por mundo (hoje placeholder recolorido)
+- ✅ Fundo pintado próprio em W2–W5 (Trem, Distrito, Castelo, Céu Vermelho). W1 mantém floresta, vila e montanha. Música de fase por mundo.
 - Arte própria por caçador: **15/15** com pack (hub + portrait + combate). Residual de silhueta Tanjiro + `accent` = **0**. Os 11 que faltavam (`kanao`…`muzan`) entram na frente `elenco-restante`.
 
 ### 4) Release “sério” (Fase G)
@@ -190,3 +190,4 @@ Prints de prova (emulador): `export/playtest_shots/` (incl. hub/mapa/fase).
 | 2026-09-12 | **Sala no celular:** gaveta sem IP; `hashira/sala_host` baked; HTTP/TCP + UDP; PC = reserva de dev. |
 | 2026-09-13 | **Casa↔casa + amigos:** ponte UDP no VPS (os dois só saem); convite de amigo com aceite; **+** chama pra sala. |
 | 2026-09-12 | **Mapa de batalha:** pátio grande, até 4, pads, barras de luta, skills/respiração no plano, De novo/Sair. |
+| 2026-10-02 | **0.0.16:** diário no hub, BGM de boss e por mundo, fundos W2–W5, hitbox por frame, sheets de combate. |
