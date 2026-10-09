@@ -21,6 +21,7 @@ const _UiFont := preload("res://scripts/ui/ui_font.gd")
 var _navigating: bool = false
 var _applied_card_h: float = CARD_CONTENT_MIN
 var _fitting: bool = false
+var _choosing: bool = false
 
 
 func _ready() -> void:
@@ -28,6 +29,8 @@ func _ready() -> void:
 	_UiFont.ensure_theme_space()
 	_lock_header_wrap()
 	_style_bottom_bar()
+	MetaChrome.setup_screen(self, "characters", get_node_or_null("%Title") as Label,
+		status_label, get_node_or_null("%BackButton") as Button)
 	if not resized.is_connected(_on_root_resized):
 		resized.connect(_on_root_resized)
 	if not scroll.resized.is_connected(_on_root_resized):
@@ -59,7 +62,6 @@ func _lock_header_wrap() -> void:
 		back.clip_text = false
 		back.custom_minimum_size = Vector2(168, TOUCH_MIN)
 		back.add_theme_font_size_override("font_size", 18)
-		_apply_slim_button_styles(back)
 
 
 func _style_bottom_bar() -> void:
@@ -67,7 +69,7 @@ func _style_bottom_bar() -> void:
 	if bar == null:
 		return
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.058824, 0.070588, 0.094118, 1)
+	style.bg_color = Palette.with_alpha(Palette.NIGHT_BG, 0.0)
 	style.set_corner_radius_all(0)
 	style.content_margin_left = 0
 	style.content_margin_right = 0
@@ -131,16 +133,10 @@ func _make_card(def: CharacterDef) -> Control:
 	panel.custom_minimum_size = Vector2(0, _applied_card_h)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	var style := StyleBoxFlat.new()
-	style.bg_color = Palette.with_alpha(Palette.PANEL, 0.94)
-	style.border_color = Palette.GOLD if selected else Palette.with_alpha(def.accent, 0.7)
-	style.set_border_width_all(3 if selected else 2)
-	style.set_corner_radius_all(10)
-	style.content_margin_left = 10
-	style.content_margin_right = 10
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
+	var style := _card_style(def, selected)
 	panel.add_theme_stylebox_override("panel", style)
+	if selected:
+		_pulse_border(panel, style)
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 6)
@@ -157,11 +153,12 @@ func _make_card(def: CharacterDef) -> Control:
 			face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_finish_portrait(face, unlocked)
 			col.add_child(face)
 		else:
-			col.add_child(_make_swatch(def))
+			col.add_child(_finish_portrait(_make_swatch(def), unlocked))
 	else:
-		col.add_child(_make_swatch(def))
+		col.add_child(_finish_portrait(_make_swatch(def), unlocked))
 
 	var name_lbl := Label.new()
 	name_lbl.text = def.display_name
@@ -196,14 +193,65 @@ func _make_card(def: CharacterDef) -> Control:
 		btn.disabled = selected
 		btn.autowrap_mode = TextServer.AUTOWRAP_OFF
 		btn.add_theme_font_size_override("font_size", CHOOSE_FONT)
-		btn.pressed.connect(_on_choose.bind(def.id))
+		btn.pressed.connect(_on_choose.bind(def.id, panel, style))
 	else:
 		btn.text = "🔒 %s" % def.lock_label()
 		btn.disabled = true
 		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		btn.add_theme_font_size_override("font_size", LOCK_FONT)
+	UiMotion.press_bounce(btn)
 	col.add_child(btn)
 	return panel
+
+
+func _card_style(def: CharacterDef, selected: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Palette.with_alpha(Palette.PANEL, 0.94)
+	style.border_color = Palette.GOLD if selected else Palette.with_alpha(def.accent, 0.7)
+	style.set_border_width_all(3 if selected else 2)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	return style
+
+
+## Borda do card selecionado respira entre ouro e ouro claro (devagar, em loop).
+func _pulse_border(panel: Control, style: StyleBoxFlat) -> void:
+	var tw: Tween = panel.create_tween().set_loops()
+	tw.tween_property(style, "border_color", Palette.GOLD_BRIGHT, 1.1) 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(style, "border_color", Palette.GOLD_DIM, 1.1) 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## Retrato trancado: dessaturado (cinza 0.55, só no retrato) + chip 🔒.
+func _finish_portrait(face: Control, unlocked: bool) -> Control:
+	if unlocked:
+		return face
+	face.self_modulate = Color(0.55, 0.55, 0.55, 1.0)
+	var chip := PanelContainer.new()
+	chip.name = "LockChip"
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chip_style := StyleBoxFlat.new()
+	chip_style.bg_color = Palette.with_alpha(Palette.PANEL, 0.95)
+	chip_style.border_color = Palette.with_alpha(Palette.GOLD, 0.45)
+	chip_style.set_border_width_all(1)
+	chip_style.set_corner_radius_all(12)
+	chip_style.content_margin_left = 8
+	chip_style.content_margin_right = 8
+	chip_style.content_margin_top = 2
+	chip_style.content_margin_bottom = 2
+	chip.add_theme_stylebox_override("panel", chip_style)
+	var lock := Label.new()
+	lock.text = "🔒"
+	lock.add_theme_font_size_override("font_size", 14)
+	chip.add_child(lock)
+	chip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	chip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	chip.offset_top = 4.0
+	chip.offset_right = -4.0
+	face.add_child(chip)
+	return face
 
 
 ## Recorte cabeça/busto com margem — não o corpo inteiro nem uma faixa de olhos.
@@ -244,7 +292,23 @@ func _make_swatch(def: CharacterDef) -> ColorRect:
 	return swatch
 
 
-func _on_choose(character_id: String) -> void:
+## Toque num card livre: pop + borda acende, e só então confirma a escolha.
+func _on_choose(character_id: String, card: Control = null, style: StyleBoxFlat = null) -> void:
+	if _choosing:
+		return
+	_choosing = true
+	if style != null:
+		style.border_color = Palette.GOLD_BRIGHT
+		style.set_border_width_all(4)
+	UiMotion.pop(card, 1.06)
+	await get_tree().create_timer(0.16).timeout
+	_choosing = false
+	if not is_inside_tree():
+		return
+	_confirm_choice(character_id)
+
+
+func _confirm_choice(character_id: String) -> void:
 	if not Game.select_character(character_id):
 		status_label.text = "Ainda bloqueado."
 		return

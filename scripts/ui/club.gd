@@ -13,8 +13,7 @@ var _navigating: bool = false
 
 func _ready() -> void:
 	SafeInset.apply(self)
-	MetaChrome.apply_ghost(back_btn)
-	MetaChrome.apply_cta(primary_btn)
+	MetaChrome.setup_screen(self, "diario", get_node_or_null("Title") as Label, status_label, back_btn, primary_btn)
 	MetaChrome.apply_line_edit(name_input)
 	name_input.max_length = Game.MAX_PLAYER_NAME_LEN
 	name_input.text = Game.get_club_name()
@@ -38,6 +37,7 @@ func _rebuild_friends() -> void:
 			names.append(n)
 	empty_label.visible = names.is_empty()
 	empty_label.text = "Chama alguém em Amigos."
+	var rows: Array = []
 	for n in names:
 		var row := PanelContainer.new()
 		row.custom_minimum_size = Vector2(0, 48)
@@ -48,6 +48,8 @@ func _rebuild_friends() -> void:
 		lab.add_theme_color_override("font_color", Palette.CREAM)
 		row.add_child(lab)
 		friend_list.add_child(row)
+		rows.append(row)
+	UiMotion.enter_stagger(rows)
 
 
 func _on_primary_pressed() -> void:

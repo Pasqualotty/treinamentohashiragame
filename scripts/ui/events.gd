@@ -16,11 +16,11 @@ func _ready() -> void:
 	var card: PanelContainer = get_node_or_null("Card") as PanelContainer
 	if card != null:
 		card.add_theme_stylebox_override("panel", MetaChrome.card_style())
-	MetaChrome.apply_ghost(back_btn)
-	MetaChrome.apply_cta(primary_btn)
+	MetaChrome.setup_screen(self, "diario", get_node_or_null("Title") as Label, get_node_or_null("Subtitle") as Label, back_btn, primary_btn)
 	if not SceneRouter.navigation_failed.is_connected(_on_nav_failed):
 		SceneRouter.navigation_failed.connect(_on_nav_failed)
 	_refresh()
+	UiMotion.enter_stagger([card])
 
 
 func _on_nav_failed(_path: String) -> void:

@@ -15,11 +15,17 @@ const STAT_ICONS := {
 	"dash_cooldown": "🌀",
 }
 
+const COINS_FMT := "🪙 %d"
+
 var _stat_icon_colors: Dictionary = {}
+## Último saldo mostrado no header (-1 = ainda não mostrou) — origem do count_up.
+var _shown_coins: int = -1
 
 
 func _ready() -> void:
 	SafeInset.apply(self)
+	MetaChrome.setup_screen(self, "shop", get_node_or_null("TopBar/Title") as Label,
+		status_label, get_node_or_null("BackButton") as Button)
 	_stat_icon_colors = {
 		"max_hp": Palette.CRIMSON_BRIGHT,
 		"attack_damage": Palette.GOLD_BRIGHT,
@@ -48,30 +54,30 @@ func _on_upgrades_changed() -> void:
 
 
 func _refresh_header() -> void:
-	coins_label.text = "🪙 %d" % Game.coins_banked
+	var total: int = Game.coins_banked
+	if _shown_coins < 0 or _shown_coins == total:
+		coins_label.text = COINS_FMT % total
+	else:
+		UiMotion.count_up(coins_label, _shown_coins, total, 0.6, COINS_FMT)
+	_shown_coins = total
 
 
 func _rebuild_list() -> void:
 	for child in list.get_children():
 		child.queue_free()
 	var catalog: Array[UpgradeDef] = Game.get_upgrade_catalog()
+	var rows: Array = []
 	for def in catalog:
-		list.add_child(_make_row(def))
+		var row: Control = _make_row(def)
+		list.add_child(row)
+		rows.append(row)
+	UiMotion.enter_stagger(rows)
 
 
 func _make_row(def: UpgradeDef) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(0, 104)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Palette.with_alpha(Palette.PANEL, 0.92)
-	style.border_color = Palette.with_alpha(Palette.GOLD, 0.55)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", _card_style())
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
@@ -119,11 +125,29 @@ func _make_row(def: UpgradeDef) -> Control:
 	buy.custom_minimum_size = Vector2(140, 48)
 	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	buy.pressed.connect(_on_buy_pressed.bind(def.id))
+	UiMotion.press_bounce(buy)
 	row.add_child(buy)
 
 	panel.set_meta("upgrade_id", def.id)
 	_apply_row_state(panel, def)
 	return panel
+
+
+## Card com leve relevo: sombra 6 e borda ouro 2 px a 0.45.
+func _card_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Palette.with_alpha(Palette.PANEL, 0.92)
+	style.border_color = Palette.with_alpha(Palette.GOLD, 0.45)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 16
+	style.content_margin_right = 16
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	style.shadow_color = Palette.with_alpha(Palette.INK, 0.55)
+	style.shadow_size = 6
+	style.shadow_offset = Vector2(0, 2)
+	return style
 
 
 func _make_icon_badge(def: UpgradeDef) -> Control:
@@ -171,13 +195,25 @@ func _apply_row_state(panel: Control, def: UpgradeDef) -> void:
 		preview_lbl.text = _format_preview(def, level)
 	if buy == null:
 		return
+	_apply_buy_state(buy, def, level)
+
+
+## Comprar = CTA dourado quando dá; fantasma desabilitado com "Faltam N" quando não dá.
+func _apply_buy_state(buy: Button, def: UpgradeDef, level: int) -> void:
 	if def.is_maxed(level):
 		buy.text = "MÁX"
 		buy.disabled = true
-	else:
-		var cost: int = def.cost_for_next_level(level)
+		MetaChrome.apply_ghost(buy)
+		return
+	var cost: int = def.cost_for_next_level(level)
+	var can_buy: bool = Game.can_buy_upgrade(def.id)
+	buy.disabled = not can_buy
+	if can_buy:
 		buy.text = "Comprar\n🪙 %d" % cost
-		buy.disabled = not Game.can_buy_upgrade(def.id)
+		MetaChrome.apply_cta(buy)
+	else:
+		buy.text = "Faltam %d\n🪙 %d" % [maxi(cost - Game.coins_banked, 0), cost]
+		MetaChrome.apply_ghost(buy)
 
 
 func _format_preview(def: UpgradeDef, level: int) -> String:

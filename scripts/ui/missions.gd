@@ -8,12 +8,12 @@ extends Control
 
 var _navigating: bool = false
 var _focus_id: String = ""
+var _entered: bool = false
 
 
 func _ready() -> void:
 	SafeInset.apply(self)
-	MetaChrome.apply_ghost(back_btn)
-	MetaChrome.apply_cta(primary_btn)
+	MetaChrome.setup_screen(self, "diario", get_node_or_null("Title") as Label, status_label, back_btn, primary_btn)
 	if not SceneRouter.navigation_failed.is_connected(_on_nav_failed):
 		SceneRouter.navigation_failed.connect(_on_nav_failed)
 	_rebuild()
@@ -28,15 +28,26 @@ func _rebuild() -> void:
 	for child in list.get_children():
 		child.queue_free()
 	var first_ready: String = ""
+	var cards: Array = []
 	for spec: Dictionary in DailyMissions.missions_for_day(Game.mission_day):
 		var mid: String = str(spec.get("id", ""))
 		var card := _make_card(spec)
 		list.add_child(card)
+		cards.append(card)
 		if first_ready.is_empty() and _can_claim(mid, spec):
 			first_ready = mid
 	if _focus_id.is_empty() or not _can_claim(_focus_id, DailyMissions.find_mission(Game.mission_day, _focus_id)):
 		_focus_id = first_ready
 	_refresh_status()
+	_animate_cards(cards)
+
+
+## Cascata só na primeira montagem — depois de Receber a lista não pisca de novo.
+func _animate_cards(cards: Array) -> void:
+	if _entered:
+		return
+	_entered = true
+	UiMotion.enter_stagger(cards)
 
 
 func _can_claim(mid: String, spec: Dictionary) -> bool:
@@ -77,6 +88,7 @@ func _make_card(spec: Dictionary) -> Control:
 			_focus_id = mid
 			_refresh_status()
 		)
+		UiMotion.press_bounce(pick)
 		row.add_child(pick)
 	return panel
 

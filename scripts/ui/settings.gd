@@ -19,6 +19,10 @@ var _sliders: Array[HSlider] = []
 func _ready() -> void:
 	SafeInset.apply(self)
 	_sliders = [master_slider, bgm_slider, sfx_slider]
+	MetaChrome.setup_screen(self, "settings", get_node_or_null("Title") as Label,
+		get_node_or_null("Subtitle") as Label, back_btn)
+	_style_credits_button()
+	UiMotion.enter_stagger([$Panel/Rows/MasterRow, $Panel/Rows/BgmRow, $Panel/Rows/SfxRow])
 	_style_panel()
 	_style_sliders()
 	_load_current_volumes()
@@ -68,6 +72,14 @@ func _on_sfx_changed(value: float) -> void:
 
 func _on_sfx_drag_ended(_value_changed: bool) -> void:
 	pass
+
+
+func _style_credits_button() -> void:
+	if credits_btn == null:
+		return
+	credits_btn.custom_minimum_size = MetaChrome.BACK_MIN
+	credits_btn.add_theme_font_size_override("font_size", 20)
+	MetaChrome.apply_ghost(credits_btn)
 
 
 ## --- Navegação --------------------------------------------------------

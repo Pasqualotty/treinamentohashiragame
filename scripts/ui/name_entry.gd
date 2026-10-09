@@ -51,6 +51,7 @@ func _ready() -> void:
 
 	_style_panel()
 	_style_actions()
+	_apply_backdrop()
 	_apply_mode_copy()
 
 	name_input.max_length = Game.MAX_PLAYER_NAME_LEN
@@ -70,6 +71,16 @@ func _ready() -> void:
 
 	if is_instance_valid(Audio):
 		Audio.play_bgm("hub")
+
+
+## Fundo vivo no lugar dos três fundos estáticos (a arte continua carregada em BgArt).
+func _apply_backdrop() -> void:
+	for node_name in ["BgBase", "BgArt", "BgDim"]:
+		var old := get_node_or_null(node_name) as CanvasItem
+		if old != null:
+			old.visible = false
+	MetaChrome.setup_screen(self, "name", null, null, cancel_btn)
+	UiMotion.enter_stagger([panel])
 
 
 ## Navegação falhou: destrava para o jogador poder tentar de novo ou cancelar.

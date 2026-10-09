@@ -16,8 +16,7 @@ func _ready() -> void:
 	var body_panel: PanelContainer = get_node_or_null("Columns/BodyPanel") as PanelContainer
 	if body_panel != null:
 		body_panel.add_theme_stylebox_override("panel", MetaChrome.card_style())
-	MetaChrome.apply_ghost(back_btn)
-	MetaChrome.apply_cta(primary_btn)
+	MetaChrome.setup_screen(self, "diario", get_node_or_null("Title") as Label, status_label, back_btn, primary_btn)
 	if not SceneRouter.navigation_failed.is_connected(_on_nav_failed):
 		SceneRouter.navigation_failed.connect(_on_nav_failed)
 	_rebuild()
@@ -34,6 +33,7 @@ func _on_nav_failed(_path: String) -> void:
 func _rebuild() -> void:
 	for child in list.get_children():
 		child.queue_free()
+	var buttons: Array = []
 	for art: Dictionary in HunterNews.articles():
 		var aid: String = str(art.get("id", ""))
 		var btn := Button.new()
@@ -42,7 +42,10 @@ func _rebuild() -> void:
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		MetaChrome.apply_ghost(btn)
 		btn.pressed.connect(_open.bind(aid))
+		UiMotion.press_bounce(btn)
 		list.add_child(btn)
+		buttons.append(btn)
+	UiMotion.enter_stagger(buttons)
 
 
 func _open(article_id: String) -> void:
