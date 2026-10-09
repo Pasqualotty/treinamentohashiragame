@@ -41,6 +41,8 @@ func _run() -> void:
 	await _check_static_flags()
 	_check_oni_assets()
 	await _check_oni_scenes()
+	await _check_oni_death("oni_weak", false)
+	await _check_oni_death("oni_boss_fire", true)
 	if _failed > 0:
 		print("=== F1 SPRITE_FIT FAIL === falhas=%d" % _failed)
 		quit(1)
@@ -349,3 +351,42 @@ func _check_oni_scenes() -> void:
 		seen["kind:" + kind] = true
 		oni.queue_free()
 		await process_frame
+
+
+## Morte com cerimônia: `defeated` 1x, moeda 1x, tomba 12° no sentido do knock,
+## esmaece e some depois da duração (chefe = 2x).
+func _check_oni_death(scene: String, boss: bool) -> void:
+	var packed: PackedScene = load("res://scenes/characters/enemies/%s.tscn" % scene) as PackedScene
+	var oni: Node2D = packed.instantiate() as Node2D
+	if boss:
+		oni.set("skip_intro", true)
+	root.add_child(oni)
+	await process_frame
+	var spr: Sprite2D = oni.get("sprite") as Sprite2D
+	var counter: Array[int] = [0]
+	oni.connect("defeated", func() -> void: counter[0] += 1)
+	var moedas_antes: int = _count_coins()
+	oni.set("velocity", Vector2(-120.0, 0.0))
+	oni.call("_on_defeated")
+	oni.call("_on_defeated")
+	_expect(counter[0] == 1, "%s: defeated emitido 1x (%d)" % [scene, counter[0]])
+	var dur: float = 0.7 if boss else 0.35
+	await create_timer(dur + 0.05).timeout
+	_expect(_count_coins() == moedas_antes + 1, "%s: 1 coin_pickup (%d)" % [scene, _count_coins() - moedas_antes])
+	if is_instance_valid(oni):
+		_near(rad_to_deg(spr.rotation), -12.0, 0.6, "%s tomba 12° para o lado do knock" % scene)
+		_expect(spr.modulate.a < 0.05, "%s esmaeceu (a=%f)" % [scene, spr.modulate.a])
+	await create_timer(0.9).timeout
+	_expect(not is_instance_valid(oni), "%s some depois da cerimônia" % scene)
+	for c: Node in root.get_children():
+		if c.scene_file_path.contains("coin_pickup"):
+			c.queue_free()
+	await process_frame
+
+
+func _count_coins() -> int:
+	var n: int = 0
+	for c: Node in root.get_children():
+		if c.scene_file_path.contains("coin_pickup"):
+			n += 1
+	return n

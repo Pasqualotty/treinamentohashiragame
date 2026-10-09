@@ -90,6 +90,8 @@ var _remote_just: int = 0
 ## Altura visual alvo em px (side-scroller legível em 1280×720 / mobile).
 ## 160px (bbox de alpha, não a textura): legível sem “formiga” em 1280×720.
 const TARGET_VISUAL_HEIGHT: float = 160.0
+## Altura em que o y da hitbox (-28) foi calibrado.
+const REF_VISUAL_HEIGHT: float = 140.0
 ## 0 = usa TARGET. Duelo 1v1 sobe pra ocupar mais tela.
 var visual_height_px: float = 0.0
 var _nametag: Label
@@ -305,6 +307,11 @@ func get_state() -> State:
 
 func get_facing() -> float:
 	return _facing
+
+
+## Altura do arco da hitbox acompanha o desenho (28 px era para 140 px de altura).
+func _hitbox_y() -> float:
+	return -28.0 * _visual_height() / REF_VISUAL_HEIGHT
 
 
 func _visual_height() -> float:
@@ -1041,7 +1048,7 @@ func _configure_hitbox(damage: int, knockback: Vector2, size: Vector2, offset_x:
 	hitbox.knockback = knockback
 	hitbox.set_facing(_facing)
 	hitbox.position.x = offset_x * _facing
-	hitbox.position.y = -28.0
+	hitbox.position.y = _hitbox_y()
 	_set_hitbox_size(size)
 
 
@@ -1535,7 +1542,7 @@ func _apply_hitbox_timeline(anim_frames: int) -> void:
 	_hitbox_base_x = offset_x
 	hitbox.set_facing(_facing)
 	hitbox.position.x = offset_x * _facing
-	hitbox.position.y = -28.0
+	hitbox.position.y = _hitbox_y()
 	_set_hitbox_size(pose["size"])
 	if bool(pose["active"]):
 		if not hitbox.is_active():
