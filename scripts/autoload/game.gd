@@ -442,9 +442,11 @@ func _sync_character_unlocks() -> void:
 	for def: CharacterDef in CharacterCatalog.load_all():
 		if def.is_unlocked(stages_cleared) and def.id not in unlocked_characters:
 			unlocked_characters.append(def.id)
-	_sanitize_current_character()
 
 
+## Só no load: save com id trancado/inválido volta ao starter. Não roda em
+## getter (`is_character_unlocked`) — a lobby do hub chamava e resetava o id
+## que a tela de QA/hub tinha acabado de setar (smoke_character_select).
 func _sanitize_current_character() -> void:
 	if current_character_id in unlocked_characters and CharacterCatalog.find(current_character_id) != null:
 		return
@@ -684,6 +686,7 @@ func _apply_save_data(data: Dictionary) -> void:
 	var loaded_club := sanitize_player_name(str(data.get("club_name", DEFAULT_CLUB_NAME)))
 	club_name = loaded_club if not loaded_club.is_empty() else DEFAULT_CLUB_NAME
 	_sync_character_unlocks()
+	_sanitize_current_character()
 
 
 func _load_friends(data: Dictionary) -> void:
