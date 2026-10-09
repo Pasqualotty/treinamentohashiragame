@@ -26,6 +26,10 @@ const POP_DURATION := 0.12
 const POP_SCALE := 1.28
 const PULSE_PERIOD := 0.55
 
+const TRAIL_DELAY := 0.35
+const TRAIL_TWEEN := 0.4
+const BREATH_SEGMENTS := 4
+
 const COMBO_IDLE_SEC: float = 1.3
 const COMBO_POP_MIN: float = 1.22
 const COMBO_POP_MAX: float = 1.5
@@ -41,6 +45,9 @@ var _breath_block: Control
 var _coins_block: Control
 
 var _hp_value_tween: Tween
+var _hp_trail: ProgressBar
+var _trail_fill: StyleBoxFlat
+var _trail_tween: Tween
 var _breath_value_tween: Tween
 var _low_hp_tween: Tween
 var _breath_glow_tween: Tween
@@ -61,6 +68,8 @@ func _ready() -> void:
 	_style_chrome()
 	_style_bars()
 	_style_combo()
+	_build_hp_trail()
+	_build_breath_ticks()
 	_bind_icons()
 	set_hp(_hp, _hp_max)
 	_refresh_breath(Game.breath, Game.breath_max)
@@ -91,6 +100,7 @@ func set_hp(current: float, max_value: float) -> void:
 	_hp = clampf(current, 0.0, _hp_max)
 	hp_label.text = "%d / %d" % [int(round(_hp)), int(round(_hp_max))]
 	hp_bar.max_value = _hp_max
+	_update_trail(_hp)
 	_animate_hp_bar()
 	_refresh_low_hp_state()
 
@@ -211,6 +221,69 @@ func _animate_hp_bar() -> void:
 	_hp_value_tween.tween_property(hp_bar, "value", _hp, HP_TWEEN_DURATION)
 
 
+## --- Rastro de dano: barra clara que desce com atraso atrás da vida ----------
+
+func _build_hp_trail() -> void:
+	# O fundo da barra vira transparente e passa a ser desenhado por um painel
+	# "atrás do pai" — assim o rastro (também atrás) fica visível sob o preenchimento.
+	var bg_box := hp_bar.get_theme_stylebox("background") as StyleBoxFlat
+	var bg_panel := Panel.new()
+	bg_panel.name = "HpTrailBg"
+	bg_panel.add_theme_stylebox_override("panel", bg_box.duplicate())
+	_behind(bg_panel)
+	_trail_fill = StyleBoxFlat.new()
+	_trail_fill.bg_color = Palette.CRIMSON_DIM
+	_trail_fill.set_corner_radius_all(6)
+	_hp_trail = ProgressBar.new()
+	_hp_trail.name = "HpTrail"
+	_hp_trail.show_percentage = false
+	_hp_trail.add_theme_stylebox_override("background", StyleBoxEmpty.new())
+	_hp_trail.add_theme_stylebox_override("fill", _trail_fill)
+	_hp_trail.max_value = hp_bar.max_value
+	_hp_trail.value = hp_bar.value
+	_behind(_hp_trail)
+	var clear_bg := bg_box.duplicate() as StyleBoxFlat
+	clear_bg.bg_color = Color(0, 0, 0, 0)
+	hp_bar.add_theme_stylebox_override("background", clear_bg)
+
+
+func _behind(c: Control) -> void:
+	c.set_anchors_preset(Control.PRESET_FULL_RECT)
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.show_behind_parent = true
+	hp_bar.add_child(c)
+
+
+func _update_trail(target: float) -> void:
+	if _hp_trail == null:
+		return
+	_hp_trail.max_value = _hp_max
+	if _trail_tween and _trail_tween.is_valid():
+		_trail_tween.kill()
+	if target >= _hp_trail.value:
+		_hp_trail.value = target # cura: o rastro acompanha na hora
+		_trail_fill.bg_color = Palette.CRIMSON_DIM
+		return
+	_trail_fill.bg_color = Palette.CREAM
+	_trail_tween = create_tween()
+	_trail_tween.tween_interval(TRAIL_DELAY)
+	_trail_tween.tween_property(_hp_trail, "value", target, TRAIL_TWEEN) 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_trail_tween.parallel().tween_property(_trail_fill, "bg_color", Palette.CRIMSON_DIM, TRAIL_TWEEN)
+
+
+func get_trail_value() -> float:
+	return _hp_trail.value if _hp_trail != null else _hp
+
+
+func _build_breath_ticks() -> void:
+	var ticks := BarTicks.new()
+	ticks.name = "BreathTicks"
+	ticks.segments = BREATH_SEGMENTS
+	ticks.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ticks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	breath_bar.add_child(ticks)
+
+
 func _refresh_low_hp_state() -> void:
 	var ratio: float = _hp / _hp_max if _hp_max > 0.0 else 0.0
 	var should_pulse: bool = ratio < LOW_HP_RATIO and _hp > 0.0
@@ -321,12 +394,15 @@ func _stop_ultimate_flourish() -> void:
 
 ## --- Moedas: pop de escala ao mudar --------------------------------------
 
-func set_wave(current: int, total: int) -> void:
+## `alive` < 0 = não mostra a contagem de onis (chamadas antigas de 2 args).
+func set_wave(current: int, total: int, alive: int = -1) -> void:
 	if wave_label == null:
 		return
 	var t: int = maxi(total, 1)
 	var c: int = clampi(current, 1, t)
 	wave_label.text = "ONDA %d/%d" % [c, t]
+	if alive >= 0:
+		wave_label.text += " · %d %s" % [alive, "oni" if alive == 1 else "onis"]
 
 
 func _refresh_coins(run_total: int, animate: bool) -> void:

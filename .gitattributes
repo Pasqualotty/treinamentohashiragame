@@ -1,0 +1,2 @@
+# Godot reescreve .import com LF a cada --import; sem isto o status enche de ruido no Windows.
+*.import text eol=lf
