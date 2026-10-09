@@ -270,6 +270,18 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_f5_hub_mapa.gd"
         PassMarker = "=== F5 HUB_MAPA PASS ==="
         FailMarker = "=== F5 HUB_MAPA FAIL ==="
+    },
+    [pscustomobject]@{
+        Name = "smoke_f6_modos"
+        Script = "res://scripts/qa/smoke_f6_modos.gd"
+        PassMarker = "=== F6 MODOS PASS ==="
+        FailMarker = "=== F6 MODOS FAIL ==="
+    },
+    [pscustomobject]@{
+        Name = "smoke_duel"
+        Script = "res://scripts/modes/duel/smoke_duel.gd"
+        PassMarker = "ALL PASSED"
+        FailMarker = "FAILED"
     }
 )
 
