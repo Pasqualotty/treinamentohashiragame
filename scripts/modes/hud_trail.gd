@@ -18,6 +18,8 @@ var _last_value: float = 0.0
 var _last_max: float = 0.0
 var _hold: float = 0.0
 var _rate: float = 0.0
+## Redesenha só enquanto há rastro (e no frame em que ele some, para limpar).
+var _drawn: bool = false
 
 
 ## Cria o rastro como filho da barra e já o liga a ela.
@@ -49,7 +51,10 @@ func _process(delta: float) -> void:
 		return
 	_track_damage()
 	_advance(delta)
-	queue_redraw()
+	var active: bool = _trail > _bar.value
+	if active or _drawn:
+		queue_redraw()
+	_drawn = active
 
 
 ## Detecta queda de valor: arma a espera e a velocidade de descida.
