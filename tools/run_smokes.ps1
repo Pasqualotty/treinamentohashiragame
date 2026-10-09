@@ -264,6 +264,12 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_diario.gd"
         PassMarker = "DIARIO PASS"
         FailMarker = "DIARIO FAIL"
+    },
+    [pscustomobject]@{
+        Name = "smoke_f5_hub_mapa"
+        Script = "res://scripts/qa/smoke_f5_hub_mapa.gd"
+        PassMarker = "=== F5 HUB_MAPA PASS ==="
+        FailMarker = "=== F5 HUB_MAPA FAIL ==="
     }
 )
 
