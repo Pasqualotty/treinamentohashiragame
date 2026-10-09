@@ -245,6 +245,25 @@ $smokeList = @(
         PassMarker = "=== F3 BACKDROP PASS ==="
         FailMarker = "=== F3 BACKDROP FAIL ==="
         TimeoutSec = 180
+    },
+    [pscustomobject]@{
+        Name = "smoke_f4_meta_screens"
+        Script = "res://scripts/qa/smoke_f4_meta_screens.gd"
+        PassMarker = "=== F4 META_SCREENS PASS ==="
+        FailMarker = "=== F4 META_SCREENS FAIL ==="
+    },
+    [pscustomobject]@{
+        Name = "smoke_f1_sprite_fit"
+        Script = "res://scripts/qa/smoke_f1_sprite_fit.gd"
+        PassMarker = "=== F1 SPRITE_FIT PASS ==="
+        FailMarker = "=== F1 SPRITE_FIT FAIL ==="
+        TimeoutSec = 180
+    },
+    [pscustomobject]@{
+        Name = "smoke_diario"
+        Script = "res://scripts/qa/smoke_diario.gd"
+        PassMarker = "DIARIO PASS"
+        FailMarker = "DIARIO FAIL"
     }
 )
 
