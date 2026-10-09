@@ -448,6 +448,8 @@ func _spawn_hud() -> void:
 		_hud.call("bind_hunters", _hunters)
 	if _hud.has_method("set_time_left"):
 		_hud.call("set_time_left", _time_left)
+	if _hud.has_method("play_intro"):
+		_hud.call("play_intro")
 
 
 func _spawn_touch() -> void:
@@ -568,10 +570,10 @@ func _winner_pawn_by_hp() -> CharacterBody2D:
 func _label_of(pawn: CharacterBody2D) -> String:
 	var char_n: String = _display_of(pawn)
 	if not _live_session():
-		return "%s ganhou" % char_n
+		return "%s venceu" % char_n
 	var slot: int = int(pawn.get("coop_slot")) if pawn else 0
 	var nick: String = _nick_of_slot(slot)
-	return "%s · %s ganhou" % [nick, char_n]
+	return "%s · %s venceu" % [nick, char_n]
 
 
 func _nick_of_slot(slot: int) -> String:
@@ -599,8 +601,17 @@ func _finish(text: String, winner: CharacterBody2D = null) -> void:
 		if is_instance_valid(Game) and Game.has_method("add_mp_trophy"):
 			Game.add_mp_trophy()
 	if _hud != null and _hud.has_method("show_winner"):
-		_hud.call("show_winner", text)
+		_hud.call("show_winner", text, _end_reason(winner))
 	print("[BrawlArena] fim: %s" % text)
+
+
+## Subtítulo da tela final: como a partida acabou.
+func _end_reason(winner: CharacterBody2D) -> String:
+	if winner == null:
+		return "Ninguém levou a melhor"
+	if _time_left <= 0.0:
+		return "Mais vida quando o tempo acabou"
+	return "Último caçador de pé"
 
 
 func _toggle_pause() -> void:

@@ -1,19 +1,27 @@
 extends CanvasLayer
-## Barras de luta (verde/amarelo/vermelho) + respiração + tela final.
+## HUD do mapa de batalha: 4 painéis de caçador (vida com rampa + rastro, respiração),
+## chip do cronômetro e tela final. O visual vive em `BrawlHudChrome` / `ModeResultOverlay`.
 
 const HP_GREEN := Color(0.22, 0.82, 0.32, 1.0)
 const HP_YELLOW := Color(0.95, 0.82, 0.18, 1.0)
 const HP_ORANGE := Color(0.96, 0.48, 0.12, 1.0)
 const HP_RED := Color(0.86, 0.16, 0.16, 1.0)
-const TRACK := Color(0.06, 0.06, 0.08, 0.92)
+const SIDE_MARGIN: int = 16
+const URGENT_SEC: int = 10
+const INTRO_SEC: float = 2.0
 
 var _hunters: Array[Node] = []
 var _bars: Array[ProgressBar] = []
 var _breaths: Array[ProgressBar] = []
 var _names: Array[Label] = []
+var _hp_texts: Array[Label] = []
+var _panels: Array[PanelContainer] = []
+var _local_flags: Array[bool] = []
 var _time_label: Label
-var _overlay: Control
-var _banner: Label
+var _time_chip: PanelContainer
+var _pulse: Tween
+var _urgent: bool = false
+var _overlay: ModeResultOverlay
 var on_rematch: Callable
 var on_leave: Callable
 
@@ -31,18 +39,28 @@ func bind_hunters(hunters: Array) -> void:
 	_refresh()
 
 
+## Card de abertura, uma vez por partida (não desenha em headless).
+func play_intro() -> void:
+	var card := CeremonyCard.new()
+	card.name = "IntroCard"
+	add_child(card)
+	card.play("MAPA DE BATALHA", "Até 4 caçadores", "Pads curam, enchem a respiração e dão haste", INTRO_SEC)
+
+
 func set_time_left(seconds: float) -> void:
 	if _time_label == null:
 		return
 	var s: int = maxi(0, int(ceil(seconds)))
 	_time_label.text = "%d:%02d" % [s / 60, s % 60]
+	_set_urgent(s < URGENT_SEC)
 
 
-func show_winner(text: String) -> void:
-	if _banner:
-		_banner.text = text
-	if _overlay:
-		_overlay.visible = true
+func show_winner(text: String, subtitle: String = "") -> void:
+	if _overlay == null:
+		return
+	_overlay.set_texts(text, subtitle)
+	_overlay.visible = true
+	_overlay.play_in()
 
 
 func has_exit_actions() -> bool:
@@ -66,26 +84,44 @@ func _refresh() -> void:
 func _apply(pawn: Node, idx: int) -> void:
 	if idx >= _bars.size():
 		return
-	var bar: ProgressBar = _bars[idx]
-	var breath: ProgressBar = _breaths[idx]
-	var lab: Label = _names[idx]
 	if pawn == null or not is_instance_valid(pawn):
-		bar.get_parent().visible = false
+		_panels[idx].visible = false
 		return
-	bar.get_parent().visible = true
+	_panels[idx].visible = true
+	_apply_local(pawn, idx)
+	_apply_hp(pawn, idx)
+	_apply_breath(pawn, idx)
+
+
+## Borda ouro mais forte no painel do jogador local (só reestiliza quando muda).
+func _apply_local(pawn: Node, idx: int) -> void:
+	var local: bool = bool(pawn.get("is_local_pawn"))
+	if _local_flags[idx] == local:
+		return
+	_local_flags[idx] = local
+	BrawlHudChrome.style_panel(_panels[idx], local)
+
+
+func _apply_hp(pawn: Node, idx: int) -> void:
 	var cur: int = int(pawn.get("hp"))
 	var mx: int = 100
 	if pawn.has_method("get_max_hp"):
 		mx = maxi(int(pawn.call("get_max_hp")), 1)
+	var bar: ProgressBar = _bars[idx]
 	bar.max_value = float(mx)
 	bar.value = float(maxi(0, cur))
 	_paint_hp(bar, float(cur) / float(mx))
-	lab.text = "%s  %d/%d" % [_hunter_name(pawn), cur, mx]
+	_names[idx].text = _hunter_name(pawn)
+	_hp_texts[idx].text = "%d/%d" % [cur, mx]
+
+
+func _apply_breath(pawn: Node, idx: int) -> void:
 	var bcur: float = 0.0
 	var bmax: float = 100.0
 	if pawn.has_method("get_pawn_breath"):
 		bcur = float(pawn.call("get_pawn_breath"))
 		bmax = maxf(float(pawn.call("get_pawn_breath_max")), 1.0)
+	var breath: ProgressBar = _breaths[idx]
 	breath.max_value = bmax
 	breath.value = bcur
 	var bfill := breath.get_theme_stylebox("fill") as StyleBoxFlat
@@ -93,6 +129,7 @@ func _apply(pawn: Node, idx: int) -> void:
 		bfill.bg_color = Palette.WATER_BRIGHT if bcur >= bmax else Palette.WATER
 
 
+## Rampa verde → amarelo → laranja → vermelho (regra de produto, não mexer).
 func _paint_hp(bar: ProgressBar, ratio: float) -> void:
 	var fill := bar.get_theme_stylebox("fill") as StyleBoxFlat
 	if fill == null:
@@ -115,155 +152,90 @@ func _hunter_name(pawn: Node) -> String:
 	return id.capitalize()
 
 
+## Cronômetro vermelho e pulsante nos últimos 10 s.
+func _set_urgent(urgent: bool) -> void:
+	if urgent == _urgent:
+		return
+	_urgent = urgent
+	var tint: Color = Palette.CRIMSON_BRIGHT if urgent else Palette.GOLD
+	_time_label.add_theme_color_override("font_color", tint)
+	if urgent and (_pulse == null or not _pulse.is_valid()):
+		_start_pulse()
+	elif not urgent and _pulse != null:
+		_pulse.kill()
+		_pulse = null
+		_time_chip.scale = Vector2.ONE
+
+
+func _start_pulse() -> void:
+	_time_chip.pivot_offset = _time_chip.size * 0.5
+	_pulse = _time_chip.create_tween().set_loops()
+	_pulse.tween_property(_time_chip, "scale", Vector2(1.08, 1.08), 0.25)
+	_pulse.tween_property(_time_chip, "scale", Vector2.ONE, 0.25)
+
+
 func _build() -> void:
 	var root := Control.new()
 	root.name = "Root"
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+	root.add_child(_build_top())
+	_overlay = ModeResultOverlay.build("Fim", "", "De novo", _leave_text(), _on_rematch, _on_leave)
+	_overlay.visible = false
+	root.add_child(_overlay)
 
+
+func _build_top() -> MarginContainer:
+	var pad: Vector4 = SafeInset.viewport_pad(get_viewport())
 	var top := MarginContainer.new()
 	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	top.offset_bottom = 168.0
-	top.add_theme_constant_override("margin_left", 16)
+	top.add_theme_constant_override("margin_left", maxi(SIDE_MARGIN, int(pad.x)))
 	top.add_theme_constant_override("margin_top", 10)
-	top.add_theme_constant_override("margin_right", 16)
+	top.add_theme_constant_override("margin_right", maxi(SIDE_MARGIN, int(pad.z)))
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(top)
-
 	var cols := HBoxContainer.new()
 	cols.add_theme_constant_override("separation", 12)
+	cols.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(cols)
+	cols.add_child(_build_column(Control.SIZE_SHRINK_BEGIN))
+	_time_chip = BrawlHudChrome.make_time_chip()
+	_time_label = _time_chip.get_node("TimeLabel") as Label
+	cols.add_child(_time_chip)
+	cols.add_child(_build_column(Control.SIZE_SHRINK_END))
+	return top
 
-	var left := VBoxContainer.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 6)
-	cols.add_child(left)
-	_add_fighter_block(left)
-	_add_fighter_block(left)
 
-	_time_label = Label.new()
-	_time_label.custom_minimum_size = Vector2(110, 0)
-	_time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_time_label.add_theme_font_size_override("font_size", 30)
-	_time_label.add_theme_color_override("font_color", Palette.GOLD)
-	_time_label.add_theme_color_override("font_shadow_color", Palette.SHADOW)
-	_time_label.add_theme_constant_override("shadow_offset_x", 2)
-	_time_label.add_theme_constant_override("shadow_offset_y", 2)
-	_time_label.text = "1:30"
-	cols.add_child(_time_label)
+## Coluna com 2 painéis, alinhada à esquerda (BEGIN) ou à direita (END).
+func _build_column(align: int) -> VBoxContainer:
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.add_theme_constant_override("separation", 6)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_add_fighter_block(col, align)
+	_add_fighter_block(col, align)
+	return col
 
-	var right := VBoxContainer.new()
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.add_theme_constant_override("separation", 6)
-	cols.add_child(right)
-	_add_fighter_block(right)
-	_add_fighter_block(right)
 
-	var hint := Label.new()
-	hint.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	hint.offset_top = 168.0
-	hint.offset_bottom = 192.0
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 14)
-	hint.add_theme_color_override("font_color", Palette.CREAM)
-	hint.add_theme_color_override("font_shadow_color", Palette.SHADOW)
-	hint.text = "Anda no chão · skills enchem a respiração · pads de vida / haste"
-	root.add_child(hint)
+func _add_fighter_block(col: VBoxContainer, align: int) -> void:
+	var block: Dictionary = BrawlHudChrome.make_block()
+	var panel := block["panel"] as PanelContainer
+	panel.size_flags_horizontal = align
+	panel.visible = false
+	col.add_child(panel)
+	_panels.append(panel)
+	_bars.append(block["hp"] as ProgressBar)
+	_breaths.append(block["breath"] as ProgressBar)
+	_names.append(block["name"] as Label)
+	_hp_texts.append(block["hp_text"] as Label)
+	_local_flags.append(false)
 
-	_overlay = Control.new()
-	_overlay.name = "EndOverlay"
-	_overlay.visible = false
-	_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	_overlay.process_mode = Node.PROCESS_MODE_ALWAYS
-	root.add_child(_overlay)
-	var dim := ColorRect.new()
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.color = Color(0, 0, 0, 0.62)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	_overlay.add_child(dim)
-	var box := VBoxContainer.new()
-	box.set_anchors_preset(Control.PRESET_CENTER)
-	box.offset_left = -220.0
-	box.offset_top = -130.0
-	box.offset_right = 220.0
-	box.offset_bottom = 160.0
-	box.add_theme_constant_override("separation", 14)
-	_overlay.add_child(box)
-	_banner = Label.new()
-	_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_banner.add_theme_font_size_override("font_size", 40)
-	_banner.add_theme_color_override("font_color", Palette.GOLD)
-	_banner.add_theme_color_override("font_shadow_color", Palette.INK)
-	_banner.add_theme_constant_override("shadow_offset_x", 2)
-	_banner.add_theme_constant_override("shadow_offset_y", 2)
-	_banner.text = "Fim"
-	box.add_child(_banner)
-	box.add_child(_end_btn("De novo", _on_rematch))
-	var leave_txt := "Sair"
+
+func _leave_text() -> String:
 	if is_instance_valid(LanSession) and LanSession.in_session():
-		leave_txt = "Lobby"
-	box.add_child(_end_btn(leave_txt, _on_leave))
-
-
-func _add_fighter_block(col: VBoxContainer) -> void:
-	var wrap := VBoxContainer.new()
-	wrap.add_theme_constant_override("separation", 2)
-	col.add_child(wrap)
-	var title := Label.new()
-	title.add_theme_font_size_override("font_size", 15)
-	title.add_theme_color_override("font_color", Palette.CREAM)
-	title.add_theme_color_override("font_shadow_color", Palette.SHADOW)
-	title.text = "Caçador"
-	wrap.add_child(title)
-	var hp := _bar(26.0, HP_GREEN)
-	wrap.add_child(hp)
-	var breath := _bar(10.0, Palette.WATER)
-	wrap.add_child(breath)
-	_bars.append(hp)
-	_breaths.append(breath)
-	_names.append(title)
-	wrap.visible = false
-
-
-func _bar(height: float, fill_color: Color) -> ProgressBar:
-	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, height)
-	bar.show_percentage = false
-	bar.max_value = 100.0
-	bar.value = 100.0
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = fill_color
-	fill.set_corner_radius_all(5)
-	fill.content_margin_left = 0
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = TRACK
-	bg.set_corner_radius_all(5)
-	bg.border_width_left = 2
-	bg.border_width_top = 2
-	bg.border_width_right = 2
-	bg.border_width_bottom = 2
-	bg.border_color = Palette.GOLD_DIM
-	bar.add_theme_stylebox_override("fill", fill)
-	bar.add_theme_stylebox_override("background", bg)
-	return bar
-
-
-func _end_btn(text: String, cb: Callable) -> Button:
-	var btn := Button.new()
-	btn.text = text
-	btn.custom_minimum_size = Vector2(0, 56)
-	btn.process_mode = Node.PROCESS_MODE_ALWAYS
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Palette.with_alpha(Palette.GOLD, 0.95)
-	sb.set_corner_radius_all(8)
-	btn.add_theme_stylebox_override("normal", sb)
-	btn.add_theme_color_override("font_color", Palette.INK)
-	btn.add_theme_font_size_override("font_size", 20)
-	btn.pressed.connect(cb)
-	return btn
+		return "Lobby"
+	return "Sair"
 
 
 func _on_rematch() -> void:
