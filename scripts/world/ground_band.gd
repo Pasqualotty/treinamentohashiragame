@@ -66,6 +66,14 @@ var _budget_warned: bool = false
 		top_texture = value
 		queue_redraw()
 
+## Textura do miolo (opcional). Quando definida, o miolo repete ELA em tamanho
+## nativo (tileável nos dois eixos) em vez de recortar a parte de baixo de
+## `top_texture` — é o que dá a cada mundo o seu próprio chão.
+@export var fill_texture: Texture2D:
+	set(value):
+		fill_texture = value
+		queue_redraw()
+
 ## Fração da textura, do topo pra baixo, que é ignorada ao montar o tile do
 ## miolo. 0.35 = descarta a linha de superfície, então o preenchimento repete
 ## só a rocha e não vira uma pilha de pisos.
@@ -118,9 +126,12 @@ func _draw() -> void:
 	# 1) Tira de superfície: a textura inteira, esticada verticalmente pra
 	#    `top_h` e repetida na horizontal até fechar `band_width`.
 	if top_h > EPS:
-		_draw_tiled_row(surface_y, top_h, Rect2(0.0, 0.0, tex_w, tex_h), Color.WHITE)
+		_draw_tiled_row(top_texture, surface_y, top_h, Rect2(0.0, 0.0, tex_w, tex_h), Color.WHITE)
 
 	if fill_h <= EPS:
+		return
+	if fill_texture != null:
+		_draw_fill_own_texture(fill_top, fill_h)
 		return
 
 	# 2) Miolo: repete só a parte de baixo da textura, escurecendo com a
@@ -138,15 +149,32 @@ func _draw() -> void:
 		var h: float = minf(row_h, fill_bottom - y)
 		var row_src: Rect2 = Rect2(src.position, Vector2(src.size.x, src.size.y * (h / row_h)))
 		var t: float = clampf((y - fill_top) / fill_h, 0.0, 1.0)
-		_draw_tiled_row(y, h, row_src, Color.WHITE.lerp(deep_shade, t))
+		_draw_tiled_row(top_texture, y, h, row_src, Color.WHITE.lerp(deep_shade, t))
 		y += row_h
+
+
+## Miolo com `fill_texture` própria: linhas na altura nativa do tile, a última
+## recortada em `depth`; escurece com a profundidade igual ao miolo antigo.
+func _draw_fill_own_texture(fill_top: float, fill_h: float) -> void:
+	var tw: float = float(fill_texture.get_width())
+	var th: float = float(fill_texture.get_height())
+	if tw <= EPS or th <= EPS:
+		return
+	var y: float = fill_top
+	var fill_bottom: float = fill_top + fill_h
+	while y < fill_bottom - EPS and _tiles_drawn < MAX_TILES:
+		var h: float = minf(th, fill_bottom - y)
+		var t: float = clampf((y - fill_top) / fill_h, 0.0, 1.0)
+		var src: Rect2 = Rect2(0.0, 0.0, tw, h)
+		_draw_tiled_row(fill_texture, y, h, src, Color.WHITE.lerp(deep_shade, t))
+		y += th
 
 
 ## Repete `src` horizontalmente de -band_width/2 até +band_width/2, esticando
 ## cada tile pra altura `h`. A última coluna é recortada na origem da textura
 ## junto com o rect, pra não distorcer a arte.
-func _draw_tiled_row(y: float, h: float, src: Rect2, tint: Color) -> void:
-	if top_texture == null or h <= EPS:
+func _draw_tiled_row(tex: Texture2D, y: float, h: float, src: Rect2, tint: Color) -> void:
+	if tex == null or h <= EPS:
 		return
 	var tile_w: float = src.size.x
 	if tile_w <= EPS:
@@ -162,7 +190,7 @@ func _draw_tiled_row(y: float, h: float, src: Rect2, tint: Color) -> void:
 			src.position,
 			Vector2(src.size.x * (w / tile_w), src.size.y),
 		)
-		draw_texture_rect_region(top_texture, Rect2(x, y, w, h), col_src, tint)
+		draw_texture_rect_region(tex, Rect2(x, y, w, h), col_src, tint)
 		_tiles_drawn += 1
 		x += tile_w
 
