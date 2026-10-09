@@ -120,6 +120,7 @@ func _ready() -> void:
 
 
 func _apply_world_backdrop() -> void:
+	WorldBackdrop.dress(self, stage_id)
 	var path: String = WorldBackdrop.texture_path_for_stage(stage_id)
 	if path.is_empty():
 		return

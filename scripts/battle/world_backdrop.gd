@@ -19,3 +19,9 @@ static func texture_path_for_stage(stage_id: String) -> String:
 	if stage_id.begins_with("w5_"):
 		return PATH_W5
 	return ""
+
+
+## Veste a fase inteira para o mundo (emenda do fundo, chão temático, atmosfera).
+## Stub do contrato `docs/uplift-visual/contrato.md`: a frente F3 preenche.
+static func dress(_stage: Node, _stage_id: String) -> void:
+	pass
