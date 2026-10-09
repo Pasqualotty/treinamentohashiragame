@@ -129,10 +129,20 @@ func _reset_diario_mem() -> void:
 
 func _test_claim_twice() -> void:
 	_reset_diario_mem()
-	var spec: Dictionary = DailyMissions.find_mission(FIXED_DAY, "clear_1")
-	var progress: Dictionary = {"clear_1": int(spec.get("goal", 1))}
+	# claim_daily_mission sincroniza com a data REAL do sistema: em qualquer dia
+	# diferente de FIXED_DAY o progresso era zerado e o Receber vinha "incomplete".
+	# O teste usa o dia de hoje e a primeira missão desse dia.
+	var today: String = DailyMissions.day_key_from_unix(int(Time.get_unix_time_from_system()))
+	var todays: Array[Dictionary] = DailyMissions.missions_for_day(today)
+	if todays.is_empty():
+		_fail("sem missão para hoje (%s)" % today)
+		return
+	var spec: Dictionary = todays[0]
+	var mid: String = str(spec.get("id", ""))
+	_game.set("mission_day", today)
+	var progress: Dictionary = {mid: int(spec.get("goal", 1))}
 	_game.set("mission_progress", progress)
-	var first: Dictionary = _game.call("claim_daily_mission", "clear_1")
+	var first: Dictionary = _game.call("claim_daily_mission", mid)
 	if not bool(first.get("ok", false)):
 		_fail("primeiro Receber falhou: %s" % str(first))
 		return
@@ -144,7 +154,7 @@ func _test_claim_twice() -> void:
 	if coins_after != int(spec.get("coins", 0)):
 		_fail("moedas após claim=%s" % coins_after)
 		return
-	var second: Dictionary = _game.call("claim_daily_mission", "clear_1")
+	var second: Dictionary = _game.call("claim_daily_mission", mid)
 	if bool(second.get("ok", false)):
 		_fail("segundo Receber deveria recusar")
 		return
