@@ -5,9 +5,11 @@ extends SceneTree
 ##   godot --headless --path . -s res://scripts/qa/smoke_f3_backdrop.gd
 
 const STAGES_DIR := "res://scenes/battle"
-## Orçamento de partículas por fase (<= 2 emissores x 24).
+## Orçamento de partículas de ATMOSFERA por fase (<= 2 emissores x 24, sob ParallaxBG).
 const MAX_PARTICLES_STAGE := 48
 const MAX_PARTICLES_EMITTER := 24
+## Teto da fase inteira (atmosfera + gameplay, ex.: aura do portal da F2).
+const MAX_PARTICLES_TOTAL := 64
 ## Diferença média máxima (0..255) entre a 1a e a última coluna do tile.
 const WRAP_MAX := 8.0
 
@@ -157,20 +159,39 @@ func _check_ground(stage: Node, id: String, world: int) -> void:
 
 func _check_particles(stage: Node, id: String) -> void:
 	var total: int = 0
-	var emitters: Array[Node] = stage.find_children("*", "CPUParticles2D", true, false)
-	if emitters.size() > 2:
-		_fail("%s tem %d emissores (máx. 2)" % [id, emitters.size()])
-	for node: Node in emitters:
+	var all_emitters: Array[Node] = stage.find_children("*", "CPUParticles2D", true, false)
+	var atmo: Array[Node] = []
+	var grand_total: int = 0
+	for node: Node in all_emitters:
+		grand_total += (node as CPUParticles2D).amount
+		if _is_under_parallax(node, stage):
+			atmo.append(node)
+	# Atmosfera (F3) tem o próprio teto; emissores de gameplay (portal da F2,
+	# FX) entram só no teto da fase inteira.
+	if atmo.size() > 2:
+		_fail("%s tem %d emissores de atmosfera (máx. 2)" % [id, atmo.size()])
+	for node: Node in atmo:
 		var amount: int = (node as CPUParticles2D).amount
 		if amount > MAX_PARTICLES_EMITTER:
 			_fail("%s emissor %s com %d partículas (máx. %d)" % [id, node.name, amount, MAX_PARTICLES_EMITTER])
 		total += amount
 	if total > MAX_PARTICLES_STAGE:
-		_fail("%s soma de partículas %d > %d" % [id, total, MAX_PARTICLES_STAGE])
+		_fail("%s soma de partículas de atmosfera %d > %d" % [id, total, MAX_PARTICLES_STAGE])
+	if grand_total > MAX_PARTICLES_TOTAL:
+		_fail("%s soma de partículas da fase %d > %d" % [id, grand_total, MAX_PARTICLES_TOTAL])
 	if WorldBackdrop.world_of(id) > 1:
 		for old: String in ["Fireflies", "Mist"]:
 			if stage.find_child(old, true, false) != null:
 				_fail("%s ainda tem %s do bosque" % [id, old])
+
+
+func _is_under_parallax(node: Node, stage: Node) -> bool:
+	var p: Node = node.get_parent()
+	while p != null and p != stage:
+		if p is ParallaxBackground:
+			return true
+		p = p.get_parent()
+	return false
 
 
 func _check_fg(stage: Node, id: String, world: int) -> void:
