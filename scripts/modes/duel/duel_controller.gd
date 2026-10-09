@@ -103,6 +103,7 @@ func _ready() -> void:
 	_apply_hud_titles()
 	_set_locked(true)
 	_pose_intro()
+	DuelHudFx.banner_in(_round_label)
 	_spawn_touch()
 	if is_instance_valid(Audio) and Audio.has_method("play_bgm"):
 		Audio.play_bgm("stage")
@@ -179,8 +180,13 @@ func _style_duel_hud() -> void:
 	_style_hp_bar(_hp_right_bar)
 	_style_breath_bar(_breath_left)
 	_style_breath_bar(_breath_right)
-	_style_cta(_rematch, true)
-	_style_cta(_lobby_btn, false)
+	DuelHudFx.style_name(_hp_left_title)
+	DuelHudFx.style_name(_hp_right_title)
+	DuelHudFx.attach_trail(_hp_left_bar)
+	DuelHudFx.attach_trail(_hp_right_bar)
+	DuelHudFx.attach_ticks(_breath_left)
+	DuelHudFx.attach_ticks(_breath_right)
+	DuelHudFx.style_result(_result_root, _result_label, [_rematch, _voltar] as Array[Button], [_lobby_btn] as Array[Button])
 
 
 func _style_hp_panel(block: PanelContainer) -> void:
@@ -236,23 +242,6 @@ func _style_breath_bar(bar: ProgressBar) -> void:
 	bar.add_theme_stylebox_override("background", bg_box)
 	bar.add_theme_stylebox_override("fill", fill_box)
 	bar.show_percentage = false
-
-
-func _style_cta(btn: Button, primary: bool) -> void:
-	if btn == null:
-		return
-	var sb := StyleBoxFlat.new()
-	if primary:
-		sb.bg_color = Palette.with_alpha(Palette.GOLD, 0.95)
-		btn.add_theme_color_override("font_color", Palette.INK)
-	else:
-		sb.bg_color = Palette.with_alpha(Palette.PANEL, 0.92)
-		sb.border_color = Palette.with_alpha(Palette.GOLD, 0.7)
-		sb.set_border_width_all(2)
-		btn.add_theme_color_override("font_color", Palette.CREAM)
-	sb.set_corner_radius_all(10)
-	btn.add_theme_stylebox_override("normal", sb)
-	btn.add_theme_font_size_override("font_size", 22)
 
 
 func _bind_hp(fighter: Node, bar: ProgressBar, label: Label, cb: Callable) -> void:
@@ -518,6 +507,7 @@ func _begin_fight() -> void:
 		if _right:
 			_right.set("follow_host_snap", false)
 	_set_locked(false)
+	DuelHudFx.banner_out(_round_label)
 	_snap_fighter(_left, FACE_RIGHT, STATE_IDLE)
 	_snap_fighter(_right, FACE_LEFT, STATE_IDLE)
 
@@ -550,9 +540,11 @@ func _on_fighter_died(slot: int) -> void:
 	_phase = Phase.RESULT
 	_set_locked(true)
 	_round_label.visible = false
+	DuelHudFx.ko_flash(Fx if is_instance_valid(Fx) else null)
 	var winner: int = 1 if slot == 0 else 0
 	_result_label.text = _winner_text(winner)
 	_result_root.visible = true
+	DuelHudFx.result_in(_result_label)
 	_show_result_actions()
 	if _lan_peers() and winner == _local_slot() and is_instance_valid(Game) and Game.has_method("add_mp_trophy"):
 		Game.add_mp_trophy()
