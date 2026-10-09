@@ -30,6 +30,8 @@ const HURT_RECOIL_DUR: float = 0.22
 @export var patrol_half_width: float = 90.0
 @export var attack_damage: int = 7
 @export var attack_knockback: Vector2 = Vector2(140.0, -40.0)
+## Pasta de frames em assets/characters/enemies/<kind>/ (weak ou elite).
+@export var anim_kind: String = "weak"
 
 @onready var sprite: Sprite2D = %Sprite
 @onready var hurtbox: Hurtbox = %Hurtbox
@@ -55,12 +57,14 @@ var _sprite_base_scale: Vector2 = Vector2.ONE
 var _walk_t: float = 0.0
 var _hurt_recoil_t: float = 0.0
 var _hp_pip: EnemyHpPip
+var _enemy_anim: EnemyAnim
 var net_puppet: bool = false
 
 
 func _ready() -> void:
 	add_to_group("enemy")
 	hp = max_hp
+	_enemy_anim = EnemyAnim.create(anim_kind)
 	_home_x = global_position.x
 	if sprite:
 		_base_modulate = sprite.modulate
@@ -73,7 +77,7 @@ func _ready() -> void:
 		hurtbox.team = &"enemy"
 		if not hurtbox.hurt.is_connected(_on_hurt):
 			hurtbox.hurt.connect(_on_hurt)
-	_hp_pip = EnemyHpPip.attach(self, hp_label, max_hp)
+	_hp_pip = EnemyHpPip.attach(self, hp_label, max_hp, EnemyAnim.pip_offset_y(hp_label))
 	if hitbox:
 		hitbox.team = &"enemy"
 		hitbox.damage = attack_damage
@@ -280,6 +284,17 @@ func _update_anim(delta: float) -> void:
 	sprite.position = pos
 	sprite.scale = scl
 	sprite.rotation = rot
+	_drive_frames(delta)
+
+
+## Frames de arte (se existirem em assets/characters/enemies/<kind>/): troca a
+## textura por estado. Sem pasta, EnemyAnim não faz nada e o procedural manda.
+func _drive_frames(delta: float) -> void:
+	if _enemy_anim == null or not _enemy_anim.has_any():
+		return
+	var moving: bool = is_on_floor() and not is_zero_approx(velocity.x)
+	var st: String = State.keys()[state].to_lower()
+	_enemy_anim.update(sprite, EnemyAnim.anim_for(st, moving, _hurt_recoil_t > 0.0), delta)
 
 
 func _on_hurt(hit_data: HitData) -> void:
@@ -317,35 +332,29 @@ func _on_defeated() -> void:
 		hitbox.disable()
 	if hurtbox:
 		hurtbox.invulnerable = true
-	if sprite:
-		sprite.modulate = Color(0.4, 0.4, 0.45, 0.8)
 	if hp_label:
 		hp_label.text = "HP 0/%d — KO" % max_hp
 	_spawn_coin_drop()
-	if is_instance_valid(Fx):
-		Fx.death_poof(global_position + Vector2(0.0, -28.0), Fx.COLOR_ASH)
+	var dur: float = EnemyDeath.play(
+		self, sprite, EnemyDeath.knock_dir(velocity.x, facing), false, _death_poof, _enemy_anim
+	)
 	if is_instance_valid(CombatFeel):
 		if CombatFeel.has_method("freeze_frame"):
 			CombatFeel.freeze_frame()
 		if CombatFeel.has_method("zoom_punch"):
 			CombatFeel.zoom_punch(CombatFeel.ZOOM_PUNCH_KILL, CombatFeel.ZOOM_PUNCH_DUR)
 	defeated.emit()
-	# Remove apos feedback curto — dissolve visual acompanha o poof de cinzas,
-	# junto com um tombo/squash procedural (tumble + achata na queda).
+	# Remove depois da cerimônia (tomba, dessatura/esmaece, poof no meio).
 	var tree: SceneTree = get_tree()
-	if sprite and tree:
-		var tw: Tween = create_tween()
-		tw.set_parallel(true)
-		tw.tween_property(sprite, "modulate:a", 0.0, 0.3)
-		var fall_dir: float = facing if not is_zero_approx(facing) else 1.0
-		tw.tween_property(sprite, "rotation", deg_to_rad(78.0 * fall_dir), 0.3) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tw.tween_property(sprite, "scale", _sprite_base_scale * Vector2(1.22, 0.68), 0.3) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	if tree:
-		await tree.create_timer(0.35).timeout
+		await tree.create_timer(dur).timeout
 	if is_instance_valid(self):
 		queue_free()
+
+
+func _death_poof() -> void:
+	if is_instance_valid(Fx):
+		Fx.death_poof(global_position + Vector2(0.0, -32.0), Fx.COLOR_ASH)
 
 
 func _spawn_coin_drop() -> void:

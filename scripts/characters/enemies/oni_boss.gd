@@ -102,6 +102,9 @@ var _sprite_base_pos: Vector2 = Vector2.ZERO
 var _sprite_base_scale: Vector2 = Vector2.ONE
 var _walk_t: float = 0.0
 var _hurt_recoil_t: float = 0.0
+var _enemy_anim: EnemyAnim
+## Pasta de frames em assets/characters/enemies/<kind>/.
+@export var anim_kind: String = "boss_mist"
 
 var _hp_layer: CanvasLayer
 var _hp_ui: Dictionary = {}
@@ -111,6 +114,7 @@ var _banner_tween: Tween
 
 func _ready() -> void:
 	add_to_group("enemy")
+	_enemy_anim = EnemyAnim.create(anim_kind)
 	hp = max_hp
 	_home_x = global_position.x
 	if sprite:
@@ -561,6 +565,17 @@ func _update_anim(delta: float) -> void:
 	sprite.position = pos
 	sprite.scale = scl
 	sprite.rotation = rot
+	_drive_frames(delta)
+
+
+## Frames de arte (se existirem em assets/characters/enemies/<kind>/): troca a
+## textura por estado. Sem pasta, EnemyAnim não faz nada e o procedural manda.
+func _drive_frames(delta: float) -> void:
+	if _enemy_anim == null or not _enemy_anim.has_any():
+		return
+	var moving: bool = is_on_floor() and not is_zero_approx(velocity.x)
+	var st: String = State.keys()[state].to_lower()
+	_enemy_anim.update(sprite, EnemyAnim.anim_for(st, moving, _hurt_recoil_t > 0.0), delta)
 
 
 # --- Dano / fases ---
@@ -633,23 +648,13 @@ func _on_defeated() -> void:
 		CombatFeel.shake(9.0, 0.5)
 	_show_banner_async("%s DERROTADO!" % boss_display_name.to_upper(), Color(1.0, 0.82, 0.35, 1.0), 1.3)
 	BossCommon.fade_hp_layer(self, _hp_layer)
+	# Cerimônia do chefe: 2x mais lenta, flash branco, poof no meio.
+	var dur: float = EnemyDeath.play(
+		self, sprite, EnemyDeath.knock_dir(velocity.x, facing), true, _death_poof, _enemy_anim
+	)
 	var tree: SceneTree = get_tree()
 	if tree:
-		await tree.create_timer(0.85).timeout
-	if sprite and is_instance_valid(sprite):
-		var tw: Tween = create_tween()
-		tw.set_parallel(true)
-		tw.tween_property(sprite, "modulate:a", 0.0, 0.55)
-		tw.tween_property(self, "scale", Vector2(0.85, 0.85), 0.55)
-		# Tombo/squash procedural do sprite — gigante desmoronando.
-		var fall_dir: float = facing if not is_zero_approx(facing) else 1.0
-		tw.tween_property(sprite, "rotation", deg_to_rad(58.0 * fall_dir), 0.55) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tw.tween_property(sprite, "scale", _sprite_base_scale * Vector2(1.18, 0.72), 0.55) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		await tw.finished
-	if tree:
-		await tree.create_timer(0.15).timeout
+		await tree.create_timer(maxf(dur, 0.85)).timeout
 	if is_instance_valid(self):
 		queue_free()
 
@@ -716,3 +721,8 @@ func _tick_flash(delta: float) -> void:
 	_flash_left -= delta
 	if _flash_left <= 0.0 and sprite and state != State.TELEGRAPH and state != State.DEAD:
 		sprite.modulate = _base_modulate
+
+
+func _death_poof() -> void:
+	if is_instance_valid(Fx):
+		Fx.death_poof(global_position + Vector2(0.0, -64.0), Fx.COLOR_ASH)
