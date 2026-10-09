@@ -12,16 +12,6 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_news")
 
-[node name="Bg" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.058824, 0.070588, 0.094118, 1)
-mouse_filter = 2
-
 [node name="Title" type="Label" parent="."]
 layout_mode = 1
 anchors_preset = 10
@@ -55,7 +45,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 24.0
-offset_top = 96.0
+offset_top = 108.0
 offset_right = -24.0
 offset_bottom = -88.0
 theme_override_constants/separation = 20
@@ -92,7 +82,7 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 24.0
-offset_top = -76.0
+offset_top = -68.0
 offset_right = -24.0
 offset_bottom = -16.0
 theme_override_constants/separation = 16
@@ -101,13 +91,13 @@ theme_override_constants/separation = 16
 unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 52)
 layout_mode = 2
-text = "Voltar"
+text = "← Voltar"
 
 [node name="PrimaryButton" type="Button" parent="BottomBar"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 52)
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 10
 text = "Ler"
 
 [connection signal="pressed" from="BottomBar/BackButton" to="." method="_on_back_pressed"]
