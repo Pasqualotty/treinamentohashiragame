@@ -121,7 +121,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 18
-text = "RESPIRACAO"
+text = "RESPIRAÇÃO"
 
 [node name="BreathLabel" type="Label" parent="Root/TopSafe/TopRow/BreathBlock/BreathBlockInner/BreathHeader"]
 unique_name_in_owner = true
@@ -178,7 +178,7 @@ theme_override_font_sizes/font_size = 28
 text = "0"
 
 [node name="WaveChip" type="PanelContainer" parent="Root/TopSafe/TopRow"]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(190, 0)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2

@@ -34,6 +34,8 @@ var _player2: Node2D
 var _coop: bool = false
 var _local_pawn: Node2D
 var _hunters: Array[Node2D] = []
+var _cur_wave: int = 0
+var _total_waves: int = 0
 
 
 func _ready() -> void:
@@ -93,9 +95,8 @@ func _ready() -> void:
 	if spawn_touch_controls:
 		add_child(TOUCH_SCENE.instantiate())
 
-	_build_back_button()
-	_build_controls_hint()
-	_build_stage_intro_hint()
+	# Botão "Mapa" removido: o menu de pause já cobre Mapa/Hub.
+	StageChrome.build_controls_hint(self)
 
 	if use_waves:
 		if _coop and is_instance_valid(LanSession) and LanSession.is_guest():
@@ -137,6 +138,7 @@ func _apply_world_backdrop() -> void:
 func _setup_player_physics() -> void:
 	if _player == null:
 		return
+	_push_spawn_off_joystick()
 	if _player is CharacterBody2D:
 		var body := _player as CharacterBody2D
 		body.floor_snap_length = 12.0
@@ -148,6 +150,20 @@ func _setup_player_physics() -> void:
 		var cam := body.get_node_or_null("Camera2D") as Camera2D
 		if cam and not _coop:
 			cam.make_current()
+
+
+## Com controles de toque, o joystick cobre x≈150: empurra o pawn local para a direita.
+## Puppet de rede (convidado seguindo o host) não é movido.
+func _push_spawn_off_joystick() -> void:
+	if not spawn_touch_controls or _player.get("follow_host_snap") == true:
+		return
+	var nx: float = StageChrome.spawn_x(_player.global_position.x, StageChrome.is_touch_device())
+	var dx: float = nx - _player.global_position.x
+	if dx <= 0.0:
+		return
+	for h: Node2D in _hunters:
+		if h != null and h.get("follow_host_snap") != true:
+			h.global_position.x += dx
 
 
 func _coop_session() -> bool:
@@ -336,12 +352,15 @@ func _start_waves() -> void:
 	_wave_director.set("stage_id", stage_id)
 	_wave_director.set("spawn_y", _guess_spawn_y())
 	_wave_director.set("auto_start", false)
+	_wave_director.set("announce_wave_start", false) # o CeremonyCard.play_wave anuncia
 	_wave_director.set("clear_scene_enemies_on_start", true)
 	add_child(_wave_director)
 	if _wave_director.has_signal("waves_finished"):
 		_wave_director.connect("waves_finished", _on_waves_finished)
 	if _wave_director.has_signal("wave_started"):
 		_wave_director.connect("wave_started", _on_wave_started)
+	if _wave_director.has_signal("enemies_alive_changed"):
+		_wave_director.connect("enemies_alive_changed", _on_enemies_alive_changed)
 	if _wave_director.has_signal("wave_cleared"):
 		_wave_director.connect("wave_cleared", _on_wave_cleared)
 
@@ -361,9 +380,28 @@ func _on_waves_finished() -> void:
 	print("[StageController] waves done → goal unlocked")
 
 
-func _on_wave_started(wave_index: int, total_waves: int, _count: int) -> void:
-	if _hud != null and _hud.has_method("set_wave"):
-		_hud.call("set_wave", wave_index, total_waves)
+func _on_wave_started(wave_index: int, total_waves: int, count: int) -> void:
+	_cur_wave = wave_index
+	_total_waves = total_waves
+	_set_hud_wave(count)
+	if CeremonyCard.is_headless() or _is_boss_stage():
+		return
+	var card := CeremonyCard.new()
+	add_child(card)
+	card.play_wave(wave_index, total_waves)
+
+
+func _on_enemies_alive_changed(count: int) -> void:
+	_set_hud_wave(count)
+
+
+func _set_hud_wave(alive: int) -> void:
+	if _hud != null and _hud.has_method("set_wave") and _cur_wave > 0:
+		_hud.call("set_wave", _cur_wave, _total_waves, alive)
+
+
+func _is_boss_stage() -> bool:
+	return "boss" in stage_id.to_lower()
 
 
 func _on_wave_cleared(_wave_index: int, _total_waves: int) -> void:
@@ -381,7 +419,9 @@ func _play_stage_intro() -> void:
 	var kicker: String = def.map_label if def else "Fase"
 	var card := CeremonyCard.new()
 	add_child(card)
-	await card.play(kicker, title, "Os onis surgem nas sombras", 2.0)
+	if _is_boss_stage():
+		kicker = "CHEFE"
+	await card.play(kicker, title, StageChrome.objective_text(use_waves, _is_boss_stage()), 2.2)
 	_kick_waves()
 
 
@@ -537,84 +577,11 @@ func _navigate_coop(path: String) -> void:
 	SceneRouter.go_to(path)
 
 
-## Banner CLEAR + flash de moedas bank + delay de cerimônia.
+## Cerimônia de fim de fase (visual no CeremonyCard; fluxo/moedas não mudam).
 func _play_clear_ceremony(banked_amount: int) -> void:
-	var layer := CanvasLayer.new()
-	layer.name = "ClearCeremony"
-	layer.layer = 95
-	add_child(layer)
-
-	var dim := ColorRect.new()
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.color = Color(0.02, 0.04, 0.08, 0.0)
-	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(dim)
-
-	var title := Label.new()
-	title.name = "ClearTitle"
-	title.set_anchors_preset(Control.PRESET_CENTER)
-	title.offset_left = -320.0
-	title.offset_top = -80.0
-	title.offset_right = 320.0
-	title.offset_bottom = 0.0
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.text = "FASE CONCLUIDA"
-	title.add_theme_font_size_override("font_size", 64)
-	title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45, 1.0))
-	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	title.add_theme_color_override("font_outline_color", Color(0.2, 0.1, 0.0, 0.85))
-	title.add_theme_constant_override("shadow_offset_x", 3)
-	title.add_theme_constant_override("shadow_offset_y", 3)
-	title.add_theme_constant_override("outline_size", 5)
-	title.modulate.a = 0.0
-	title.scale = Vector2(0.55, 0.55)
-	title.pivot_offset = Vector2(320.0, 40.0)
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(title)
-
-	var coins_lbl := Label.new()
-	coins_lbl.name = "CoinsBankFlash"
-	coins_lbl.set_anchors_preset(Control.PRESET_CENTER)
-	coins_lbl.offset_left = -280.0
-	coins_lbl.offset_top = 12.0
-	coins_lbl.offset_right = 280.0
-	coins_lbl.offset_bottom = 64.0
-	coins_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	coins_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	if banked_amount > 0:
-		coins_lbl.text = "+%d moedas salvas" % banked_amount
-	else:
-		coins_lbl.text = "Fase concluída"
-	coins_lbl.add_theme_font_size_override("font_size", 28)
-	coins_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.35, 1.0))
-	coins_lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
-	coins_lbl.add_theme_constant_override("shadow_offset_x", 2)
-	coins_lbl.add_theme_constant_override("shadow_offset_y", 2)
-	coins_lbl.modulate.a = 0.0
-	coins_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(coins_lbl)
-
-	# Pop CLEAR + dim + flash moedas.
-	var tw := create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(dim, "color:a", 0.55, 0.22)
-	tw.tween_property(title, "modulate:a", 1.0, 0.18)
-	tw.tween_property(title, "scale", Vector2(1.12, 1.12), 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.set_parallel(false)
-	tw.tween_property(title, "scale", Vector2.ONE, 0.12)
-	tw.tween_property(coins_lbl, "modulate:a", 1.0, 0.18)
-	# Pulse dourado nas moedas (bank flash).
-	tw.tween_property(coins_lbl, "modulate", Color(1.25, 1.15, 0.55, 1.0), 0.12)
-	tw.tween_property(coins_lbl, "modulate", Color(1.0, 0.88, 0.35, 1.0), 0.18)
-	tw.tween_interval(1.15)
-	tw.set_parallel(true)
-	tw.tween_property(title, "modulate:a", 0.0, 0.35)
-	tw.tween_property(coins_lbl, "modulate:a", 0.0, 0.35)
-	tw.tween_property(dim, "color:a", 0.0, 0.35)
-	await tw.finished
-	if is_instance_valid(layer):
-		layer.queue_free()
+	var card := CeremonyCard.new()
+	add_child(card)
+	await card.play_clear(banked_amount, DiarioHooks.STAGE_CLEAR_XP)
 
 
 func _return_to_map(count_as_victory: bool) -> void:
@@ -626,98 +593,6 @@ func _return_to_map(count_as_victory: bool) -> void:
 	if _coop and is_instance_valid(LanSession) and LanSession.is_host():
 		LanSession.host_leave_stage_to_map()
 	SceneRouter.to_world_map()
-
-
-func _build_back_button() -> void:
-	var layer := CanvasLayer.new()
-	layer.name = "StageChrome"
-	layer.layer = 50
-	add_child(layer)
-	var back := Button.new()
-	back.name = "BackToMap"
-	back.text = "Mapa"
-	back.position = Vector2(16, 100)
-	back.size = Vector2(120, 48)
-	back.focus_mode = Control.FOCUS_NONE
-	back.add_theme_font_size_override("font_size", 18)
-	back.pressed.connect(func() -> void: _show_pause_menu())
-	layer.add_child(back)
-
-
-func _build_controls_hint() -> void:
-	var layer := CanvasLayer.new()
-	layer.name = "ControlsHint"
-	layer.layer = 45
-	add_child(layer)
-	var lbl := Label.new()
-	lbl.position = Vector2(16, 64)
-	lbl.size = Vector2(900, 28)
-	lbl.add_theme_font_size_override("font_size", 15)
-	lbl.add_theme_color_override("font_color", Color(0.92, 0.95, 0.88, 0.95))
-	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-	lbl.add_theme_constant_override("shadow_offset_x", 1)
-	lbl.add_theme_constant_override("shadow_offset_y", 1)
-	lbl.text = "PC: A/D mover · Espaço pulo · Shift dash · Z atk · X/C skills · V ult · Esc pause"
-	layer.add_child(lbl)
-	# Some sozinho depois de 8s.
-	var tw := create_tween()
-	tw.tween_interval(8.0)
-	tw.tween_property(lbl, "modulate:a", 0.0, 1.2)
-	tw.tween_callback(func() -> void:
-		if is_instance_valid(lbl):
-			lbl.queue_free()
-		if is_instance_valid(layer) and layer.get_child_count() == 0:
-			layer.queue_free()
-	)
-
-
-## Hint de objetivo da fase no start (some com fade).
-func _build_stage_intro_hint() -> void:
-	var layer := CanvasLayer.new()
-	layer.name = "StageIntroHint"
-	layer.layer = 46
-	add_child(layer)
-
-	var panel := ColorRect.new()
-	panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	panel.offset_top = 200.0
-	panel.offset_bottom = 268.0
-	panel.color = Color(0.02, 0.05, 0.1, 0.0)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(panel)
-
-	var lbl := Label.new()
-	lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	lbl.offset_top = 204.0
-	lbl.offset_bottom = 264.0
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 26)
-	lbl.add_theme_color_override("font_color", Color(0.95, 0.97, 0.9, 1.0))
-	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
-	lbl.add_theme_constant_override("shadow_offset_x", 2)
-	lbl.add_theme_constant_override("shadow_offset_y", 2)
-	lbl.add_theme_constant_override("outline_size", 3)
-	if use_waves:
-		lbl.text = "Elimine as ondas · Saída abre no fim"
-	else:
-		lbl.text = "Derrote os onis e alcance a saída"
-	lbl.modulate.a = 0.0
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(lbl)
-
-	var tw := create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(lbl, "modulate:a", 1.0, 0.35)
-	tw.tween_property(panel, "color:a", 0.5, 0.35)
-	tw.set_parallel(false)
-	tw.tween_interval(3.2)
-	tw.set_parallel(true)
-	tw.tween_property(lbl, "modulate:a", 0.0, 0.9)
-	tw.tween_property(panel, "color:a", 0.0, 0.9)
-	tw.set_parallel(false)
-	tw.tween_callback(layer.queue_free)
 
 
 func _show_pause_menu() -> void:

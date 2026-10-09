@@ -10,6 +10,8 @@ extends Node
 signal wave_started(wave_index: int, total_waves: int, count: int)
 signal wave_cleared(wave_index: int, total_waves: int)
 signal waves_finished
+## Contagem de onis vivos mudou (HUD mostra "ONDA 1/3 · 3 onis").
+signal enemies_alive_changed(count: int)
 
 const ONI_WEAK := preload("res://scenes/characters/enemies/oni_weak.tscn")
 const ONI_ELITE := preload("res://scenes/characters/enemies/oni_elite.tscn")
@@ -38,6 +40,8 @@ const KINDS: PackedStringArray = [
 @export var delay_before_first: float = 0.6
 @export var delay_between_waves: float = 1.1
 @export var auto_start: bool = true
+## Banner "ONDA N / M" próprio do diretor. O StageController desliga e usa o CeremonyCard.
+@export var announce_wave_start: bool = true
 ## Se true, remove inimigos já colocados na cena (Enemy1 etc.) e usa só as ondas.
 @export var clear_scene_enemies_on_start: bool = true
 
@@ -46,7 +50,7 @@ var _wave_i: int = -1
 var _alive: Array[Node] = []
 var _running: bool = false
 var _finished: bool = false
-var _label: Label
+var _last_alive: int = -1
 var _banner: Label
 var _banner_bg: ColorRect
 var _banner_layer: CanvasLayer
@@ -55,7 +59,6 @@ var _banner_tween: Tween
 
 func _ready() -> void:
 	_waves = _waves_for_stage(stage_id)
-	_ensure_hud_label()
 	_ensure_banner()
 	if clear_scene_enemies_on_start:
 		_clear_preplaced_enemies()
@@ -76,7 +79,6 @@ func _begin() -> void:
 		return
 	_running = true
 	if delay_before_first > 0.0:
-		_set_label("Prepare-se…")
 		await _flash_banner("PREPARE-SE", Color(1.0, 0.92, 0.7, 1.0), 0.85)
 		await get_tree().create_timer(maxf(0.0, delay_before_first - 0.85)).timeout
 	await _run_all_waves()
@@ -92,14 +94,14 @@ func _run_all_waves() -> void:
 		var pack: Array = _waves[i] as Array
 		_spawn_wave(pack)
 		wave_started.emit(i + 1, total, pack.size())
-		_set_label("Onda %d / %d  ·  onis: %d" % [i + 1, total, pack.size()])
-		await _flash_banner("ONDA %d / %d" % [i + 1, total], Color(1.0, 0.88, 0.45, 1.0), 1.05)
+		_emit_alive()
+		if announce_wave_start:
+			await _flash_banner("ONDA %d / %d" % [i + 1, total], Color(1.0, 0.88, 0.45, 1.0), 1.05)
 		await _wait_wave_clear()
 		if not is_inside_tree():
 			return
 		wave_cleared.emit(i + 1, total)
 		if i < total - 1:
-			_set_label("Próxima onda…")
 			await _flash_banner("ONDA LIMPA!", Color(0.55, 1.0, 0.7, 1.0), 0.9)
 			if delay_between_waves > 0.0:
 				await get_tree().create_timer(maxf(0.0, delay_between_waves - 0.35)).timeout
@@ -111,7 +113,6 @@ func _run_all_waves() -> void:
 func _finish() -> void:
 	_finished = true
 	_running = false
-	_set_label("SAÍDA ABERTA →")
 	# Banner de saída não bloqueia o sinal (fire-and-forget visual).
 	_flash_banner_async("SAÍDA ABERTA →", Color(0.45, 0.95, 1.0, 1.0), 1.35)
 	waves_finished.emit()
@@ -189,6 +190,15 @@ func _on_oni_defeated(oni: Node) -> void:
 				continue
 			keep.append(n)
 	_alive = keep
+	_emit_alive()
+
+
+## Emite só quando a contagem muda de verdade (evita spam do polling de 0.15 s).
+func _emit_alive() -> void:
+	if _alive.size() == _last_alive:
+		return
+	_last_alive = _alive.size()
+	enemies_alive_changed.emit(_last_alive)
 
 
 func _wait_wave_clear() -> void:
@@ -212,6 +222,7 @@ func _prune_alive() -> void:
 			continue
 		keep.append(n)
 	_alive = keep
+	_emit_alive()
 
 
 func _has_living_enemies() -> bool:
@@ -240,24 +251,6 @@ func _clear_preplaced_enemies() -> void:
 			continue
 		if child.is_in_group("enemy"):
 			child.queue_free()
-
-
-func _ensure_hud_label() -> void:
-	var layer := CanvasLayer.new()
-	layer.name = "WaveHud"
-	layer.layer = 40
-	add_child(layer)
-	_label = Label.new()
-	_label.name = "WaveLabel"
-	_label.position = Vector2(16, 140)
-	_label.size = Vector2(600, 36)
-	_label.add_theme_font_size_override("font_size", 20)
-	_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.75, 1.0))
-	_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
-	_label.add_theme_constant_override("shadow_offset_x", 1)
-	_label.add_theme_constant_override("shadow_offset_y", 1)
-	_label.text = ""
-	layer.add_child(_label)
 
 
 func _ensure_banner() -> void:
@@ -292,11 +285,6 @@ func _ensure_banner() -> void:
 	_banner.modulate.a = 0.0
 	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_banner_layer.add_child(_banner)
-
-
-func _set_label(t: String) -> void:
-	if _label:
-		_label.text = t
 
 
 func _flash_banner_async(text: String, color: Color, hold: float = 1.0) -> void:
