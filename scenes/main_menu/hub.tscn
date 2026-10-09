@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/main_menu/hub.gd" id="1_hub"]
 [ext_resource type="FontFile" path="res://assets/fonts/Cinzel-Bold.ttf" id="2_display"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/buttons/hub/icon_profile.png" id="4_profile"]
 [ext_resource type="Texture2D" path="res://assets/ui/buttons/hub/icon_coin.png" id="5_coin"]
 [ext_resource type="PackedScene" path="res://scenes/ui/friends_panel.tscn" id="6_friends"]
+[ext_resource type="Script" path="res://scripts/main_menu/xp_bar.gd" id="7_xpbar"]
 
 [node name="Hub" type="Control"]
 layout_mode = 3
@@ -112,7 +113,7 @@ mouse_filter = 2
 
 [node name="XpButton" type="Button" parent="TopBar"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(168, 44)
+custom_minimum_size = Vector2(330, 60)
 layout_mode = 2
 size_flags_vertical = 4
 tooltip_text = "Missões do dia"
@@ -124,43 +125,47 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 10.0
-offset_right = -10.0
+offset_left = 4.0
+offset_right = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
-[node name="XpLevelLabel" type="Label" parent="TopBar/XpButton/XpRow"]
+[node name="XpLevelBadge" type="PanelContainer" parent="TopBar/XpButton/XpRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(54, 54)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="XpLevelLabel" type="Label" parent="TopBar/XpButton/XpRow/XpLevelBadge"]
 unique_name_in_owner = true
 layout_mode = 2
-size_flags_vertical = 1
 theme_override_colors/font_color = Color(1, 0.964706, 0.917647, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7)
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
+theme_override_fonts/font = ExtResource("2_display")
 theme_override_font_sizes/font_size = 16
 text = "Nv. 1"
+horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="XpTrack" type="ColorRect" parent="TopBar/XpButton/XpRow"]
+[node name="XpTrack" type="Control" parent="TopBar/XpButton/XpRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(72, 10)
+custom_minimum_size = Vector2(160, 14)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 mouse_filter = 2
-color = Color(0.058824, 0.070588, 0.094118, 0.85)
+script = ExtResource("7_xpbar")
 
-[node name="XpFill" type="ColorRect" parent="TopBar/XpButton/XpRow/XpTrack"]
+[node name="XpValueLabel" type="Label" parent="TopBar/XpButton/XpRow"]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 0.0
-anchor_bottom = 1.0
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.909804, 0.721569, 0.290196, 1)
+custom_minimum_size = Vector2(78, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.964706, 0.917647, 0.85)
+theme_override_font_sizes/font_size = 12
+text = "0 / 100 XP"
+vertical_alignment = 1
 
 [node name="CoinsBadge" type="PanelContainer" parent="TopBar"]
 unique_name_in_owner = true

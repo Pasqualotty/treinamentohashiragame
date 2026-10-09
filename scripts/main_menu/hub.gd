@@ -26,7 +26,9 @@ extends Control
 @onready var events_btn: Button = %EventsButton
 @onready var xp_btn: Button = %XpButton
 @onready var xp_level_label: Label = %XpLevelLabel
-@onready var xp_fill: ColorRect = %XpFill
+@onready var xp_track: Control = %XpTrack
+@onready var xp_badge: PanelContainer = %XpLevelBadge
+@onready var xp_value_label: Label = %XpValueLabel
 @onready var play_btn: Button = %PlayButton
 @onready var settings_btn: Button = %SettingsButton
 
@@ -64,8 +66,10 @@ const CHAR_FEET_MARGIN := 36.0
 const GLOW_WIDTH_RATIO := 1.25
 const GLOW_HEIGHT := 64.0
 
-const PULSE_PERIOD := 0.9
-const PULSE_COLOR := Color(1.12, 1.08, 0.85, 1.0)
+## Brilho lento do JOGAR: modulate 1.0 -> 1.08 em ping-pong (1.6 s por perna).
+const PULSE_PERIOD := 1.6
+const PULSE_COLOR := Color(1.08, 1.08, 1.08, 1.0)
+const _HubMotion := preload("res://scripts/main_menu/hub_motion.gd")
 const _UiFont := preload("res://scripts/ui/ui_font.gd")
 
 var _idle_tex: Texture2D
@@ -98,6 +102,8 @@ func _ready() -> void:
 	_load_bg_frames()
 	_style_buttons()
 	_style_chrome()
+	_HubMotion.hide_for_intro(_intro_nodes())
+	_bind_bounces()
 
 	if _idle_tex != null:
 		character_art.texture = _idle_tex
@@ -117,9 +123,6 @@ func _ready() -> void:
 		Game.hunter_xp_changed.connect(_on_hunter_xp_changed)
 	if not showcase.resized.is_connected(_layout_showcase):
 		showcase.resized.connect(_layout_showcase)
-	var xp_track: Control = get_node_or_null("%XpTrack") as Control
-	if xp_track != null and not xp_track.resized.is_connected(_refresh_xp):
-		xp_track.resized.connect(_refresh_xp)
 	if not SceneRouter.navigation_failed.is_connected(_on_navigation_failed):
 		SceneRouter.navigation_failed.connect(_on_navigation_failed)
 
@@ -129,6 +132,7 @@ func _ready() -> void:
 	# Espera o layout dos containers assentar antes de fixar pivôs e medir rects.
 	await get_tree().process_frame
 	_layout_showcase()
+	_play_intro()
 	_start_play_pulse()
 	_start_breathing()
 	_start_blink_loop()
@@ -333,12 +337,12 @@ func _commit_bg_crossfade() -> void:
 func _style_buttons() -> void:
 	_apply_plate(shop_btn, "shop", Palette.CREAM)
 	_apply_plate(chars_btn, "chars", Palette.CREAM)
-	_apply_plate(friends_btn, "chars", Palette.CREAM)
-	_apply_plate(multiplayer_btn, "chars", Palette.CREAM)
-	_apply_plate(missions_btn, "chars", Palette.CREAM)
-	_apply_plate(news_btn, "chars", Palette.CREAM)
-	_apply_plate(club_btn, "chars", Palette.CREAM)
-	_apply_plate(events_btn, "chars", Palette.CREAM)
+	_apply_plate(friends_btn, "friends", Palette.CREAM)
+	_apply_plate(multiplayer_btn, "multiplayer", Palette.CREAM)
+	_apply_plate(missions_btn, "missions", Palette.CREAM)
+	_apply_plate(news_btn, "news", Palette.CREAM)
+	_apply_plate(club_btn, "club", Palette.CREAM)
+	_apply_plate(events_btn, "events", Palette.CREAM)
 	# CTA: placa dourada, então o rótulo vai em tinta escura para contrastar.
 	_apply_plate(play_btn, "play", Palette.NIGHT_BG)
 	# Placa redonda com engrenagem gravada — o "⚙" do .tscn é só o fallback.
@@ -392,8 +396,25 @@ func _plate_style(plate: String, state: String, circular: bool) -> StyleBoxTextu
 
 func _style_chrome() -> void:
 	_apply_badge_style(coins_badge)
+	_apply_level_badge_style()
 	_apply_profile_style(profile_btn)
 	_apply_profile_style(xp_btn)
+
+
+## Medalhão do nível: círculo PANEL com anel ouro (vira pílula se o nível tiver 2+ dígitos).
+func _apply_level_badge_style() -> void:
+	if xp_badge == null:
+		return
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Palette.PANEL
+	sb.border_color = Palette.GOLD
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(27)
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	xp_badge.add_theme_stylebox_override("panel", sb)
 
 
 func _badge_stylebox(border_alpha: float, bg_alpha: float) -> StyleBoxFlat:
@@ -443,6 +464,38 @@ func _start_play_pulse() -> void:
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
+## --- Movimento -----------------------------------------------------------
+
+func _left_plates() -> Array:
+	return [shop_btn, chars_btn, friends_btn, multiplayer_btn, missions_btn]
+
+
+func _right_plates() -> Array:
+	return [news_btn, club_btn, events_btn]
+
+
+## Nós que começam invisíveis e entram na abertura. A arte do caçador NÃO entra aqui:
+## o fade é no CenterShowcase, porque o `modulate` da CharacterArt carrega a cor de
+## fallback do personagem (e o smoke de seleção exige branco).
+func _intro_nodes() -> Array:
+	var nodes: Array = _left_plates() + _right_plates()
+	nodes.append(get_node_or_null("BottomBar"))
+	nodes.append(showcase)
+	return nodes
+
+
+func _play_intro() -> void:
+	_HubMotion.play_intro(self, _left_plates(), _right_plates(), [showcase],
+		get_node_or_null("BottomBar") as Control, play_btn)
+
+
+func _bind_bounces() -> void:
+	var all: Array = _left_plates() + _right_plates()
+	all.append_array([play_btn, settings_btn, profile_btn, xp_btn])
+	for b in all:
+		_HubMotion.bind_bounce(b as BaseButton)
+
+
 ## --- Estado ---------------------------------------------------------------
 
 func _load_tex(path: String) -> Texture2D:
@@ -490,12 +543,10 @@ func _refresh_xp() -> void:
 	var lv: int = HunterXp.level_at(Game.hunter_xp)
 	if xp_level_label != null:
 		xp_level_label.text = "Nv. %d" % lv
-	if xp_fill != null:
-		var ratio: float = HunterXp.fill_ratio(Game.hunter_xp)
-		xp_fill.anchor_left = 0.0
-		xp_fill.anchor_right = ratio
-		xp_fill.offset_left = 0.0
-		xp_fill.offset_right = 0.0
+	if xp_value_label != null:
+		xp_value_label.text = "%d / %d XP" % [HunterXp.xp_into_level(Game.hunter_xp), HunterXp.xp_to_next(lv)]
+	if xp_track != null:
+		xp_track.set("ratio", HunterXp.fill_ratio(Game.hunter_xp))
 
 
 func _on_character_changed(_character_id: String) -> void:
