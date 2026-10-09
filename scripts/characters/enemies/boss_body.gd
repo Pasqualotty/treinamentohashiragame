@@ -25,6 +25,8 @@ const HURT_RECOIL_DUR: float = 0.2
 @export var attack_cooldown_base: float = 1.8
 @export var recovery_time: float = 0.5
 @export var hp_fill: Color = Color(0.77, 0.24, 0.24, 1.0)
+## Pasta de frames em assets/characters/enemies/<kind>/.
+@export var anim_kind: String = "boss_fire"
 
 @onready var sprite: Sprite2D = %Sprite
 @onready var hurtbox: Hurtbox = %Hurtbox
@@ -56,11 +58,13 @@ var _hp_ui: Dictionary = {}
 var _banner_ui: Dictionary = {}
 var _hp_layer: CanvasLayer
 var _banner_tween: Tween
+var _enemy_anim: EnemyAnim
 
 
 func _ready() -> void:
 	add_to_group("enemy")
 	hp = max_hp
+	_enemy_anim = EnemyAnim.create(anim_kind)
 	_home_x = global_position.x
 	if sprite:
 		_base_modulate = sprite.modulate
@@ -155,6 +159,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_run_state(delta)
 	_update_walk_anim(delta)
+	_drive_frames(delta)
 	move_and_slide()
 	_tick_flash(delta)
 
@@ -318,6 +323,10 @@ func _on_defeated() -> void:
 		hp_label.text = "HP 0/%d — KO" % max_hp
 	BossCommon.spawn_coin_drop(self, COIN_SCENE, coin_reward, facing)
 	defeated.emit()
+	# Cerimônia do chefe: 2x mais lenta, flash branco, poof no meio.
+	EnemyDeath.play(
+		self, sprite, EnemyDeath.knock_dir(velocity.x, facing), true, _death_poof, _enemy_anim
+	)
 	_show_banner_async("%s DERROTADO!" % boss_display_name.to_upper(), Color(1.0, 0.82, 0.35, 1.0), 1.3)
 	BossCommon.fade_hp_layer(self, _hp_layer)
 	if is_instance_valid(CombatFeel):
@@ -366,3 +375,18 @@ func _tick_flash(delta: float) -> void:
 	_flash_left -= delta
 	if _flash_left <= 0.0 and sprite and state != State.TELEGRAPH and state != State.DEAD:
 		sprite.modulate = _base_modulate
+
+
+## Frames de arte (se existirem em assets/characters/enemies/<kind>/): troca a
+## textura por estado. Sem pasta, EnemyAnim não faz nada e o procedural manda.
+func _drive_frames(delta: float) -> void:
+	if _enemy_anim == null or not _enemy_anim.has_any():
+		return
+	var moving: bool = is_on_floor() and not is_zero_approx(velocity.x)
+	var st: String = State.keys()[state].to_lower()
+	_enemy_anim.update(sprite, EnemyAnim.anim_for(st, moving, _hurt_recoil_t > 0.0), delta)
+
+
+func _death_poof() -> void:
+	if is_instance_valid(Fx):
+		Fx.death_poof(global_position + Vector2(0.0, -64.0), Fx.COLOR_ASH)

@@ -88,8 +88,10 @@ var _remote_just: int = 0
 @onready var hitbox_shape: CollisionShape2D = %HitboxShape
 
 ## Altura visual alvo em px (side-scroller legível em 1280×720 / mobile).
-## ~140px: personagem legível sem “formiga” no meio da tela.
-const TARGET_VISUAL_HEIGHT: float = 140.0
+## 160px (bbox de alpha, não a textura): legível sem “formiga” em 1280×720.
+const TARGET_VISUAL_HEIGHT: float = 160.0
+## Altura em que o y da hitbox (-28) foi calibrado.
+const REF_VISUAL_HEIGHT: float = 140.0
 ## 0 = usa TARGET. Duelo 1v1 sobe pra ocupar mais tela.
 var visual_height_px: float = 0.0
 var _nametag: Label
@@ -159,7 +161,11 @@ var _base_modulate: Color = Color.WHITE
 var _run_bob_t: float = 0.0
 var _afterimage_t: float = 0.0
 var _base_sprite_scale: float = 0.18
-var _sprite_base_y: float = -48.0
+## Vetor centro da textura -> pés (px de textura); ver SpriteFit.
+var _feet_v: Vector2 = Vector2(0.0, 232.0)
+## Camada procedural das anims estáticas (idle/skill de 1 frame).
+var _static_t: float = 0.0
+var _idle_phase: float = 0.0
 const FLASH_HURT: Color = Color(1.5, 0.45, 0.45, 1.0)
 const FLASH_TIME: float = 0.1
 ## I-frames do dodge saindo de hurt (Brawlhalla-like). Dash regular nao ganha isso.
@@ -180,6 +186,7 @@ var _extra_hit_fired: bool = false
 
 func _ready() -> void:
 	add_to_group("player")
+	_idle_phase = randf() * TAU
 	# Física estável no chão (evita "patinar" / não grudar no tile).
 	floor_snap_length = 12.0
 	floor_max_angle = deg_to_rad(50.0)
@@ -300,6 +307,11 @@ func get_state() -> State:
 
 func get_facing() -> float:
 	return _facing
+
+
+## Altura do arco da hitbox acompanha o desenho (28 px era para 140 px de altura).
+func _hitbox_y() -> float:
+	return -28.0 * _visual_height() / REF_VISUAL_HEIGHT
 
 
 func _visual_height() -> float:
@@ -1036,7 +1048,7 @@ func _configure_hitbox(damage: int, knockback: Vector2, size: Vector2, offset_x:
 	hitbox.knockback = knockback
 	hitbox.set_facing(_facing)
 	hitbox.position.x = offset_x * _facing
-	hitbox.position.y = -28.0
+	hitbox.position.y = _hitbox_y()
 	_set_hitbox_size(size)
 
 
@@ -1286,17 +1298,44 @@ func _setup_sprite_frames() -> void:
 		_add_anim_from_paths(frames, ANIM_DASH, dash_paths, 16.0, false)
 	sprite.sprite_frames = frames
 	sprite.centered = true
-	# Escala por altura da primeira textura disponível (pés no chão via position.y).
-	var sample: Texture2D = _first_texture(frames)
-	var vis_h: float = _visual_height()
-	if sample != null and sample.get_height() > 0:
-		_base_sprite_scale = vis_h / float(sample.get_height())
-	else:
-		_base_sprite_scale = 0.18
-	_sprite_base_y = -vis_h * 0.5
-	sprite.scale = Vector2(_base_sprite_scale, _base_sprite_scale)
-	sprite.position = Vector2(0.0, _sprite_base_y)
+	_fit_sprite(def, _first_texture(frames))
 	sprite.play(ANIM_IDLE)
+
+
+## Escala pela altura do bbox de alpha e acha os pés (SpriteFit): altura visual
+## = `_visual_height()` e pés em y=0, independente do padding da textura.
+func _fit_sprite(def: CharacterDef, sample: Texture2D) -> void:
+	if sample == null or sample.get_height() <= 0:
+		_base_sprite_scale = 0.18
+		_feet_v = Vector2(0.0, 232.0)
+		_place(Vector2.ZERO, Vector2.ONE * _base_sprite_scale, 0.0)
+		return
+	var dir: String = def.combat_frames_dir if def != null else applied_character_id
+	var used: Rect2i = SpriteFit.used_rect_for(dir, sample)
+	var tex_size: Vector2i = Vector2i(sample.get_width(), sample.get_height())
+	var fit: Dictionary = SpriteFit.fit(used, tex_size, _visual_height())
+	_base_sprite_scale = float(fit["scale"])
+	_feet_v = fit["feet"]
+	_place(Vector2.ZERO, Vector2.ONE * _base_sprite_scale, 0.0)
+
+
+## Posiciona o sprite com os pés em `feet` (coords do corpo); escala e rotação
+## pivotam nos pés. Único ponto que escreve position/scale/rotation do sprite.
+func _place(feet: Vector2, scl: Vector2, rot_deg: float) -> void:
+	var v: Vector2 = SpriteFit.flip_vector(_feet_v, _facing > 0.0)
+	var rot: float = deg_to_rad(rot_deg)
+	sprite.scale = scl
+	sprite.rotation = rot
+	sprite.position = SpriteFit.center_for(feet, v, scl, rot)
+
+
+## Anim "estátua" (<= 2 frames): ganha a camada procedural do StaticPose.
+func _anim_is_static(anim: StringName) -> bool:
+	if sprite == null or sprite.sprite_frames == null:
+		return false
+	if not sprite.sprite_frames.has_animation(anim):
+		return false
+	return StaticPose.is_static(sprite.sprite_frames.get_frame_count(anim))
 
 
 func _action_lunge() -> Vector2:
@@ -1503,7 +1542,7 @@ func _apply_hitbox_timeline(anim_frames: int) -> void:
 	_hitbox_base_x = offset_x
 	hitbox.set_facing(_facing)
 	hitbox.position.x = offset_x * _facing
-	hitbox.position.y = -28.0
+	hitbox.position.y = _hitbox_y()
 	_set_hitbox_size(pose["size"])
 	if bool(pose["active"]):
 		if not hitbox.is_active():
@@ -1517,59 +1556,71 @@ func _update_run_bob(delta: float) -> void:
 	## Cada estado tem sua assinatura: idle respira, run balança, jump se estica
 	## levinho, dash estica na direção do movimento, ataque tem windup/active/
 	## follow-through (mais forte no finalizador do combo), hurt recua, e um
-	## squash de pouso se sobrepõe brevemente ao sair do ar.
+	## squash de pouso se sobrepõe brevemente ao sair do ar. Anims de <= 2
+	## frames (11 caçadores) ganham a camada extra do StaticPose.
 	if sprite == null:
 		return
 	if _landing_squash_t > 0.0:
 		_landing_squash_t = maxf(_landing_squash_t - delta, 0.0)
-	var base_y: float = _sprite_base_y
 	var s: float = _base_sprite_scale
+	var one: Vector2 = Vector2(s, s)
 
 	match _state:
 		State.RUN:
 			if is_on_floor():
 				_run_bob_t += delta * 14.0
 				# Bob sutil — frames multi já carregam o motion de corrida.
-				sprite.position = Vector2(0.0, base_y + sin(_run_bob_t) * 2.0)
-				sprite.scale = Vector2(s, s) * _landing_squash_mult()
-				sprite.rotation = 0.0
+				_place(Vector2(0.0, sin(_run_bob_t) * 2.0), one * _landing_squash_mult(), 0.0)
 			else:
-				sprite.position = Vector2(0.0, base_y)
-				sprite.scale = Vector2(s, s)
-				sprite.rotation = 0.0
+				_place(Vector2.ZERO, one, 0.0)
 		State.JUMP:
 			_run_bob_t = 0.0
-			sprite.position = Vector2(0.0, base_y - 6.0)
-			sprite.scale = Vector2(s * 0.96, s * 1.04)
-			sprite.rotation = 0.0
+			_place(Vector2(0.0, -6.0), Vector2(s * 0.96, s * 1.04), 0.0)
 		State.DASH:
 			_run_bob_t = 0.0
-			# Estica mais forte no arranque do dash, relaxa perto do fim (ease-out).
-			var dash_ratio: float = 0.0
-			if stats and stats.dash_duration > 0.0:
-				dash_ratio = clampf(_dash_time_left / stats.dash_duration, 0.0, 1.0)
-			sprite.position = Vector2(0.0, base_y)
-			sprite.scale = Vector2(s * lerpf(1.0, 1.20, dash_ratio), s * lerpf(1.0, 0.82, dash_ratio))
-			sprite.rotation = 0.0
+			_update_dash_juice(s)
 		State.ATTACK_BASIC, State.SKILL_1, State.SKILL_2, State.ULTIMATE:
 			_run_bob_t = 0.0
-			_update_attack_juice(base_y, s)
+			_update_attack_juice(s)
 		State.HURT:
 			_run_bob_t = 0.0
-			_update_hurt_juice(base_y, s)
+			_update_hurt_juice(s)
 		State.DEAD:
 			_run_bob_t = 0.0
-			sprite.position = Vector2(0.0, base_y)
-			sprite.scale = Vector2(s, s)
-			sprite.rotation = 0.0
+			_place(Vector2.ZERO, one, 0.0)
 		_:
-			# IDLE: micro-motion de respiração — lenta e sutil, nunca no HURT/DEAD.
-			_run_bob_t += delta * 1.6
-			var breathe: float = sin(_run_bob_t)
-			sprite.position = Vector2(0.0, base_y + breathe * 1.1)
-			sprite.scale = Vector2(s * (1.0 - breathe * 0.006), s * (1.0 + breathe * 0.012)) \
-				* _landing_squash_mult()
-			sprite.rotation = 0.0
+			_update_idle_juice(delta, s)
+
+
+## IDLE: respira. Anim estática (1 frame) usa a respiração forte do StaticPose.
+func _update_idle_juice(delta: float, s: float) -> void:
+	if _anim_is_static(ANIM_IDLE):
+		_static_t += delta
+		var p: Dictionary = StaticPose.idle(_static_t, _idle_phase)
+		_place(
+			Vector2(float(p["x"]), 0.0),
+			Vector2(s * float(p["sx"]), s * float(p["sy"])) * _landing_squash_mult(),
+			float(p["rot"])
+		)
+		return
+	_run_bob_t += delta * 1.6
+	var breathe: float = sin(_run_bob_t)
+	_place(
+		Vector2(0.0, breathe * 1.1),
+		Vector2(s * (1.0 - breathe * 0.006), s * (1.0 + breathe * 0.012)) * _landing_squash_mult(),
+		0.0
+	)
+
+
+## DASH: estica no arranque (ease-out); sem frames próprios (usa `run`) estica forte.
+func _update_dash_juice(s: float) -> void:
+	var dash_ratio: float = 0.0
+	if stats and stats.dash_duration > 0.0:
+		dash_ratio = clampf(_dash_time_left / stats.dash_duration, 0.0, 1.0)
+	var own: bool = sprite.sprite_frames.has_animation(ANIM_DASH) \
+			and sprite.sprite_frames.get_frame_count(ANIM_DASH) >= 1
+	var p: Dictionary = StaticPose.dash(dash_ratio, own)
+	_place(Vector2.ZERO, Vector2(s * float(p["sx"]), s * float(p["sy"])), float(p["rot"]) * _facing)
 
 
 ## Multiplicador do squash de pouso (procedural) — forte no touchdown, relaxa
@@ -1583,7 +1634,7 @@ func _landing_squash_mult() -> Vector2:
 	return Vector2(lerpf(1.0, 1.16, e), lerpf(1.0, 0.82, e))
 
 
-func _update_attack_juice(base_y: float, s: float) -> void:
+func _update_attack_juice(s: float) -> void:
 	## Antecipação no windup, extensão no active (impacto), follow-through no
 	## recovery. Finalizador (hit 3 do combo) usa um multiplicador maior (`punch`)
 	## pra ler como o golpe mais forte da sequência.
@@ -1591,6 +1642,9 @@ func _update_attack_juice(base_y: float, s: float) -> void:
 	var active: float = maxf(_action_active, 0.0001)
 	var recovery: float = maxf(_action_recovery, 0.0001)
 	var t: float = _action_timer
+	if _anim_is_static(_strike_anim()):
+		_update_static_strike(s)
+		return
 	var is_finisher: bool = _state == State.ATTACK_BASIC and _combo_index == 3
 	var punch: float = 1.4 if is_finisher else 1.0
 
@@ -1624,21 +1678,32 @@ func _update_attack_juice(base_y: float, s: float) -> void:
 		offset_x = lerpf(0.0, 5.0 * punch, e3)
 		rot_deg = lerpf(0.0, 6.0 * punch, e3)
 
-	sprite.position = Vector2(offset_x * _facing, base_y)
-	sprite.scale = Vector2(s * stretch_x, s * stretch_y)
-	sprite.rotation = deg_to_rad(rot_deg * _facing)
+	_place(Vector2(offset_x * _facing, 0.0), Vector2(s * stretch_x, s * stretch_y), rot_deg * _facing)
 
 
-func _update_hurt_juice(base_y: float, s: float) -> void:
+## Golpe de 1 frame: antecipação -> lunge -> follow-through (StaticPose), nos
+## mesmos tempos de startup/active/recovery da hitbox.
+func _update_static_strike(s: float) -> void:
+	var p: Dictionary = StaticPose.skill(_action_timer, _action_startup, _action_active, _action_recovery)
+	_place(
+		Vector2(float(p["x"]) * _facing, 0.0),
+		Vector2(s * float(p["sx"]), s * float(p["sy"])),
+		float(p["rot"]) * _facing
+	)
+
+
+func _update_hurt_juice(s: float) -> void:
 	## Recoil/lean ao tomar hit: forte no impacto, relaxa ao longo do hurt_stun.
 	var stun: float = stats.hurt_stun if stats else 0.14
 	var p: float = clampf(1.0 - (_hurt_timer / maxf(stun, 0.0001)), 0.0, 1.0)
 	var e: float = pow(1.0 - p, 2.0)
 	var recoil_x: float = -10.0 * e
 	var rot_deg: float = -8.0 * e
-	sprite.position = Vector2(recoil_x * _facing, base_y + 2.0 * e)
-	sprite.scale = Vector2(s * (1.0 + 0.05 * e), s * (1.0 - 0.08 * e))
-	sprite.rotation = deg_to_rad(rot_deg * _facing)
+	_place(
+		Vector2(recoil_x * _facing, 2.0 * e),
+		Vector2(s * (1.0 + 0.05 * e), s * (1.0 - 0.08 * e)),
+		rot_deg * _facing
+	)
 
 
 func _apply_facing_visual() -> void:
