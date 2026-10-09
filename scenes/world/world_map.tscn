@@ -77,17 +77,17 @@ anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -360.0
-offset_top = 48.0
+offset_top = 50.0
 offset_right = 360.0
-offset_bottom = 82.0
+offset_bottom = 98.0
 grow_horizontal = 2
-theme_override_colors/font_color = Color(0.95, 0.9, 0.75, 1)
+theme_override_colors/font_color = Color(0.909804, 0.721569, 0.290196, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.85)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_fonts/font = ExtResource("4_display")
-theme_override_font_sizes/font_size = 26
-text = "Mapa — Mundo 1 — Montanha"
+theme_override_font_sizes/font_size = 34
+text = "Mundo 1 — Montanha"
 horizontal_alignment = 1
 
 [node name="StatusLabel" type="Label" parent="."]
@@ -97,16 +97,16 @@ anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -380.0
-offset_top = 82.0
+offset_top = 98.0
 offset_right = 380.0
-offset_bottom = 110.0
+offset_bottom = 124.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.85, 0.9, 0.75, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 16
-text = "Escolha uma fase no caminho"
+text = "Próxima: Fase 1"
 horizontal_alignment = 1
 
 [node name="MapCanvas" type="Control" parent="."]
@@ -116,7 +116,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 0.0
-offset_top = 116.0
+offset_top = 128.0
 offset_right = 0.0
 offset_bottom = -80.0
 grow_horizontal = 2
@@ -147,7 +147,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
 theme_override_font_sizes/font_size = 13
-text = "Disponivel"
+text = "Disponível"
 
 [node name="LegClear" type="Label" parent="Legend"]
 layout_mode = 2

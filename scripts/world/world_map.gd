@@ -9,8 +9,18 @@ extends Control
 ## é reescalado para caber em qualquer resolução.
 const DESIGN_SIZE := Vector2(1280.0, 560.0)
 
-const NODE_RADIUS: float = 42.0
-const BOSS_NODE_RADIUS: float = 46.0
+const _Art := preload("res://scripts/world/map_node_art.gd")
+const _NodeView := preload("res://scripts/world/map_node_view.gd")
+const _Backdrop := preload("res://scripts/world/map_backdrop.gd")
+const _TabStyle := preload("res://scripts/world/map_tab_style.gd")
+
+## Entrada dos nós: atraso entre um e outro.
+const NODE_STAGGER := 0.07
+## Tracejado dourado "fluindo" pelo caminho aberto.
+const FLOW_DASH := 14.0
+const FLOW_GAP := 12.0
+const FLOW_SPEED := 46.0
+
 const BUTTON_SIZE := Vector2(100.0, 100.0)
 const BOSS_BUTTON_SIZE := Vector2(110.0, 110.0)
 
@@ -34,6 +44,12 @@ var _stages: Array[StageDef] = []
 ## save: nada aqui consulta o autoload direto (ver `WorldCatalog.cleared_ids`).
 var _cleared: Array[String] = []
 var _stage_buttons: Array[Button] = []
+var _node_views: Array[Control] = []
+## Fundo em duas camadas (cross-fade entre mundos) + dim + vinheta.
+var _art_front: TextureRect
+var _art_back: TextureRect
+var _art_dim: ColorRect
+var _fade_tween: Tween
 var _world_buttons: Array[Button] = []
 var _world_id: String = WorldCatalog.DEFAULT_WORLD_ID
 
@@ -50,6 +66,7 @@ func _ready() -> void:
 	SafeInset.apply(self)
 	_load_catalog()
 	map_canvas.set("paint_cb", Callable(self, "_paint_map"))
+	_setup_backdrop()
 	_build_world_tabs()
 	_build_stage_buttons()
 	_layout_stage_buttons()
@@ -57,6 +74,7 @@ func _ready() -> void:
 	_refresh_world_tabs()
 	_apply_world_chrome()
 	status_label.text = _intro_text()
+	_play_nodes_enter()
 	if is_instance_valid(LanSession) and LanSession.is_guest():
 		status_label.text = "O anfitrião escolhe a fase"
 		for btn: Button in _stage_buttons:
@@ -103,7 +121,7 @@ func _screen_position(index: int) -> Vector2:
 
 
 func _node_radius(index: int) -> float:
-	return BOSS_NODE_RADIUS if _stages[index].is_boss else NODE_RADIUS
+	return _Art.disc_size(_stages[index].is_boss) * 0.5
 
 
 func _build_world_tabs() -> void:
@@ -150,7 +168,9 @@ func _select_world(world_id: String) -> void:
 	_refresh_nodes()
 	_refresh_world_tabs()
 	_apply_world_chrome()
+	_fade_backdrop()
 	status_label.text = _intro_text()
+	_play_nodes_enter()
 
 
 func _world_locked_reason(world_id: String) -> String:
@@ -168,25 +188,13 @@ func _refresh_world_tabs() -> void:
 		if wid == "":
 			continue
 		var open: bool = WorldUnlock.is_unlocked(wid, _cleared)
-		var short: String = wid.to_upper()
-		if open:
-			btn.text = short
-		else:
-			btn.text = "🔒 %s" % short
+		_TabStyle.apply(btn, wid, WorldCatalog.title_for(wid), open, open and wid == _world_id)
 		btn.disabled = false
-		var font_col := Color(0.55, 0.58, 0.6, 0.9)
-		if open and wid == _world_id:
-			font_col = Palette.GOLD
-		elif open:
-			font_col = Color(0.92, 0.9, 0.82, 1.0)
-		btn.add_theme_color_override("font_color", font_col)
-		btn.add_theme_color_override("font_hover_color", font_col.lightened(0.1))
-		btn.add_theme_font_size_override("font_size", 14)
 
 
 func _apply_world_chrome() -> void:
 	if title_label:
-		title_label.text = "Mapa — %s" % WorldCatalog.title_for(_world_id)
+		title_label.text = WorldCatalog.title_for(_world_id)
 	var overlay := get_node_or_null("Background") as ColorRect
 	var accent := get_node_or_null("BgAccent") as ColorRect
 	var tint: Color
@@ -207,11 +215,57 @@ func _apply_world_chrome() -> void:
 		accent.color = Color(tint.r, tint.g, tint.b, 0.22)
 
 
+## Camadas do fundo logo acima do MapArt: camada B (cross-fade), dim e vinheta.
+func _setup_backdrop() -> void:
+	_art_front = get_node_or_null("MapArt") as TextureRect
+	if _art_front == null:
+		return
+	_art_front.texture = _Backdrop.texture_for(_world_id)
+	_art_back = _Backdrop.make_back_layer(_art_front)
+	_art_dim = _Backdrop.make_dim()
+	_art_dim.modulate.a = _Backdrop.dim_for(_world_id)
+	var vignette: TextureRect = _Backdrop.make_vignette()
+	var at: int = _art_front.get_index() + 1
+	for layer: Control in [_art_back, _art_dim, vignette]:
+		add_child(layer)
+		move_child(layer, at)
+		at += 1
+
+
+func _fade_backdrop() -> void:
+	if _art_front == null:
+		return
+	if _fade_tween != null and _fade_tween.is_valid():
+		_fade_tween.kill()
+		_art_front.texture = _art_back.texture
+	_fade_tween = _Backdrop.crossfade(self, _art_front, _art_back, _art_dim, _world_id)
+
+
+## Nós entram em sequência (fade + escala 0.8 -> 1.0).
+func _play_nodes_enter() -> void:
+	for i in range(_node_views.size()):
+		var view: Control = _node_views[i]
+		if is_instance_valid(view):
+			view.call("play_enter", NODE_STAGGER * float(i))
+
+
 func _build_stage_buttons() -> void:
 	for btn: Button in _stage_buttons:
 		if is_instance_valid(btn):
 			btn.queue_free()
 	_stage_buttons.clear()
+	for view: Control in _node_views:
+		if is_instance_valid(view):
+			view.queue_free()
+	_node_views.clear()
+	# Visuais primeiro: os Buttons (área de toque) ficam por cima.
+	for i in range(_stages.size()):
+		var def: StageDef = _stages[i]
+		var view: Control = _NodeView.new()
+		view.name = "MapNode_%s" % def.stage_id
+		map_canvas.add_child(view)
+		view.call("setup", def.is_boss, _chip_text(def), _Art.number_of(def.node_label(), i), "locked")
+		_node_views.append(view)
 	for i in range(_stages.size()):
 		var def: StageDef = _stages[i]
 		var btn := Button.new()
@@ -233,9 +287,16 @@ func _layout_stage_buttons() -> void:
 			continue
 		btn.size = btn.custom_minimum_size
 		btn.position = _screen_position(i) - btn.custom_minimum_size * 0.5
+		if i < _node_views.size() and is_instance_valid(_node_views[i]):
+			_node_views[i].position = _screen_position(i)
 
 
 # --- Desenho ----------------------------------------------------------------
+
+## Texto do chip: chefe é sempre "Chefe"; as demais usam o rótulo do StageDef.
+func _chip_text(def: StageDef) -> String:
+	return "Chefe" if def.is_boss else def.node_label()
+
 
 func _paint_map(canvas: Control) -> void:
 	if _stages.is_empty():
@@ -265,47 +326,38 @@ func _draw_path(canvas: Control) -> void:
 			# Glow ambiente pulsando — sugere energia fluindo pelo caminho aberto.
 			var glow_a: float = 0.16 + 0.14 * (sin(_t * 2.2 + i * 1.3) * 0.5 + 0.5)
 			canvas.draw_line(from, to, Palette.with_alpha(Palette.GOLD_BRIGHT, glow_a), 9.0, true)
+			_draw_ink_flow(canvas, from, to)
 
 
+## "Tinta fluindo": tracejado dourado que corre de um nó ao seguinte, deslocado por `_t`.
+func _draw_ink_flow(canvas: Control, from: Vector2, to: Vector2) -> void:
+	var length: float = from.distance_to(to)
+	if length < 1.0:
+		return
+	var dir: Vector2 = (to - from) / length
+	var period: float = FLOW_DASH + FLOW_GAP
+	var d: float = fmod(_t * FLOW_SPEED, period) - period
+	while d < length:
+		var a: float = maxf(d, 0.0)
+		var b: float = minf(d + FLOW_DASH, length)
+		if b > a:
+			canvas.draw_line(from + dir * a, from + dir * b, Palette.with_alpha(Palette.GOLD_BRIGHT, 0.95), 3.0, true)
+		d += period
+
+
+## Só o que é animado vive no canvas: o anel pulsante do nó atual e o selo do chefe.
+## Medalhão, ícone e rótulo são do MapNodeView.
 func _draw_node_rings(canvas: Control) -> void:
 	for i in range(_stages.size()):
+		var state: String = _node_state(i)
 		var center: Vector2 = _screen_position(i)
 		var radius: float = _node_radius(i)
-		var state: String = _node_state(i)
-		var fill: Color
-		var ring: Color
-		match state:
-			STATE_CLEARED:
-				fill = Color(0.18, 0.42, 0.28, 0.95)
-				ring = Color(0.55, 0.9, 0.55, 1.0)
-			STATE_AVAILABLE:
-				fill = Palette.with_alpha(Palette.GOLD_DIM, 0.95)
-				ring = Palette.GOLD
-			STATE_BOSS_AVAILABLE:
-				fill = Palette.with_alpha(Palette.CRIMSON_DIM, 0.95)
-				ring = Palette.CRIMSON_BRIGHT
-			_:
-				fill = Color(0.2, 0.22, 0.24, 0.9)
-				ring = Color(0.45, 0.48, 0.5, 0.85)
-		canvas.draw_circle(center, radius + 6.0, Color(0, 0, 0, 0.35))
-		canvas.draw_circle(center, radius, fill)
-		canvas.draw_arc(center, radius, 0.0, TAU, 48, ring, 4.0, true)
-		if state == STATE_LOCKED or state == STATE_BOSS_LOCKED:
-			var lock_col := Color(0.75, 0.78, 0.8, 0.95)
-			canvas.draw_rect(Rect2(center + Vector2(-10, -2), Vector2(20, 16)), lock_col, true)
-			canvas.draw_arc(center + Vector2(0, -4), 8.0, PI, TAU, 16, lock_col, 3.0, true)
-		elif state == STATE_CLEARED:
-			var a: Vector2 = center + Vector2(-12, 2)
-			var b: Vector2 = center + Vector2(-2, 12)
-			var c: Vector2 = center + Vector2(14, -10)
-			canvas.draw_line(a, b, Color(0.9, 1.0, 0.9, 1.0), 4.0, true)
-			canvas.draw_line(b, c, Color(0.9, 1.0, 0.9, 1.0), 4.0, true)
-		elif state == STATE_AVAILABLE or state == STATE_BOSS_AVAILABLE:
+		if state == STATE_AVAILABLE or state == STATE_BOSS_AVAILABLE:
 			# Ring pulsante — destaca claramente qual é o nó "atual" (próxima fase jogável).
 			var pulse: float = sin(_t * 2.6) * 0.5 + 0.5
 			var pulse_r: float = radius + 9.0 + pulse * 6.0
 			var pulse_a: float = 0.6 - pulse * 0.3
-			var pulse_col: Color = ring if state == STATE_AVAILABLE else Palette.CRIMSON_BRIGHT
+			var pulse_col: Color = Palette.GOLD if state == STATE_AVAILABLE else Palette.CRIMSON_BRIGHT
 			canvas.draw_arc(center, pulse_r, 0.0, TAU, 48, Palette.with_alpha(pulse_col, pulse_a), 2.0, true)
 		if _stages[i].is_boss and (state == STATE_BOSS_AVAILABLE or state == STATE_CLEARED):
 			_draw_boss_seal(canvas, center, radius, state)
@@ -314,7 +366,7 @@ func _draw_node_rings(canvas: Control) -> void:
 func _draw_boss_seal(canvas: Control, center: Vector2, radius: float, state: String) -> void:
 	## Selo ceremonial rotativo em torno do nó do boss — raios finos girando devagar.
 	var col: Color = Palette.CRIMSON_BRIGHT if state == STATE_BOSS_AVAILABLE else Color(0.6, 0.9, 0.6, 0.9)
-	var seal_r: float = radius + 16.0
+	var seal_r: float = radius + 22.0
 	var rot: float = _t * 0.6
 	var spikes: int = 8
 	for i in range(spikes):
@@ -378,31 +430,37 @@ func _refresh_nodes() -> void:
 		# Nó bloqueado continua clicável de propósito: `_select_stage` recusa a
 		# entrada e explica no status quais fases ainda faltam. Botão `disabled`
 		# não emite `pressed` e deixaria o jogador sem nenhuma resposta ao toque.
-		var label: String = _stages[i].node_label()
-		match state:
-			STATE_CLEARED:
-				btn.text = "✓\n%s" % label
-			STATE_LOCKED, STATE_BOSS_LOCKED:
-				btn.text = "🔒\n%s" % label
-			_:
-				btn.text = label
+		# O texto vive no chip do MapNodeView (nunca sobre o ícone); o Button é só toque.
+		btn.text = ""
+		btn.accessibility_name = _stages[i].node_label()
+		if i < _node_views.size() and is_instance_valid(_node_views[i]):
+			_node_views[i].call("apply_kind", _kind_of(state))
 		_style_stage_button(btn, state)
 	if map_canvas:
 		map_canvas.queue_redraw()
+
+
+## Estado do nó -> tipo de medalhão (available | cleared | locked).
+func _kind_of(state: String) -> String:
+	match state:
+		STATE_CLEARED:
+			return "cleared"
+		STATE_LOCKED, STATE_BOSS_LOCKED:
+			return "locked"
+	return "available"
 
 
 ## Texto de boas-vindas: aponta o próximo passo em vez de só "escolha uma fase".
 func _intro_text() -> String:
 	if _stages.is_empty():
 		return "Nenhuma fase disponível — catálogo vazio"
-	var title: String = WorldCatalog.title_for(_world_id)
 	var next: StageDef = WorldCatalog.next_playable(_cleared, _world_id)
 	if next == null:
 		var nxt_world: String = WorldUnlock.next_world_id(_world_id)
 		if nxt_world != "" and WorldUnlock.is_unlocked(nxt_world, _cleared):
-			return "%s — tudo limpo! Próximo: %s" % [title, WorldCatalog.title_for(nxt_world)]
-		return "%s — tudo limpo! Rejogue qualquer fase" % title
-	return "%s — próxima: %s" % [title, next.node_label()]
+			return "Mundo limpo! Próximo: %s" % WorldCatalog.title_for(nxt_world)
+		return "Mundo limpo! Rejogue qualquer fase"
+	return "Próxima: %s" % next.node_label()
 
 
 ## Motivo legível do bloqueio, citando as fases que faltam.
@@ -492,19 +550,17 @@ func _select_stage(index: int) -> void:
 ## Flourish curto (spark percorrendo o caminho + bounce no nó) antes de trocar
 ## de cena — dá a sensação de "viagem" até a fase escolhida.
 func _play_travel_animation(index: int) -> void:
-	var btn: Button = _stage_buttons[index] if index < _stage_buttons.size() else null
 	_travel_target_index = index
 	_travel_progress = 0.0
 	_traveling = true
 	var tw: Tween = create_tween()
 	tw.tween_method(_set_travel_progress, 0.0, 1.0, 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	if btn:
-		btn.pivot_offset = btn.custom_minimum_size * 0.5
-		tw.parallel().tween_property(btn, "scale", Vector2(1.2, 1.2), 0.16) \
-			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var view: Control = _node_views[index] if index < _node_views.size() else null
+	if is_instance_valid(view):
+		view.call("pop")
 	await tw.finished
-	if is_instance_valid(btn):
-		btn.scale = Vector2.ONE
+	if is_instance_valid(view):
+		view.scale = Vector2.ONE
 	_traveling = false
 	if map_canvas:
 		map_canvas.queue_redraw()

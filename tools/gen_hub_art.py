@@ -224,6 +224,122 @@ def icon_mon_coin(d: ImageDraw.ImageDraw, x: float, y: float, s: float) -> None:
     d.rectangle((cx - r * 0.30, cy - r * 0.30, cx + r * 0.30, cy + r * 0.30), fill=0)
 
 
+def icon_friends(d: ImageDraw.ImageDraw, x: float, y: float, s: float) -> None:
+    """AMIGOS: dois bustos lado a lado (o de tras menor, recortado pelo da frente)."""
+    # Busto de tras (esquerda, menor).
+    bx = x + s * 0.30
+    d.ellipse((bx - s * 0.15, y + s * 0.12, bx + s * 0.15, y + s * 0.42), fill=255)
+    d.pieslice((bx - s * 0.30, y + s * 0.46, bx + s * 0.30, y + s * 1.04), 180, 360, fill=255)
+    # Halo vazado em volta do busto da frente: separa as duas silhuetas.
+    fx = x + s * 0.64
+    gap = s * 0.05
+    d.ellipse((fx - s * 0.21 - gap, y + s * 0.20 - gap, fx + s * 0.21 + gap, y + s * 0.60 + gap), fill=0)
+    d.pieslice((fx - s * 0.38 - gap, y + s * 0.64 - gap, fx + s * 0.38 + gap, y + s * 1.38 + gap),
+               180, 360, fill=0)
+    # Busto da frente (direita, maior).
+    d.ellipse((fx - s * 0.21, y + s * 0.20, fx + s * 0.21, y + s * 0.60), fill=255)
+    d.pieslice((fx - s * 0.38, y + s * 0.64, fx + s * 0.38, y + s * 1.38), 180, 360, fill=255)
+
+
+def _blade(d: ImageDraw.ImageDraw, p0: tuple[float, float], p1: tuple[float, float],
+           w: int, s: float) -> None:
+    """Lamina reta de p0 (cabo) a p1 (ponta) com guarda perpendicular."""
+    d.line([p0, p1], fill=255, width=w)
+    dx, dy = p1[0] - p0[0], p1[1] - p0[1]
+    n = math.hypot(dx, dy)
+    ux, uy = dx / n, dy / n
+    gx, gy = p0[0] + ux * s * 0.26, p0[1] + uy * s * 0.26
+    d.line([(gx - uy * s * 0.12, gy + ux * s * 0.12), (gx + uy * s * 0.12, gy - ux * s * 0.12)],
+           fill=255, width=max(1, int(s * 0.07)))
+    d.line([p0, (p0[0] + ux * s * 0.20, p0[1] + uy * s * 0.20)], fill=255, width=int(w * 1.6))
+
+
+def icon_crossed(d: ImageDraw.ImageDraw, x: float, y: float, s: float) -> None:
+    """MULTIPLAYER: duas katanas cruzadas em X."""
+    w = max(1, int(s * 0.085))
+    _blade(d, (x + s * 0.08, y + s * 0.92), (x + s * 0.92, y + s * 0.08), w, s)
+    _blade(d, (x + s * 0.92, y + s * 0.92), (x + s * 0.08, y + s * 0.08), w, s)
+    # Cruzamento vazado para ler as duas laminas.
+    cx, cy, r = x + s * 0.5, y + s * 0.5, s * 0.05
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=0)
+
+
+def icon_scroll_check(d: ImageDraw.ImageDraw, x: float, y: float, s: float) -> None:
+    """MISSOES: pergaminho com um check vazado."""
+    d.rounded_rectangle((x + s * 0.16, y + s * 0.14, x + s * 0.84, y + s * 0.86),
+                        radius=int(s * 0.06), fill=255)
+    # Rolos de cima e de baixo.
+    d.rounded_rectangle((x + s * 0.08, y + s * 0.06, x + s * 0.92, y + s * 0.20),
+                        radius=int(s * 0.07), fill=255)
+    d.rounded_rectangle((x + s * 0.08, y + s * 0.80, x + s * 0.92, y + s * 0.94),
+                        radius=int(s * 0.07), fill=255)
+    # Separa o rolo do papel com um fio vazado.
+    fio = max(1, int(s * 0.025))
+    d.line([(x + s * 0.16, y + s * 0.205), (x + s * 0.84, y + s * 0.205)], fill=0, width=fio)
+    d.line([(x + s * 0.16, y + s * 0.795), (x + s * 0.84, y + s * 0.795)], fill=0, width=fio)
+    # Check.
+    d.line([(x + s * 0.30, y + s * 0.52), (x + s * 0.44, y + s * 0.66), (x + s * 0.70, y + s * 0.34)],
+           fill=0, width=max(2, int(s * 0.10)), joint="curve")
+
+
+def icon_news(d: ImageDraw.ImageDraw, x: float, y: float, s: float) -> None:
+    """NOTICIAS: sino de aviso (cupula, saia aberta, labio e badalo)."""
+    cx = x + s * 0.5
+    # Alca.
+    d.ellipse((cx - s * 0.07, y + s * 0.05, cx + s * 0.07, y + s * 0.19), fill=255)
+    # Corpo do sino: cupula + saia aberta.
+    d.pieslice((cx - s * 0.30, y + s * 0.14, cx + s * 0.30, y + s * 0.74), 180, 360, fill=255)
+    d.polygon([(cx - s * 0.30, y + s * 0.44), (cx + s * 0.30, y + s * 0.44),
+               (cx + s * 0.40, y + s * 0.76), (cx - s * 0.40, y + s * 0.76)], fill=255)
+    # Labio do sino.
+    d.rounded_rectangle((cx - s * 0.44, y + s * 0.72, cx + s * 0.44, y + s * 0.82),
+                        radius=int(s * 0.05), fill=255)
+    # Badalo.
+    d.ellipse((cx - s * 0.10, y + s * 0.80, cx + s * 0.10, y + s * 0.98), fill=255)
+    # Brilho vazado na cupula.
+    d.line([(cx - s * 0.17, y + s * 0.40), (cx - s * 0.17, y + s * 0.55)],
+           fill=0, width=max(1, int(s * 0.04)))
+
+
+def icon_banner(d: ImageDraw.ImageDraw, x: float, y: float, s: float) -> None:
+    """CLUBE: estandarte pendurado numa haste, com brasao de losango."""
+    # Haste e pontas.
+    d.rounded_rectangle((x + s * 0.10, y + s * 0.06, x + s * 0.90, y + s * 0.14),
+                        radius=int(s * 0.04), fill=255)
+    d.ellipse((x + s * 0.04, y + s * 0.04, x + s * 0.16, y + s * 0.16), fill=255)
+    d.ellipse((x + s * 0.84, y + s * 0.04, x + s * 0.96, y + s * 0.16), fill=255)
+    # Pano com ponta em V embaixo.
+    d.polygon([(x + s * 0.20, y + s * 0.14), (x + s * 0.80, y + s * 0.14), (x + s * 0.80, y + s * 0.80),
+               (x + s * 0.50, y + s * 0.98), (x + s * 0.20, y + s * 0.80)], fill=255)
+    # Brasao vazado: losango com miolo cheio.
+    cx, cy, r = x + s * 0.50, y + s * 0.46, s * 0.20
+    d.polygon([(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)], fill=0)
+    r2 = r * 0.5
+    d.polygon([(cx, cy - r2), (cx + r2, cy), (cx, cy + r2), (cx - r2, cy)], fill=255)
+
+
+def icon_lantern(d: ImageDraw.ImageDraw, x: float, y: float, s: float) -> None:
+    """EVENTOS: lanterna de papel (chochin) com tampas e nervuras vazadas."""
+    cx = x + s * 0.5
+    # Cordao.
+    d.line([(cx, y + s * 0.0), (cx, y + s * 0.10)], fill=255, width=max(1, int(s * 0.05)))
+    # Tampa de cima e de baixo.
+    d.rounded_rectangle((cx - s * 0.20, y + s * 0.10, cx + s * 0.20, y + s * 0.20),
+                        radius=int(s * 0.03), fill=255)
+    d.rounded_rectangle((cx - s * 0.20, y + s * 0.80, cx + s * 0.20, y + s * 0.90),
+                        radius=int(s * 0.03), fill=255)
+    # Corpo oval.
+    d.ellipse((cx - s * 0.36, y + s * 0.18, cx + s * 0.36, y + s * 0.82), fill=255)
+    # Nervuras horizontais vazadas.
+    for fy in (0.34, 0.50, 0.66):
+        half = s * 0.36 * math.sqrt(max(0.0, 1 - ((fy - 0.5) / 0.32) ** 2)) * 0.92
+        d.line([(cx - half, y + s * fy), (cx + half, y + s * fy)], fill=0, width=max(1, int(s * 0.03)))
+    # Franja.
+    for k in (-0.08, 0.0, 0.08):
+        d.line([(cx + s * k, y + s * 0.90), (cx + s * k, y + s * 1.0)],
+               fill=255, width=max(1, int(s * 0.025)))
+
+
 ICONS = {
     "pouch": icon_pouch,
     "mask": icon_oni_mask,
@@ -231,6 +347,12 @@ ICONS = {
     "gear": icon_gear,
     "bust": icon_bust,
     "coin": icon_mon_coin,
+    "friends": icon_friends,
+    "crossed": icon_crossed,
+    "scroll": icon_scroll_check,
+    "news": icon_news,
+    "banner": icon_banner,
+    "lantern": icon_lantern,
 }
 
 
@@ -428,6 +550,12 @@ PLATES = (
     # nome,      largura, altura, icone,    cta,   circular
     ("shop", 320, 76, "pouch", False, False),
     ("chars", 320, 76, "mask", False, False),
+    ("friends", 320, 76, "friends", False, False),
+    ("multiplayer", 320, 76, "crossed", False, False),
+    ("missions", 320, 76, "scroll", False, False),
+    ("news", 320, 76, "news", False, False),
+    ("club", 320, 76, "banner", False, False),
+    ("events", 320, 76, "lantern", False, False),
     ("play", 380, 92, "katana", True, False),
     ("settings", 68, 68, "gear", False, True),
 )
