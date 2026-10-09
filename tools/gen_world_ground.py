@@ -108,17 +108,17 @@ def wrap_dx(xx, cx, w):
 
 def body_w1(rng):
     """Pedra de trilha com musgo e folhas (combina com o bambuzal)."""
-    cell, edge = voronoi(rng, W, FILL_H, 5, 3, ystretch=1.35)
+    cell, edge = voronoi(rng, W, FILL_H, 8, 5, ystretch=1.3)  # pedras ~60% do tamanho anterior
     n = fbm(rng, W, FILL_H, 6, 6)
-    tone = rng.random(15)[cell]
+    tone = rng.random(40)[cell]
     t = 0.30 + 0.35 * tone + 0.25 * (n - 0.5)
-    img = ramp(t, [(0.0, (34, 42, 52)), (0.5, (66, 78, 84)), (1.0, (98, 108, 108))])
+    img = ramp(t, [(0.0, (40, 34, 26)), (0.5, (86, 72, 52)), (1.0, (124, 106, 74))])  # terroso marrom-oliva
     # juntas escuras (com leve esverdeado de musgo)
     joint = np.clip(1 - edge / 3.2, 0, 1)[..., None]
-    img = img * (1 - joint * 0.78) + np.array([14, 22, 20]) * joint * 0.78
+    img = img * (1 - joint * 0.78) + np.array([22, 34, 20]) * joint * 0.78
     # musgo em manchas, sobretudo perto das juntas
     moss = np.clip((fbm(rng, W, FILL_H, 5, 5) - 0.52) * 4 + joint[..., 0] * 0.6, 0, 1)[..., None]
-    img = img * (1 - moss * 0.55) + np.array([52, 92, 58]) * moss * 0.55
+    img = img * (1 - moss * 0.55) + np.array([58, 98, 52]) * moss * 0.6
     return img
 
 
@@ -196,17 +196,19 @@ def body_w4(rng):
 
 
 def body_w5(rng):
-    """Obsidiana rachada com brasa nas fissuras (Céu Vermelho)."""
-    cell, edge = voronoi(rng, W, FILL_H, 5, 4, ystretch=1.2)
+    """Obsidiana escura com poucas veias de brasa (Céu Vermelho)."""
+    cell, edge = voronoi(rng, W, FILL_H, 3, 3, ystretch=1.2)  # células maiores, ~40% das fissuras
     n = fbm(rng, W, FILL_H, 8, 8)
-    tone = rng.random(20)[cell]
+    tone = rng.random(9)[cell]
     t = 0.18 + 0.25 * tone + 0.25 * (n - 0.5)
-    img = ramp(t, [(0.0, (12, 8, 14)), (0.5, (32, 20, 30)), (1.0, (62, 38, 48))])
-    # fissura: núcleo bem quente, halo laranja-avermelhado ao redor
-    core = np.clip(1 - edge / 1.8, 0, 1)[..., None]
-    halo = np.clip(1 - edge / 7.0, 0, 1)[..., None] ** 2
-    ember = ramp(np.clip(n * 1.4, 0, 1), [(0.0, (150, 30, 20)), (1.0, (255, 150, 50))])
-    img = img + halo * np.array([90, 20, 8]) * 0.55
+    img = ramp(t, [(0.0, (12, 8, 14)), (0.5, (30, 19, 28)), (1.0, (58, 36, 46))])
+    # só alguns trechos das fissuras acendem (máscara por ruído), brasa escura
+    vein = np.clip((fbm(rng, W, FILL_H, 3, 3) - 0.45) * 5, 0, 1)
+    core = np.clip(1 - edge / 1.4, 0, 1) * vein
+    halo = np.clip(1 - edge / 3.2, 0, 1) ** 2 * vein
+    ember = ramp(np.clip(n * 1.4, 0, 1), [(0.0, (92, 22, 16)), (1.0, (170, 78, 30))])
+    img = img + halo[..., None] * np.array([60, 14, 6]) * 0.4
+    core = core[..., None] * 0.8
     img = img * (1 - core) + ember * core
     return img
 
@@ -293,7 +295,7 @@ def lip_w5(img, rng):
     img = np.where(crust, shade, img)
     n = pnoise(rng, W, 1, 10, 1)[0]
     vein = np.exp(-((yy - 6.5) ** 2) / 2.2) * (0.45 + 0.55 * n[None, :])
-    return img + vein[..., None] * np.array([230, 90, 30]) * 0.55
+    return img + vein[..., None] * np.array([160, 60, 24]) * 0.3
 
 
 LIPS = {1: lip_w1, 2: lip_w2, 3: lip_w3, 4: lip_w4, 5: lip_w5}
