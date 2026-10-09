@@ -1,8 +1,8 @@
 {
-	"version_code": 16,
-	"version_name": "0.0.16",
-	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.16/TreinamentoHashira.apk",
-	"changelog": "Diário no hub, música de cada mundo, fundos novos e golpes que acompanham a animação.",
-	"size_bytes": 169532843,
-	"sha256": "15195887f57caa59432d71a30cc8cd51e6f5d1ee150c3ab65f285b0e67868289"
+	"version_code": 17,
+	"version_name": "0.0.17",
+	"apk_url": "https://github.com/Pasqualotty/treinamentohashiragame/releases/download/v0.0.17/TreinamentoHashira.apk",
+	"changelog": "Visual novo: cacadores e onis com cara propria, fases sem emenda no fundo, hub e mapa novos, telas com arte e cerimonias de fase.",
+	"size_bytes": 172529145,
+	"sha256": "e29bd9446708f635c76e59d52efbed46611cfcda0b65249e85c407ec1dde853f"
 }
