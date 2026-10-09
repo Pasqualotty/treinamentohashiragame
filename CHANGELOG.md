@@ -1,5 +1,19 @@
 # Changelog — Treinamento Hashira
 
+## 0.0.17 — animações e layout do jogo inteiro (2026-10-09)
+
+- Caçadores com altura certa e pés no chão em todas as poses (escala pelo desenho, não pela textura). Os 11 caçadores que ficavam parados como estátua agora respiram, dão antecipação no golpe e têm dash.
+- Onis com cara própria: elite, charger, atirador e os 5 chefes têm silhueta e cor diferentes do oni fraco. Morte com queda, esmaecimento e poof; chefe mais lento e com flash.
+- Fase: dica de teclado não cobre mais a barra de vida (e some no celular), chip de onda mostra quantos onis faltam, botão "Mapa" solto saiu (o pause já tem). Barra de vida com rastro de dano, respiração em 4 segmentos, acentos corrigidos.
+- Cerimônia de fase: cartão com letterbox, título em Cinzel e objetivo; faixa "ONDA 2 / 3"; "FASE CONCLUÍDA" com moedas contando e XP. Portal de saída virou um torii com corrente (fechado) e brilho + fagulhas (aberto).
+- O caçador nasce à direita do joystick (não mais embaixo dele).
+- Fundos sem emenda no meio da tela em todos os mundos; chão próprio por mundo (trilha de pedra, chapa de trem, paralelepípedo, pedra de castelo, obsidiana); atmosfera e luz por mundo (fagulhas no trem, pétalas no distrito, poeira no castelo, brasas no céu vermelho); silhuetas de primeiro plano; chefes mais sombrios.
+- Hub: cada placa com o próprio ícone (bolsa, máscara, bustos, katanas cruzadas, pergaminho, sino, brasão, lanterna), barra de XP com badge de nível, entrada animada, botões que respondem ao toque, fagulhas em volta do caçador.
+- Mapa: medalhões por estado com o rótulo embaixo (o cadeado não cobre mais o texto), um título só, abas com nome do mundo, fundo próprio em W2–W5 com cross-fade, tinta dourada fluindo no caminho aberto.
+- Loja, Personagens, Ajustes, Missões, Notícias, Clube, Eventos, Créditos e Nome: fundo com arte + vinheta, cards entrando em cascata, botões com bounce, "← Voltar" sempre no mesmo canto. Troca de tela com cortina diagonal e filete dourado.
+- Espaço entre palavras voltou ao normal (texto não parece mais justificado).
+- Correção: abrir o hub com um caçador trancado selecionado não reseta mais para o Tanjiro.
+
 ## 0.0.16 — diário, música e mundos (2026-10-02)
 
 - Hub: Missões, Notícias, Clube, Eventos e nível de caçador. Tudo no aparelho. O XP não muda o dano da loja.

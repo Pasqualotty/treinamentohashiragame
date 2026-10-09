@@ -1,11 +1,30 @@
 # Status do projeto — Treinamento Hashira
 
-**Atualizado:** 2026-10-02 (0.0.16: diário, BGM por mundo, fundos e sheets)
+**Atualizado:** 2026-10-09 (0.0.17: uplift visual — animações e layout do jogo inteiro)
 **Marca:** **MVP W1 + 5 mundos + elenco 15** 
 **Fonte de verdade deste resumo:** este arquivo + `CHANGELOG.md`  
 **Checklist detalhado (marcação manual no browser):** `docs/CHECKLIST-MESTRE.html`  
 **Playtest humano 10 min:** `docs/PLAYTEST-SOBRINHO.md`  
 **GDD / decisões:** `docs/GDD-DECISOES.md`
+
+---
+
+## Uplift visual 2026-10-09 (0.0.17)
+
+Seis frentes paralelas (contrato em `docs/uplift-visual/contrato.md`, qualidade por frente em `docs/uplift-visual/qualidade-f*.md`):
+
+| Frente | O que mudou | Prova |
+|--------|-------------|-------|
+| F1 personagens | escala por bbox (`SpriteFit` + `fit.json`), poses estáticas vivas (`StaticPose`), 8 onis distintos (`tools/gen_oni_variants.py`), pipeline `EnemyAnim` (frames opcionais), morte com cerimônia | `smoke_f1_sprite_fit` |
+| F2 hud-cerimônia | HUD sem sobreposição, rastro de dano, chip de onda com onis, `CeremonyCard` com letterbox/Cinzel, portal torii, spawn fora do joystick (`StageChrome`) | `smoke_f2_stage_chrome` |
+| F3 fundos | `WorldBackdrop.dress`: espelho sem emenda, chão por mundo (`tools/gen_world_ground.py`), atmosfera/luz/silhuetas (`tools/gen_world_fg.py`) | `smoke_f3_backdrop` |
+| F4 telas-meta | `MetaBackdrop`, `UiMotion`, `MetaChrome.setup_screen`, cortina diagonal em `transition.gd` | `smoke_f4_meta_screens` |
+| F5 hub-mapa | ícone por placa (`tools/gen_hub_art.py`), XP em chrome, entrada animada; mapa com medalhões (`tools/gen_map_art.py`), chips, abas, fundo por mundo | `smoke_f5_hub_mapa` |
+| F6 modos | HUD do duelo e do mapa de batalha com chrome, rastro de dano, fim de partida com cerimônia, despill das franjas magenta | `smoke_f6_modos` |
+
+Sem arte gerada por IA nesta rodada (sem créditos): tudo é código, PIL determinístico ou composição dos PNG existentes. `smoke_diario` e `smoke_character_select` estavam vermelhos na `main` (data fixa no teste; getter que resetava o personagem) e foram corrigidos e registrados na suíte.
+
+**Ainda por fazer:** frames de animação reais para os onis (pipeline pronto, só faltam PNG), hurtbox dos onis cobre ~44 % do desenho (regra de combate, não mudou), teste no aparelho (bounce/toque/fps).
 
 ---
 
