@@ -6,15 +6,15 @@
 
 [sub_resource type="FontVariation" id="FontVar_body"]
 base_font = ExtResource("1_body_reg")
-spacing_space = 6
+spacing_space = 2
 
 [sub_resource type="FontVariation" id="FontVar_semi"]
 base_font = ExtResource("2_body_semi")
-spacing_space = 6
+spacing_space = 2
 
 [sub_resource type="FontVariation" id="FontVar_bold"]
 base_font = ExtResource("3_body_bold")
-spacing_space = 6
+spacing_space = 2
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
 bg_color = Color(0.109804, 0.137255, 0.188235, 0.92)
