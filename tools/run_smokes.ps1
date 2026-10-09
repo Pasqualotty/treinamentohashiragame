@@ -238,6 +238,13 @@ $smokeList = @(
         Script = "res://scripts/qa/smoke_f2_stage_chrome.gd"
         PassMarker = "=== F2 STAGE_CHROME PASS ==="
         FailMarker = "=== F2 STAGE_CHROME FAIL ==="
+    },
+    [pscustomobject]@{
+        Name = "smoke_f3_backdrop"
+        Script = "res://scripts/qa/smoke_f3_backdrop.gd"
+        PassMarker = "=== F3 BACKDROP PASS ==="
+        FailMarker = "=== F3 BACKDROP FAIL ==="
+        TimeoutSec = 180
     }
 )
 
