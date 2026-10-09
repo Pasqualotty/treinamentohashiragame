@@ -27,6 +27,7 @@ func _run() -> void:
 		return
 	_check_player_spawn(stage)
 	_check_goal(stage)
+	await _check_goal_chip(stage)
 	_check_no_duplicate_wave_label(stage)
 	_check_no_overlay_hint(stage)
 	await _check_hud(stage)
@@ -77,6 +78,21 @@ func _check_goal(stage: Node) -> void:
 	if goal.is_locked():
 		_fail("set_locked(false) não destrancou")
 	goal.set_locked(true)
+
+
+func _check_goal_chip(stage: Node) -> void:
+	var chip := stage.get_node_or_null("Goal/PortalChip") as Label
+	if chip == null:
+		return
+	if chip.visible:
+		_fail("chip do portal visível com o torii fora da tela")
+	var players := get_nodes_in_group("player")
+	(players[0] as Node2D).global_position.x = 1300.0
+	for i in 40:
+		await process_frame
+	if not chip.visible:
+		_fail("chip do portal invisível com o torii na tela")
+	(players[0] as Node2D).global_position.x = 380.0
 
 
 func _check_no_duplicate_wave_label(stage: Node) -> void:

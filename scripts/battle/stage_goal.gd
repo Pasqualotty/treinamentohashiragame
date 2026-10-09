@@ -43,6 +43,15 @@ func _ready() -> void:
 	set_locked(true)
 
 
+## O chip só aparece quando o centro do torii está dentro da tela; fora disso
+## ele vazaria um pedaço cortado na borda.
+func _process(_delta: float) -> void:
+	if _chip == null:
+		return
+	var sx: float = get_global_transform_with_canvas().origin.x
+	_chip.visible = sx >= 0.0 and sx <= get_viewport().get_visible_rect().size.x
+
+
 func is_locked() -> bool:
 	return _locked
 
